@@ -1,7 +1,7 @@
 """load_skill som værktøj, så en LLM selv kan hente en skill.
 
 Det er døren mellem lag 4 og lag 3: værktøjet passer i MCP-lagets stik (Tool),
-så agenten kan bruge det på præcis samme måde som get_time og search_docs.
+så agenten kan bruge det på præcis samme måde som search_requirements og read_code_file.
 """
 from MCP.domain.models import ToolSpec
 from Skills.application.skill_service import SkillService

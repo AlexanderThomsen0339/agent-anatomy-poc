@@ -1,4 +1,4 @@
-"""Dokumentsøgningen: slår op i bibliotekets dokumenter fra lag 2.
+"""Kravsøgningen: slår op i user stories og testcases fra lag 2.
 
 Det er RAG lavet om til et værktøj. Nu er det ikke koden, der altid søger først,
 men LLM'en, der selv vælger, om og hvad der skal søges efter (agentisk RAG).
@@ -7,13 +7,13 @@ from MCP.domain.models import ToolSpec
 from RAG.domain.ports import SearchIndex
 
 
-class DocsSearchTool:
+class RequirementsSearchTool:
 
     spec = ToolSpec(
-        name="search_docs",
+        name="search_requirements",
         description=(
-            "Søger i bibliotekets egne dokumenter: åbningstider, lån, lånerkort, "
-            "personale, ferie, onboarding og IT. Brug korte søgeord."
+            "Søger i user stories, acceptkriterier og testcases for Mit Aalborg Forsyning "
+            "(Mit Overblik, Regninger og Min Profil). Brug korte søgeord eller id'er som US-002 og TC-011."
         ),
         input_schema={
             "type": "object",
@@ -25,7 +25,7 @@ class DocsSearchTool:
     )
 
     def __init__(self, index: SearchIndex, k: int = 3):
-        # Vi får indekset fra lag 2 udefra, allerede fyldt med dokumenter.
+        # Vi får indekset fra lag 2 udefra, allerede fyldt med user stories og testcases.
         self.index = index
         self.k = k
 
@@ -33,4 +33,4 @@ class DocsSearchTool:
         results = self.index.search(arguments["query"], self.k)
         if not results:
             return "Ingen resultater."
-        return "\n".join(f"[{r.chunk.source}] {r.chunk.text}" for r in results)
+        return "\n\n".join(f"[{r.chunk.source}] {r.chunk.text}" for r in results)

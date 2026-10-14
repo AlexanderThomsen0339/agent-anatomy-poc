@@ -2,40 +2,83 @@
 
 POC'en til forretningsdemoen: en udvikler spørger AI'en, om den kode, udvikleren har skrevet, løser opgaven, og AI'en ser i koden og svarer ud fra user stories og testcases.
 
-Mappen er en **fuld kopi** af de fem lag i roden af repoet (LLM, RAG, MCP, Skills, Agent). Originalen røres ikke og står som reference. Alt, hvad Kodetjek skal kunne, bygges her.
+Kodetjek bygger på de samme fem lag som originalen i roden af repoet (LLM, RAG, MCP, Skills, Agent), med samme ports & adapters-struktur. Originalen røres ikke og står som reference, også for forklaringen af lagene i dens README-filer.
 
-## Forskelle fra originalen
+## Flowet
 
-| Hvad | Originalen | Kodetjek |
-|---|---|---|
-| Konfiguration | En `config/` pr. lag | Én samlet [`settings.py`](settings.py) |
-| Data | Markdown-dokumenter om et bibliotek | Derudover `data/` med testcases i xlsx |
-
-Lagenes egne README-filer er kopieret uændret, så hvor de nævner `config/`, gælder `settings.py` i stedet.
+```
+Udvikler: "Løser vores kode US-001 Vis regningsoversigt?"
+   ▼
+Agent ── vælger selv værktøjer ──┬─ load_skill("kodevurdering")   Skills
+                                 ├─ search_requirements(...)      MCP → RAG (xlsx)
+                                 ├─ list_code_files()             MCP → CODE_FOLDER
+                                 └─ read_code_file(...)           MCP → CODE_FOLDER
+   ▼
+Svar: hvert acceptkriterie med henvisning til fil:linje
+```
 
 ## Kom i gang
 
 Kræver Python 3.10 eller nyere. Alle kommandoer køres fra **Kodetjek-mappen**, så lagene her bruges og ikke originalen.
 
 ```bash
-pip install -r ../requirements.txt
 cd Kodetjek
-
-python -m LLM.api.cli "Hvad er en LLM?" --fake
-python -m RAG.api.cli "Hvad koster det at aflevere en bog for sent?" --fake
-python -m MCP.api.cli list
-python -m Skills.api.cli catalog
-python -m Agent.api.cli --fake
+pip install -r requirements.txt
 ```
 
-Uden `--fake` kræves `ANTHROPIC_API_KEY`, som beskrevet i [README i roden](../README.md).
+Sæt `CODE_FOLDER` i [`settings.py`](settings.py) til roden af den kode, der skal tjekkes, fx:
+
+```python
+CODE_FOLDER = Path(r"C:\Users\...\source\repos\MitProjekt")
+```
+
+Kør så agenten:
+
+```bash
+python -m Agent.api.cli "Løser vores kode US-001 Vis regningsoversigt?" --fake
+```
+
+Uden `--fake` tænker Claude, og det kræver `ANTHROPIC_API_KEY`, som beskrevet i [README i roden](../README.md). Koden, agenten læser, sendes så til Claude.
+
+Hvert lag kan også prøves for sig:
+
+```bash
+python -m RAG.api.cli "acceptkriterier download faktura" --fake
+python -m MCP.api.cli list
+python -m MCP.api.cli call search_requirements query="acceptkriterier telefonnummer"
+python -m MCP.api.cli call list_code_files
+python -m Skills.api.cli show kodevurdering
+```
+
+## Hvad ligger hvor
+
+| Lag | Hvad Kodetjek bruger |
+|---|---|
+| `LLM/` | `LLMService` med `AnthropicProvider` eller `FakeProvider`. Bruges af RAG-laget. |
+| `RAG/` | `XlsxLoader` læser `RAG/data/*.xlsx`. Hvert ark bliver ét dokument, og hver user story og testcase bliver ét afsnit i ordsøgningen (`KeywordIndex`). |
+| `MCP/` | Tre værktøjer: `search_requirements` (søger i RAG-indekset), `list_code_files` og `read_code_file` (læser kun i `CODE_FOLDER`, aldrig uden for). Kan også startes som MCP-server med `python -m MCP.api.mcp_server`. |
+| `Skills/` | Én skill, `kodevurdering`, der beskriver hvordan svaret skal se ud. |
+| `Agent/` | `ClaudeBrain` med API-nøgle, `RuleBrain` med `--fake`. |
+| [`settings.py`](settings.py) | Al konfiguration: model, datamappe, kodemappe, systemprompt, antal skridt. |
 
 ## Data
 
-`data/` indeholder user stories og testcases for Mit Aalborg Forsyning:
+`RAG/data/` indeholder user stories og testcases for Mit Aalborg Forsyning:
 
 - `Mit Aalborg Forsyning_Mit Overblik_Testcases.xlsx`
 - `Mit Aalborg Forsyning_Regninger_Testcases.xlsx`
 - `Testcases_minprofil_mitaalborgforsyning.xlsx`
 
-De bruges endnu ikke af lagene. Det er næste skridt.
+## Udviklerens kode
+
+`list_code_files` og `read_code_file` kan kun læse, og kun i `CODE_FOLDER`. Er mappen et git-repo, følger `list_code_files` repoets `.gitignore`, så `bin`, `obj`, `.vs` og lignende ikke kommer med. Nye filer, der ikke er committet endnu, kommer med.
+
+## Uden API-nøgle
+
+Med `--fake` bruges `RuleBrain` (`Agent/infrastructure/brains/rule_brain.py`). Den tager spørgsmålet, finder den bedste user story, læser op til fire filer, hvis navne ligner user storyens titel, og viser for hvert acceptkriterie, hvor kriteriets ord står i koden. Værktøjskaldene er ægte, men vurderingen er kun ord-matchning, ikke en AI-vurdering, og det står i svaret.
+
+## Kendte begrænsninger
+
+- **Ordsøgningen finder kun hele, ens ord.** Spørg med ord fra arkene, fx "acceptkriterier telefonnummer".
+- **Samme id findes i flere ark.** TC-011 findes både i Regninger og Min Profil, så søg med ord og ikke kun id.
+- **`list_code_files` sender alle filnavne.** I en stor løsning er det mange tokens, når Claude bruges.

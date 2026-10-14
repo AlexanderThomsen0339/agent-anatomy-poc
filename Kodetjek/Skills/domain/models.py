@@ -2,7 +2,7 @@
 
 Hvad er en skill?
 En skill er genbrugelig know-how: en fast opskrift på, hvordan en bestemt
-slags opgave løses hos os. Fx hvordan vi skriver mails, referater eller rykkere.
+slags opgave løses hos os. Fx hvordan vi vurderer, om kode løser en user story.
 """
 
 # Hvorfor kun standardbiblioteket?
