@@ -11,6 +11,7 @@ og browseren viser hvert stykke, så snart det kommer. Så ser man skridtene liv
 med kun Pythons standardbibliotek.
 """
 import argparse
+import re
 from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -25,8 +26,10 @@ HEAD = """<!doctype html>
 <style>
 body { font-family: system-ui, sans-serif; max-width: 860px; margin: 2em auto; padding: 0 1em; }
 textarea { width: 100%; font: inherit; }
-.step { border-left: 3px solid #ccc; padding-left: .8em; margin: .8em 0; color: #555; }
+.step { color: #666; margin: .3em 0; }
 .error { color: #b00; }
+.answer { border: 1px solid #ddd; border-radius: 8px; padding: .5em 1.2em; margin-top: 1.5em; }
+.answer li { margin: .3em 0; }
 pre { white-space: pre-wrap; background: #f4f4f4; padding: 1em; }
 </style></head><body>
 <h1>Kodetjek</h1>
@@ -37,18 +40,45 @@ pre { white-space: pre-wrap; background: #f4f4f4; padding: 1em; }
 """
 
 
+# Hvad hvert værktøj hedder for en bruger, der ikke kender værktøjerne.
+FRIENDLY = {
+    "load_skill": lambda a: "📘 Henter reglerne for en kodevurdering",
+    "search_requirements": lambda a: f"🔎 Slår kravene op: {a.get('query', '')}",
+    "list_code_files": lambda a: "📂 Ser hvilke filer projektet har",
+    "read_code_file": lambda a: f"📄 Læser {a.get('path', '').replace(chr(92), '/').split('/')[-1]}",
+}
+
+
 def render_step(decision: Decision, steps: list[Step]) -> str:
-    """Ét skridt som HTML: hvad agenten tænkte, gjorde og så."""
-    html = '<div class="step">'
-    if decision.text:
-        html += f"<p><b>Tænker:</b> {escape(decision.text)}</p>"
+    """Ét skridt som én kort linje pr. handling, i et sprog brugeren forstår."""
+    html = ""
     for step in steps:
         a, o = step.action, step.observation
-        first_line = o.content.splitlines()[0] if o.content else ""
-        css = ' class="error"' if o.is_error else ""
-        html += f"<p><b>Gør:</b> {escape(a.tool)}({escape(str(a.arguments))})<br>"
-        html += f"<b>Ser:</b> <span{css}>{escape(first_line)}</span></p>"
-    return html + "</div>"
+        label = FRIENDLY.get(a.tool, lambda _: f"⚙️ {a.tool}")(a.arguments)
+        css = "step error" if o.is_error else "step"
+        html += f'<div class="{css}">{escape(label)}{" (fejlede)" if o.is_error else ""}</div>'
+    return html
+
+
+def render_markdown(text: str) -> str:
+    """Den lille smule markdown, svaret bruger: fed, kode og punktlister."""
+    def inline(line: str) -> str:
+        line = escape(line)
+        line = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", line)
+        return re.sub(r"`(.+?)`", r"<code>\1</code>", line)
+
+    html, in_list = "", False
+    for line in text.splitlines():
+        item = re.match(r"\s*[-*]\s+(.*)", line)
+        if item and not in_list:
+            html, in_list = html + "<ul>", True
+        if not item and in_list:
+            html, in_list = html + "</ul>", False
+        if item:
+            html += f"<li>{inline(item.group(1))}</li>"
+        elif line.strip():
+            html += f"<p>{inline(line.lstrip('# '))}</p>"
+    return html + ("</ul>" if in_list else "")
 
 
 def make_handler(agent):
@@ -74,12 +104,11 @@ def make_handler(agent):
                 self.write("</body></html>")
                 return
 
-            self.write("<h2>Skridt</h2>")
+            self.write("<h2>Det gør jeg</h2>")
             try:
                 run = agent.run(question, on_step=lambda d, s: self.write(render_step(d, s)))
-                title = "Svar" if run.finished else "Ikke færdig"
-                self.write(f"<h2>{title}</h2><pre>{escape(run.answer)}</pre>")
-                self.write(f"<p>({len(run.steps)} værktøjskald)</p>")
+                title = "" if run.finished else "<h2>Ikke færdig</h2>"
+                self.write(f'{title}<div class="answer">{render_markdown(run.answer)}</div>')
             except Exception as e:
                 # Fejlen vises på siden, så demoen ikke bare hænger.
                 self.write(f'<h2 class="error">Fejl</h2><pre>{escape(repr(e))}</pre>')
