@@ -26,7 +26,7 @@ python -m LLM.api.cli "Hvad er en LLM?" --fake
 python -m RAG.api.cli "Hvad er acceptkriterierne for download af faktura?" --fake
 python -m MCP.api.cli list
 python -m Skills.api.cli catalog
-python -m Agent.api.cli --fake
+python -m Agent.api.cli "Løser vores kode US-001 Vis regningsoversigt?" --fake
 ```
 
 Uden `--fake` kræves `ANTHROPIC_API_KEY`, som beskrevet i [README i roden](../README.md).
@@ -46,3 +46,9 @@ MCP-laget har værktøjet `search_requirements`, som søger i de samme data, så
 ## Udviklerens kode
 
 `list_code_files` og `read_code_file` lader agenten se den kode, der skal tjekkes. De kan kun læse, og kun i mappen `CODE_FOLDER` i `settings.py` (som standard `Kodetjek/eksempel/`). Peg `CODE_FOLDER` på en anden mappe for at tjekke anden kode.
+
+## Agenten
+
+Agenten er en kodetjekker: systemprompten i `settings.py` beder den slå kravene op med `search_requirements`, læse koden og svare efter skillen `kodevurdering`.
+
+Uden API-nøgle (`--fake`) bruges `RuleBrain` (`Agent/infrastructure/brains/rule_brain.py`). Den tager dit spørgsmål, finder den bedste user story, læser de filer, hvis navne ligner user storyens titel, og viser for hvert acceptkriterie, hvor kriteriets ord står i koden. Værktøjskaldene er ægte, men vurderingen er kun ord-matchning, ikke en AI-vurdering, og det står i svaret.

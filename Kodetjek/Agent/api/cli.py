@@ -2,7 +2,8 @@
 
 Kør fra projektets rod:
     python -m Agent.api.cli --fake
-    python -m Agent.api.cli "Hvornår har biblioteket åbent om lørdagen?"
+    python -m Agent.api.cli "Løser vores kode US-002 Opdater telefonnummer?" --fake
+    python -m Agent.api.cli "Løser vores kode US-001 Vis regningsoversigt?"
 """
 import argparse
 
@@ -26,15 +27,15 @@ def main():
     # 1. Læs hvad brugeren skrev i terminalen.
     parser = argparse.ArgumentParser()
     parser.add_argument("question", nargs="?", help="Opgaven til agenten")
-    parser.add_argument("--fake", action="store_true", help="Brug lærlingen med fast manuskript, ingen API-nøgle")
+    parser.add_argument("--fake", action="store_true", help="Brug den regelbaserede lærling, ingen API-nøgle")
     args = parser.parse_args()
 
     # Lærlingen kan kun sit manuskript, så med --fake bruges demo-opgaven.
-    if args.fake:
-        from Agent.infrastructure.brains.scripted_brain import DEMO_QUESTION
-        question = DEMO_QUESTION
-    elif args.question:
+    if args.question:
         question = args.question
+    elif args.fake:
+        from Agent.infrastructure.brains.rule_brain import DEMO_QUESTION
+        question = DEMO_QUESTION
     else:
         parser.error("Skriv en opgave, eller brug --fake")
 

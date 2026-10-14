@@ -18,8 +18,8 @@ def build_agent(fake: bool) -> AgentService:
 
     # Hjernen. Det er det eneste sted i laget, hvor den bliver valgt.
     if fake:
-        from Agent.infrastructure.brains.scripted_brain import DEMO_SCRIPT, ScriptedBrain
-        brain = ScriptedBrain(DEMO_SCRIPT)
+        from Agent.infrastructure.brains.rule_brain import RuleBrain
+        brain = RuleBrain()
     else:
         from Agent.infrastructure.brains.claude_brain import ClaudeBrain
         brain = ClaudeBrain(model=settings.MODEL)
