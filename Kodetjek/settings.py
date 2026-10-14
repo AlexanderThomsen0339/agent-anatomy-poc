@@ -21,7 +21,7 @@ MODEL = "claude-sonnet-5-5"
 BRAIN = "gemini"
 
 # Gemini-modellen, når BRAIN er "gemini".
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.8-flash"
 
 # Nøglen til Gemini. Læses fra miljøvariablen GEMINI_API_KEY, hvis den er sat.
 # Midlertidigt kan nøglen skrives direkte her lokalt, men commit den aldrig.
