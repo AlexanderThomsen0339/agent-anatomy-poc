@@ -42,6 +42,7 @@ De orange bokse er det, værktøjerne rører i verden udenfor. Resten af laget s
 | `tools/time_tool.py` | `get_time` | Giver dato og klokkeslæt. En LLM ved aldrig selv, hvad klokken er. |
 | `tools/calculator_tool.py` | `calculate` | Regner præcist med to tal. LLM'er kan regne forkert. |
 | `tools/docs_search_tool.py` | `search_docs` | Søger i bibliotekets dokumenter fra lag 2 |
+| `tools/requirements_search_tool.py` | `search_requirements` | Søger i user stories og testcases (xlsx) fra lag 2 |
 
 Alle tre opfylder porten `Tool` fra `domain/ports.py`: de har et `spec` og en `run()`.
 

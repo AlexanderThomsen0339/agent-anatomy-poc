@@ -41,4 +41,4 @@ Uden `--fake` kræves `ANTHROPIC_API_KEY`, som beskrevet i [README i roden](../R
 
 RAG-laget læser dem med `XlsxLoader` (`RAG/infrastructure/loaders/xlsx_loader.py`). Hvert ark bliver ét dokument, og hver user story og testcase bliver ét afsnit, som ordsøgningen kan finde. Testresultaterne pr. testdato kommer med i teksten.
 
-MCP- og Agent-laget søger stadig i bibliotekets dokumenter. Det er næste skridt.
+MCP-laget har værktøjet `search_requirements`, som søger i de samme data, så agenten kan slå kravene op selv. Bibliotekets `search_docs` er der stadig, indtil agenten er lavet om til kodetjek.

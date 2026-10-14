@@ -20,7 +20,7 @@ LLM_SYSTEM_PROMPT = "Svar kort på dansk."
 
 
 # 2. RAG
-# Mappen med user stories og testcases (.xlsx), som RAG-laget søger i.
+# Mappen med user stories og testcases (.xlsx), som RAG-laget og MCP-lagets search_requirements søger i.
 DATA_FOLDER = ROOT / "RAG" / "data"
 
 # Bibliotekets dokumenter fra originalen. Bruges stadig af MCP-lagets search_docs.
