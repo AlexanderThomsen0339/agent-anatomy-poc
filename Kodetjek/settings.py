@@ -23,9 +23,6 @@ LLM_SYSTEM_PROMPT = "Svar kort på dansk."
 # Mappen med user stories og testcases (.xlsx), som RAG-laget og MCP-lagets search_requirements søger i.
 DATA_FOLDER = ROOT / "RAG" / "data"
 
-# Bibliotekets dokumenter fra originalen. Bruges stadig af MCP-lagets search_docs.
-DOCS_FOLDER = ROOT / "RAG" / "data" / "docs"
-
 # Hvor mange afsnit der sendes med til modellen.
 TOP_K = 3
 
@@ -34,7 +31,7 @@ TOP_K = 3
 # Navnet, MCP-klienter (fx Claude Desktop) ser serveren under.
 SERVER_NAME = "kodetjek-tools"
 
-# Hvor mange afsnit dokumentsøgningen returnerer.
+# Hvor mange afsnit kravsøgningen returnerer.
 SEARCH_K = 3
 
 # Mappen med udviklerens kode, som list_code_files og read_code_file må læse i.

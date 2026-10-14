@@ -1,7 +1,7 @@
 """Kravsøgningen: slår op i user stories og testcases fra lag 2.
 
-Samme idé som search_docs, men indekset er fyldt med xlsx-dataene i stedet for
-bibliotekets dokumenter. Det er LLM'en, der selv vælger, om og hvad der skal søges efter.
+Det er RAG lavet om til et værktøj. Nu er det ikke koden, der altid søger først,
+men LLM'en, der selv vælger, om og hvad der skal søges efter (agentisk RAG).
 """
 from MCP.domain.models import ToolSpec
 from RAG.domain.ports import SearchIndex
