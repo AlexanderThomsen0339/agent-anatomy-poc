@@ -23,6 +23,10 @@ BRAIN = "gemini"
 # Gemini-modellen, når BRAIN er "gemini".
 GEMINI_MODEL = "gemini-3.8-flash"
 
+# Hvor meget Gemini tænker, før den svarer: "minimal", "low", "medium" eller "high".
+# Mere tænkning giver grundigere svar, men hvert skridt tager længere tid.
+GEMINI_THINKING = "low"
+
 # Nøglen til Gemini. Læses fra miljøvariablen GEMINI_API_KEY, hvis den er sat.
 # Midlertidigt kan nøglen skrives direkte her lokalt, men commit den aldrig.
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")

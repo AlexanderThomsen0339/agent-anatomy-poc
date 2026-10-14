@@ -12,10 +12,11 @@ from MCP.domain.models import ToolSpec
 
 class GeminiBrain:
 
-    def __init__(self, model: str, api_key: str):
+    def __init__(self, model: str, api_key: str, thinking: str = "low"):
         # Nøglen kommer fra settings.py. Det er det eneste sted, den står.
         self.client = genai.Client(api_key=api_key)
         self.model = model
+        self.thinking = thinking
 
         # Hvorfor gemme Geminis egne svar?
         # Gemini sender en signatur med sine værktøjskald, som skal sendes uændret tilbage.
@@ -39,6 +40,8 @@ class GeminiBrain:
                 ])],
                 # Agent-laget kalder selv værktøjerne, så SDK'en må ikke gøre det.
                 automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+                # Mindre tænkning pr. skridt gør agenten hurtigere.
+                thinking_config=types.ThinkingConfig(thinking_level=self.thinking.upper()),
             ),
         )
 
