@@ -9,7 +9,7 @@ Mappen er en **fuld kopi** af de fem lag i roden af repoet (LLM, RAG, MCP, Skill
 | Hvad | Originalen | Kodetjek |
 |---|---|---|
 | Konfiguration | En `config/` pr. lag | Én samlet [`settings.py`](settings.py) |
-| Data | Markdown-dokumenter om et bibliotek | RAG-laget søger i `data/` med user stories og testcases i xlsx |
+| Data | Markdown-dokumenter om et bibliotek | RAG-laget søger i `RAG/data/` med user stories og testcases i xlsx |
 | Pakker | `requirements.txt` i roden | Egen [`requirements.txt`](requirements.txt), som også har `openpyxl` |
 
 Lagenes egne README-filer er kopieret uændret, så hvor de nævner `config/`, gælder `settings.py` i stedet.
@@ -33,7 +33,7 @@ Uden `--fake` kræves `ANTHROPIC_API_KEY`, som beskrevet i [README i roden](../R
 
 ## Data
 
-`data/` indeholder user stories og testcases for Mit Aalborg Forsyning:
+`RAG/data/` indeholder user stories og testcases for Mit Aalborg Forsyning:
 
 - `Mit Aalborg Forsyning_Mit Overblik_Testcases.xlsx`
 - `Mit Aalborg Forsyning_Regninger_Testcases.xlsx`
