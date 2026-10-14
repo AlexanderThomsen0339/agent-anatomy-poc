@@ -21,7 +21,7 @@ MODEL = "claude-sonnet-5-5"
 BRAIN = "gemini"
 
 # Gemini-modellen, når BRAIN er "gemini".
-GEMINI_MODEL = "gemini-3.8-flash"
+GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 # Hvor meget Gemini tænker, før den svarer: "minimal", "low", "medium" eller "high".
 # Mere tænkning giver grundigere svar, men hvert skridt tager længere tid.
