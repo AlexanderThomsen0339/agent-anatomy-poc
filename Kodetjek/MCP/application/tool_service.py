@@ -17,7 +17,7 @@ class ToolService:
         """Kalder ét værktøj. Går det galt, får man en fejl tilbage i stedet for et nedbrud."""
         tool = self.tools.get(call.name)
         if tool is None:
-            return ToolResult(call.name, f"Ukendt værktøj: {call.name}", is_error=True)
+            return ToolResult(call.name, f"Unknown tool: {call.name}", is_error=True)
 
         try:
             content = tool.run(call.arguments)

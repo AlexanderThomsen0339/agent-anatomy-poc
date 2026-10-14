@@ -1,7 +1,7 @@
 """Lærlingen: følger faste regler, uden internet og uden API-nøgle.
 
 Den tænker ikke selv, men den arbejder på det rigtige spørgsmål og de rigtige data:
-1. Henter skillen kodevurdering og søger kravene frem.
+1. Henter skillen code-review og søger kravene frem.
 2. Vælger den user story, der passer bedst, og lister udviklerens filer.
 3. Læser de filer, hvis navne ligner user storyens titel.
 4. Skriver en rapport, hvor hvert acceptkriterie får de steder i koden, hvor dets ord står.
@@ -26,7 +26,7 @@ STOP_WORDS = {
     "findes", "ikke", "både", "efter", "under", "mindst", "minimum", "valgte", "løsningen", "systemet",
 }
 
-DEMO_QUESTION = "Løser vores kode US-001 Vis regningsoversigt?"
+DEMO_QUESTION = "Does our code solve US-001 Vis regningsoversigt?"
 
 
 def keywords(text: str) -> list[str]:
@@ -44,27 +44,27 @@ class RuleBrain:
         if step == 0:
             # "acceptkriterier" i søgningen trækker user stories frem foran enkelte testcases.
             return Decision(
-                "Jeg henter skillen til kodevurdering og søger kravene frem.",
+                "I load the code review skill and look up the requirements.",
                 [
-                    Action("1", "load_skill", {"name": "kodevurdering"}),
+                    Action("1", "load_skill", {"name": "code-review"}),
                     Action("2", "search_requirements", {"query": f"{question} acceptkriterier"}),
                 ],
             )
 
         story = self._pick_story(seen.get("2", ""), question)
         if story is None:
-            return Decision("Jeg fandt ingen user story, der passer til spørgsmålet. Prøv med id'et, fx US-002.")
+            return Decision("I found no user story matching the question. Try with the id, e.g. US-002.")
 
         if step == 1:
             return Decision(
-                f"Den bedste user story er {story['id']} {story['title']}. Nu ser jeg, hvilke filer der findes.",
+                f"The best matching user story is {story['id']} {story['title']}. Now I list the files.",
                 [Action("3", "list_code_files")],
             )
 
         files = self._pick_files(seen.get("3", ""), story["title"])
         if step == 2 and files:
             return Decision(
-                f"Disse filer ligner \"{story['title']}\" på navnet. Jeg læser dem.",
+                f"These file names look like \"{story['title']}\". I read them.",
                 [Action(f"read-{i}", "read_code_file", {"path": path}) for i, path in enumerate(files)],
             )
 
@@ -124,13 +124,13 @@ class RuleBrain:
 
     def _report(self, story: dict, code: dict[str, str]) -> str:
         lines = [
-            f"Regelbaseret vurdering af {story['id']} {story['title']} (ingen AI: kun ord-matchning).",
+            f"Rule-based review of {story['id']} {story['title']} (no AI: word matching only).",
             "",
         ]
         if not code:
-            lines.append("Jeg fandt ingen filer, hvis navne ligner user storyen, så jeg har ikke læst noget kode.")
+            lines.append("I found no files whose names look like the user story, so I have not read any code.")
         else:
-            lines.append("Læste filer: " + ", ".join(code))
+            lines.append("Files read: " + ", ".join(code))
         lines.append("")
 
         # Titlens ord står i alle de læste filer (det er derfor, de blev valgt), så de tæller ikke som spor.
@@ -139,17 +139,18 @@ class RuleBrain:
             hits = self._find(criterion, code, title_words)
             if hits:
                 lines.append(f"🔎 {number}. {criterion}")
-                lines.append(f"     Spor i koden: {', '.join(hits)}")
+                lines.append(f"     Found in code: {', '.join(hits)}")
             else:
                 lines.append(f"❓ {number}. {criterion}")
-                lines.append("     Ingen spor i de læste filer.")
+                lines.append("     Not found in the files read.")
 
         lines += [
             "",
-            f"Testcases: {story['testcases']}",
+            f"Test cases: {story['testcases']}",
             "",
-            "🔎 betyder kun, at kriteriets ord står i koden, ikke at kriteriet er opfyldt. "
-            "En rigtig vurdering kræver Claude (kør uden --fake med en API-nøgle).",
+            "🔎 only means the criterion's words appear in the code, not that the criterion is met. "
+            "The criteria are quoted in Danish from the requirements. "
+            "A real review needs an AI model (run without --fake with an API key).",
         ]
         return "\n".join(lines)
 

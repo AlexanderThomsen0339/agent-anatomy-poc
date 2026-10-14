@@ -46,4 +46,4 @@ class AgentService:
                 on_step(decision, new_steps)
 
         # Grænsen for antal skridt beskytter mod en agent, der kører i ring.
-        return AgentRun("Jeg nåede ikke at blive færdig inden for grænsen.", steps, finished=False)
+        return AgentRun("I did not finish within the step limit.", steps, finished=False)

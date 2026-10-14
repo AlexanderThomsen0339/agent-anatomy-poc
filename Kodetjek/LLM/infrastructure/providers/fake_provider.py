@@ -7,7 +7,7 @@ from LLM.domain.models import Message, Response
 
 class FakeProvider:
 
-    def __init__(self, answer: str = "Dette er et falsk svar."):
+    def __init__(self, answer: str = "This is a fake answer."):
         self.answer = answer
 
     def complete(self, system: str, messages: list[Message]) -> Response:

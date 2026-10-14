@@ -22,7 +22,7 @@ class LLMService:
     def chat(self, messages: list[Message]) -> Response:
         """Send en hel samtale. Modellen husker intet selv, så alt skal med."""
         if not messages:
-            raise ValueError("Der skal være mindst én besked.")
+            raise ValueError("There must be at least one message.")
 
         response = self.provider.complete(self.system, messages)
 

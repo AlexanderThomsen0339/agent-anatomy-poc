@@ -29,10 +29,10 @@ def main():
     # 1. Læs hvad brugeren skrev i terminalen.
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("list", help="Vis alle værktøjer")
-    call_parser = commands.add_parser("call", help="Kald et værktøj")
+    commands.add_parser("list", help="Show all tools")
+    call_parser = commands.add_parser("call", help="Call a tool")
     call_parser.add_argument("name")
-    call_parser.add_argument("arguments", nargs="*", help="navn=værdi")
+    call_parser.add_argument("arguments", nargs="*", help="name=value")
     args = parser.parse_args()
 
     # 2. Byg servicen med alle værktøjer.
@@ -41,7 +41,7 @@ def main():
     # 3. Vis værktøjerne eller kald ét.
     if args.command == "list":
         for spec in service.list_tools():
-            params = ", ".join(spec.input_schema.get("properties", {})) or "ingen"
+            params = ", ".join(spec.input_schema.get("properties", {})) or "none"
             print(f"{spec.name}({params})\n  {spec.description}\n")
     else:
         result = service.call(ToolCall(args.name, parse_arguments(args.arguments)))

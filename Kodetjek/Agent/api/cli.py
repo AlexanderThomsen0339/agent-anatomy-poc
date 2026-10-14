@@ -2,8 +2,8 @@
 
 Kør fra projektets rod:
     python -m Agent.api.cli --fake
-    python -m Agent.api.cli "Løser vores kode US-002 Opdater telefonnummer?" --fake
-    python -m Agent.api.cli "Løser vores kode US-001 Vis regningsoversigt?"
+    python -m Agent.api.cli "Does our code solve US-002?" --fake
+    python -m Agent.api.cli "Does our code solve US-001?"
 """
 import argparse
 
@@ -13,21 +13,21 @@ from Agent.domain.models import Decision, Step
 
 def show_step(decision: Decision, steps: list[Step]) -> None:
     """Viser hvert skridt, mens agenten arbejder."""
-    print(f"Tænker: {decision.text}")
+    print(f"Thinking: {decision.text}")
     for step in steps:
         a, o = step.action, step.observation
-        status = "FEJL" if o.is_error else "OK"
-        print(f"  Gør:  {a.tool}({a.arguments})")
+        status = "ERROR" if o.is_error else "OK"
+        print(f"  Doing:  {a.tool}({a.arguments})")
         first_line = o.content.splitlines()[0] if o.content else ""
-        print(f"  Ser:  [{status}] {first_line}")
+        print(f"  Seeing: [{status}] {first_line}")
     print()
 
 
 def main():
     # 1. Læs hvad brugeren skrev i terminalen.
     parser = argparse.ArgumentParser()
-    parser.add_argument("question", nargs="?", help="Opgaven til agenten")
-    parser.add_argument("--fake", action="store_true", help="Brug den regelbaserede lærling, ingen API-nøgle")
+    parser.add_argument("question", nargs="?", help="The task for the agent")
+    parser.add_argument("--fake", action="store_true", help="Use the rule-based apprentice, no API key")
     args = parser.parse_args()
 
     # Lærlingen kan kun sit manuskript, så med --fake bruges demo-opgaven.
@@ -37,19 +37,19 @@ def main():
         from Agent.infrastructure.brains.rule_brain import DEMO_QUESTION
         question = DEMO_QUESTION
     else:
-        parser.error("Skriv en opgave, eller brug --fake")
+        parser.error("Write a task, or use --fake")
 
     # 2. Byg agenten.
     agent = build_agent(args.fake)
 
     # 3. Kør løkken og vis hvert skridt.
-    print(f"Opgave: {question}\n")
+    print(f"Task: {question}\n")
     run = agent.run(question, on_step=show_step)
 
     # 4. Vis svaret.
-    print("Svar:" if run.finished else "Ikke færdig:")
+    print("Answer:" if run.finished else "Not finished:")
     print(run.answer)
-    print(f"\n({len(run.steps)} værktøjskald)")
+    print(f"\n({len(run.steps)} tool calls)")
 
 
 if __name__ == "__main__":

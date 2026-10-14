@@ -28,8 +28,8 @@ def main():
     # 1. Læs hvad brugeren skrev i terminalen.
     parser = argparse.ArgumentParser()
     parser.add_argument("question")
-    parser.add_argument("--stream", action="store_true", help="Vis svaret mens det skrives")
-    parser.add_argument("--fake", action="store_true", help="Brug falsk model, ingen API-nøgle")
+    parser.add_argument("--stream", action="store_true", help="Show the answer while it is written")
+    parser.add_argument("--fake", action="store_true", help="Use a fake model, no API key")
     args = parser.parse_args()
 
     # 2. Byg servicen.

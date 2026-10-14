@@ -7,9 +7,9 @@ Kodetjek bygger på de samme fem lag som originalen i roden af repoet (LLM, RAG,
 ## Flowet
 
 ```
-Udvikler: "Løser vores kode US-001 Vis regningsoversigt?"
+Udvikler: "Does our code solve US-001?"
    ▼
-Agent ── vælger selv værktøjer ──┬─ load_skill("kodevurdering")   Skills
+Agent ── vælger selv værktøjer ──┬─ load_skill("code-review")   Skills
                                  ├─ search_requirements(...)      MCP → RAG (xlsx)
                                  ├─ list_code_files()             MCP → CODE_FOLDER
                                  └─ read_code_file(...)           MCP → CODE_FOLDER
@@ -35,7 +35,7 @@ CODE_FOLDER = Path(r"C:\Users\...\source\repos\MitProjekt")
 Kør så agenten:
 
 ```bash
-python -m Agent.api.cli "Løser vores kode US-001 Vis regningsoversigt?" --fake
+python -m Agent.api.cli "Does our code solve US-001?" --fake
 ```
 
 Uden `--fake` tænker en rigtig model. Hvilken bestemmes af `BRAIN` i `settings.py`:
@@ -44,7 +44,7 @@ Uden `--fake` tænker en rigtig model. Hvilken bestemmes af `BRAIN` i `settings.
 - `"claude"`: Claude (`MODEL`). Kræver `ANTHROPIC_API_KEY`, som beskrevet i [README i roden](../README.md).
 
 ```bash
-python -m Agent.api.cli "Løser vores kode US-001 Vis regningsoversigt?"
+python -m Agent.api.cli "Does our code solve US-001?"
 ```
 
 Koden, agenten læser, sendes til den valgte model. Læg aldrig nøglen i koden.
@@ -62,7 +62,7 @@ python -m RAG.api.cli "acceptkriterier download faktura" --fake
 python -m MCP.api.cli list
 python -m MCP.api.cli call search_requirements query="acceptkriterier telefonnummer"
 python -m MCP.api.cli call list_code_files
-python -m Skills.api.cli show kodevurdering
+python -m Skills.api.cli show code-review
 ```
 
 ## Hvad ligger hvor
@@ -72,7 +72,7 @@ python -m Skills.api.cli show kodevurdering
 | `LLM/` | `LLMService` med `AnthropicProvider` eller `FakeProvider`. Bruges af RAG-laget. |
 | `RAG/` | `XlsxLoader` læser `RAG/data/*.xlsx`. Hvert ark bliver ét dokument, og hver user story og testcase bliver ét afsnit i ordsøgningen (`KeywordIndex`). |
 | `MCP/` | Tre værktøjer: `search_requirements` (søger i RAG-indekset), `list_code_files` og `read_code_file` (læser kun i `CODE_FOLDER`, aldrig uden for). Kan også startes som MCP-server med `python -m MCP.api.mcp_server`. |
-| `Skills/` | Én skill, `kodevurdering`, der beskriver hvordan svaret skal se ud. |
+| `Skills/` | Én skill, `code-review`, der beskriver hvordan svaret skal se ud. |
 | `Agent/` | `GeminiBrain` eller `ClaudeBrain` med API-nøgle (vælges med `BRAIN`), `RuleBrain` med `--fake`. |
 | [`settings.py`](settings.py) | Al konfiguration: model, datamappe, kodemappe, systemprompt, antal skridt. |
 

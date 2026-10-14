@@ -32,8 +32,8 @@ class QueryService:
     def _build_prompt(question: str, results: list[SearchResult]) -> str:
         context = "\n".join(f"[{r.chunk.source}] {r.chunk.text}" for r in results)
         return (
-            "Svar kun ud fra konteksten nedenfor. "
-            "Står svaret der ikke, så sig det. Nævn kilden.\n\n"
-            f"Kontekst:\n{context}\n\n"
-            f"Spørgsmål: {question}"
+            "Answer in English, using only the context below. "
+            "If the answer is not there, say so. Name the source.\n\n"
+            f"Context:\n{context}\n\n"
+            f"Question: {question}"
         )

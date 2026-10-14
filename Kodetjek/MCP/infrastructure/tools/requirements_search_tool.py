@@ -12,13 +12,14 @@ class RequirementsSearchTool:
     spec = ToolSpec(
         name="search_requirements",
         description=(
-            "Søger i user stories, acceptkriterier og testcases for Mit Aalborg Forsyning "
-            "(Mit Overblik, Regninger og Min Profil). Brug korte søgeord eller id'er som US-002 og TC-011."
+            "Searches user stories, acceptance criteria and test cases for Mit Aalborg Forsyning "
+            "(Mit Overblik, Regninger and Min Profil). The data is in Danish: use ids like US-002 and TC-011, "
+            "or short Danish keywords."
         ),
         input_schema={
             "type": "object",
             "properties": {
-                "query": {"type": "string", "description": "Hvad der skal søges efter"},
+                "query": {"type": "string", "description": "What to search for"},
             },
             "required": ["query"],
         },
@@ -32,5 +33,5 @@ class RequirementsSearchTool:
     def run(self, arguments: dict) -> str:
         results = self.index.search(arguments["query"], self.k)
         if not results:
-            return "Ingen resultater."
+            return "No results."
         return "\n\n".join(f"[{r.chunk.source}] {r.chunk.text}" for r in results)

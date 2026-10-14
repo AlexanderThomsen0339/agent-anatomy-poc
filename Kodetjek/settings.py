@@ -29,7 +29,7 @@ GEMINI_MODEL = "gemini-3.5-flash-lite"
 GEMINI_THINKING = "low"
 
 # Nøglen til Gemini. Skriv den i local_secrets.py ved siden af denne fil:
-#     GEMINI_API_KEY = "din-nøgle"
+#     GEMINI_API_KEY = "your-key"
 # Den fil ignoreres af git, så nøglen aldrig kommer med i et commit.
 # Findes filen ikke, læses nøglen fra miljøvariablen GEMINI_API_KEY.
 try:
@@ -38,7 +38,7 @@ except ImportError:
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 # Grundinstruktionen, når LLM-laget bruges direkte.
-LLM_SYSTEM_PROMPT = "Svar kort på dansk."
+LLM_SYSTEM_PROMPT = "Answer briefly in English."
 
 
 # 2. RAG
@@ -73,9 +73,10 @@ MAX_STEPS = 15
 
 # Grundinstruktionen. Kataloget over skills sættes på i Agent/api/build.py.
 SYSTEM_PROMPT = (
-    "Du hjælper udviklere med at tjekke, om deres kode løser opgaven. Svar på dansk.\n"
-    "Opgaverne er user stories og testcases for Mit Aalborg Forsyning, som du finder med search_requirements.\n"
-    "Udviklerens kode ser du med list_code_files og read_code_file. Du kan kun læse koden, aldrig ændre den.\n"
-    "Gæt aldrig: slå kravene op, og læs koden, før du svarer.\n"
-    "Passer en opgave til en skill, så hent den med load_skill, før du går i gang."
+    "You help developers check whether their code solves the task. Always answer in English.\n"
+    "The tasks are user stories and test cases for Mit Aalborg Forsyning, found with search_requirements. "
+    "They are written in Danish, so search with ids and Danish words.\n"
+    "You see the developer's code with list_code_files and read_code_file. You can only read the code, never change it.\n"
+    "Never guess: look up the requirements and read the code before you answer.\n"
+    "If a task fits a skill, load it with load_skill before you start."
 )

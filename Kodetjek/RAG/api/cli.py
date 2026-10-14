@@ -30,7 +30,7 @@ def main():
     # 1. Læs hvad brugeren skrev i terminalen.
     parser = argparse.ArgumentParser()
     parser.add_argument("question")
-    parser.add_argument("--fake", action="store_true", help="Brug falsk model, ingen API-nøgle")
+    parser.add_argument("--fake", action="store_true", help="Use a fake model, no API key")
     args = parser.parse_args()
 
     # 2. Vælg delene. Det er det eneste sted i laget, hvor det sker.
@@ -40,20 +40,20 @@ def main():
 
     # 3. Læg dokumenterne i indekset.
     count = IngestService(loader, chunker, index).run()
-    print(f"Indlæste {count} afsnit fra {settings.DATA_FOLDER.name}/\n")
+    print(f"Loaded {count} chunks from {settings.DATA_FOLDER.name}/\n")
 
     # 4. Stil spørgsmålet.
     query = QueryService(index, build_llm(args.fake), k=settings.TOP_K)
     answer = query.ask(args.question)
 
     # 5. Vis kilderne og svaret.
-    print("Fundne afsnit:")
+    print("Chunks found:")
     for result in answer.sources:
         print(f"  [{result.chunk.source}] (score {result.score:g}) {result.chunk.text}")
     if not answer.sources:
-        print("  (ingen)")
+        print("  (none)")
 
-    print(f"\nSvar:\n{answer.text}")
+    print(f"\nAnswer:\n{answer.text}")
 
 
 if __name__ == "__main__":

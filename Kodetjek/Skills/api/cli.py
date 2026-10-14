@@ -14,9 +14,9 @@ def main():
     # 1. Læs hvad brugeren skrev i terminalen.
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("list", help="Vis alle skills")
-    commands.add_parser("catalog", help="Vis kataloget præcis som LLM'en ser det")
-    show_parser = commands.add_parser("show", help="Vis én skill i sin helhed")
+    commands.add_parser("list", help="Show all skills")
+    commands.add_parser("catalog", help="Show the catalog exactly as the LLM sees it")
+    show_parser = commands.add_parser("show", help="Show one skill in full")
     show_parser.add_argument("name")
     args = parser.parse_args()
 
@@ -36,7 +36,7 @@ def main():
             skill = service.load(args.name)
             print(skill.instructions)
         except ValueError as error:
-            print(f"FEJL: {error}")
+            print(f"ERROR: {error}")
 
 
 if __name__ == "__main__":

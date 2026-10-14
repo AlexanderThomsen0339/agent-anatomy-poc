@@ -12,6 +12,8 @@ STOP_WORDS = {
     "og", "i", "at", "er", "en", "et", "den", "det", "de", "til", "på", "med",
     "for", "som", "har", "man", "hos", "os", "vi", "jeg", "du", "hvor", "hvem",
     "hvad", "hvordan", "skal", "kan", "om", "af", "mange", "der", "ikke",
+    # Engelske småord, fordi spørgsmålene stilles på engelsk.
+    "the", "a", "an", "is", "are", "does", "do", "our", "we", "my", "it", "of", "to", "in", "and", "or", "what", "how",
 }
 
 

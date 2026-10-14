@@ -16,8 +16,8 @@ class CodeReadTool:
     spec = ToolSpec(
         name="read_code_file",
         description=(
-            "Læser én fil fra udviklerens kode med linjenumre. "
-            "Brug stien præcis som list_code_files viser den."
+            "Reads one file from the developer's code, with line numbers. "
+            "Use the path exactly as list_code_files shows it."
         ),
         input_schema={
             "type": "object",
@@ -39,12 +39,12 @@ class CodeReadTool:
         if not file.is_relative_to(self.folder):
             return "Afvist: filen ligger uden for kodemappen."
         if not file.is_file():
-            return f"Filen findes ikke: {arguments['path']}"
+            return f"File not found: {arguments['path']}"
 
         try:
             text = file.read_text(encoding="utf-8")
         except UnicodeDecodeError:
-            return "Filen er ikke tekst og kan ikke læses."
+            return "The file is not text and cannot be read."
 
         cut = len(text) > MAX_CHARS
         lines = text[:MAX_CHARS].splitlines()
