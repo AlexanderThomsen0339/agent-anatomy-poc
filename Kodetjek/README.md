@@ -9,7 +9,8 @@ Mappen er en **fuld kopi** af de fem lag i roden af repoet (LLM, RAG, MCP, Skill
 | Hvad | Originalen | Kodetjek |
 |---|---|---|
 | Konfiguration | En `config/` pr. lag | Én samlet [`settings.py`](settings.py) |
-| Data | Markdown-dokumenter om et bibliotek | Derudover `data/` med testcases i xlsx |
+| Data | Markdown-dokumenter om et bibliotek | RAG-laget søger i `data/` med user stories og testcases i xlsx |
+| Pakker | `requirements.txt` i roden | Egen [`requirements.txt`](requirements.txt), som også har `openpyxl` |
 
 Lagenes egne README-filer er kopieret uændret, så hvor de nævner `config/`, gælder `settings.py` i stedet.
 
@@ -18,11 +19,11 @@ Lagenes egne README-filer er kopieret uændret, så hvor de nævner `config/`, g
 Kræver Python 3.10 eller nyere. Alle kommandoer køres fra **Kodetjek-mappen**, så lagene her bruges og ikke originalen.
 
 ```bash
-pip install -r ../requirements.txt
 cd Kodetjek
+pip install -r requirements.txt
 
 python -m LLM.api.cli "Hvad er en LLM?" --fake
-python -m RAG.api.cli "Hvad koster det at aflevere en bog for sent?" --fake
+python -m RAG.api.cli "Hvad er acceptkriterierne for download af faktura?" --fake
 python -m MCP.api.cli list
 python -m Skills.api.cli catalog
 python -m Agent.api.cli --fake
@@ -38,4 +39,6 @@ Uden `--fake` kræves `ANTHROPIC_API_KEY`, som beskrevet i [README i roden](../R
 - `Mit Aalborg Forsyning_Regninger_Testcases.xlsx`
 - `Testcases_minprofil_mitaalborgforsyning.xlsx`
 
-De bruges endnu ikke af lagene. Det er næste skridt.
+RAG-laget læser dem med `XlsxLoader` (`RAG/infrastructure/loaders/xlsx_loader.py`). Hvert ark bliver ét dokument, og hver user story og testcase bliver ét afsnit, som ordsøgningen kan finde. Testresultaterne pr. testdato kommer med i teksten.
+
+MCP- og Agent-laget søger stadig i bibliotekets dokumenter. Det er næste skridt.

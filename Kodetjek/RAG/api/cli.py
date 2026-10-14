@@ -1,8 +1,8 @@
 """Kommandolinjen til RAG-laget.
 
-Kør fra projektets rod:
-    python -m RAG.api.cli "Hvor mange feriedage har man?" --fake
-    python -m RAG.api.cli "Hvor mange feriedage har man?"
+Kør fra Kodetjek-mappen:
+    python -m RAG.api.cli "Hvad er acceptkriterierne for download af faktura?" --fake
+    python -m RAG.api.cli "Hvad er acceptkriterierne for download af faktura?"
 """
 import argparse
 
@@ -12,7 +12,7 @@ from RAG.application.ingest_service import IngestService
 from RAG.application.query_service import QueryService
 from RAG.infrastructure.chunking.text_chunker import ParagraphChunker
 from RAG.infrastructure.index.keyword_index import KeywordIndex
-from RAG.infrastructure.loaders.markdown_loader import MarkdownLoader
+from RAG.infrastructure.loaders.xlsx_loader import XlsxLoader
 
 
 def build_llm(fake: bool) -> LLMService:
@@ -34,13 +34,13 @@ def main():
     args = parser.parse_args()
 
     # 2. Vælg delene. Det er det eneste sted i laget, hvor det sker.
-    loader = MarkdownLoader(settings.DOCS_FOLDER)
+    loader = XlsxLoader(settings.DATA_FOLDER)
     chunker = ParagraphChunker()
     index = KeywordIndex()
 
     # 3. Læg dokumenterne i indekset.
     count = IngestService(loader, chunker, index).run()
-    print(f"Indlæste {count} afsnit fra {settings.DOCS_FOLDER.name}/\n")
+    print(f"Indlæste {count} afsnit fra {settings.DATA_FOLDER.name}/\n")
 
     # 4. Stil spørgsmålet.
     query = QueryService(index, build_llm(args.fake), k=settings.TOP_K)

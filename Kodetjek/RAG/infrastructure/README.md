@@ -46,6 +46,7 @@ De orange bokse er det eneste, der rører filsystem og lager. Resten af laget se
 | Fil | Opfylder porten | Hvad den gør |
 |---|---|---|
 | `loaders/markdown_loader.py` | `DocumentLoader` | Læser alle `.md`-filer fra en mappe |
+| `loaders/xlsx_loader.py` | `DocumentLoader` | Læser user stories og testcases fra alle `.xlsx`-filer i en mappe. Ét dokument pr. ark, én blok pr. user story eller testcase |
 | `chunking/text_chunker.py` | `Chunker` | Deler tekst ved tomme linjer og springer overskrifter over |
 | `index/keyword_index.py` | `SearchIndex` | Gemmer afsnit i hukommelsen og søger på fælles ord |
 
