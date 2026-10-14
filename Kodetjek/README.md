@@ -1,81 +1,61 @@
 # Kodetjek
 
-POC'en til forretningsdemoen: en udvikler spørger AI'en, om den kode, udvikleren har skrevet, løser opgaven, og AI'en ser i koden og svarer ud fra user stories og testcases.
+A developer asks whether their code solves a user story. An agent looks up the requirements, reads the code and answers with a verdict per acceptance criterion, pointing to `file:line`.
 
-Kodetjek bygger på fire af lagene fra originalen i roden af repoet (RAG, MCP, Skills, Agent), med samme ports & adapters-struktur. LLM-laget er ikke med, fordi agentens hjerne selv taler med modellen. Originalen røres ikke og står som reference, også for forklaringen af lagene i dens README-filer.
+Built on four of the layers from the repo root (RAG, MCP, Skills, Agent), with the same ports & adapters structure. The root layers are untouched.
 
-## Flowet
+## Flow
 
 ```
-Udvikler: "Does our code solve US-001?"
-   ▼
-Agent ── vælger selv værktøjer ──┬─ load_skill("code-review")   Skills
-                                 ├─ search_requirements(...)      MCP → RAG (xlsx)
-                                 ├─ list_code_files()             MCP → CODE_FOLDER
-                                 └─ read_code_file(...)           MCP → CODE_FOLDER
-   ▼
-Svar: hvert acceptkriterie med henvisning til fil:linje
+"Does our code solve US-001?"
+  │
+  ▼
+Agent (Gemini) ── load_skill("code-review")    Skills  → answer format
+                ├ search_requirements(query)   MCP → RAG keyword index over RAG/data/*.xlsx
+                ├ list_code_files()            MCP → CODE_FOLDER
+                └ read_code_file(path)         MCP → CODE_FOLDER
+  │
+  ▼
+Solved / Partly solved / Not solved, one line per criterion with file:line
 ```
 
-## Kom i gang
+## Setup
 
-Kræver Python 3.10 eller nyere. Alle kommandoer køres fra **Kodetjek-mappen**, så lagene her bruges og ikke originalen.
+Python 3.10+. Run every command from the `Kodetjek/` folder.
 
 ```bash
-cd Kodetjek
 pip install -r requirements.txt
 ```
 
-Sæt `CODE_FOLDER` i [`settings.py`](settings.py) til roden af den kode, der skal tjekkes, fx:
+1. Point `CODE_FOLDER` in `settings.py` at the code to check.
+2. Put a Gemini key from Google AI Studio in `local_secrets.py` (ignored by git):
+   ```python
+   GEMINI_API_KEY = "your-key"
+   ```
+   Or set the `GEMINI_API_KEY` environment variable.
 
-```python
-CODE_FOLDER = Path(r"C:\Users\...\source\repos\MitProjekt")
-```
-
-Agenten tænker med Googles Gemini (`GEMINI_MODEL`). Det kræver en nøgle fra Google AI Studio. Læg den i en fil `local_secrets.py` i Kodetjek-mappen med linjen `GEMINI_API_KEY = "din-nøgle"`. Filen ignoreres af git. Alternativt miljøvariablen `GEMINI_API_KEY`. Koden, agenten læser, sendes til Gemini. Læg aldrig nøglen i koden.
-
-Start demo-websiden, og åbn http://localhost:8000. Her ser man skridtene live:
-
-```bash
-python -m Agent.api.web
-```
-
-Eller kør agenten i terminalen:
+## Run
 
 ```bash
-python -m Agent.api.cli "Does our code solve US-001?"
+python -m Agent.api.web                                  # demo page on http://localhost:8000
+python -m Agent.api.cli "Does our code solve US-001?"    # terminal
 ```
 
-Begge kan køres med `--fake` uden nøgle.
+Add `--fake` to either to run without a key. It uses `RuleBrain`, which makes the same tool calls but only matches words, not an AI review.
 
-## Hvad ligger hvor
+## Layout
 
-| Lag | Hvad Kodetjek bruger |
+| Path | Contents |
 |---|---|
-| `RAG/` | `XlsxLoader` læser `RAG/data/*.xlsx`. Hvert ark bliver ét dokument, og hver user story og testcase bliver ét afsnit i ordsøgningen (`KeywordIndex`). |
-| `MCP/` | Tre værktøjer: `search_requirements` (søger i RAG-indekset), `list_code_files` og `read_code_file` (læser kun i `CODE_FOLDER`, aldrig uden for). |
-| `Skills/` | Én skill, `code-review`, der beskriver hvordan svaret skal se ud. |
-| `Agent/` | `GeminiBrain` med API-nøgle, `RuleBrain` med `--fake`. Demo-siden (`web.py`) og terminalen (`cli.py`). |
-| [`settings.py`](settings.py) | Al konfiguration: model, datamappe, kodemappe, systemprompt, antal skridt. |
+| `settings.py` | All configuration: Gemini model and thinking level, data folder, `CODE_FOLDER`, system prompt, `MAX_STEPS`. |
+| `Agent/` | `AgentService` loop. Brains: `GeminiBrain` and `RuleBrain` (`--fake`). Entry points: `api/web.py`, `api/cli.py`. |
+| `MCP/` | The three tools. `list_code_files` follows the repo's `.gitignore`. `read_code_file` refuses paths outside `CODE_FOLDER`. |
+| `RAG/` | `XlsxLoader` (one chunk per user story and test case) and `KeywordIndex`. |
+| `Skills/` | `code-review`: how the answer is written. |
+| `RAG/data/` | User stories and test cases for Mit Aalborg Forsyning (Danish). |
 
-## Data
+## Limitations
 
-`RAG/data/` indeholder user stories og testcases for Mit Aalborg Forsyning:
-
-- `Mit Aalborg Forsyning_Mit Overblik_Testcases.xlsx`
-- `Mit Aalborg Forsyning_Regninger_Testcases.xlsx`
-- `Testcases_minprofil_mitaalborgforsyning.xlsx`
-
-## Udviklerens kode
-
-`list_code_files` og `read_code_file` kan kun læse, og kun i `CODE_FOLDER`. Er mappen et git-repo, følger `list_code_files` repoets `.gitignore`, så `bin`, `obj`, `.vs` og lignende ikke kommer med. Nye filer, der ikke er committet endnu, kommer med.
-
-## Uden API-nøgle
-
-Med `--fake` bruges `RuleBrain` (`Agent/infrastructure/brains/rule_brain.py`). Den tager spørgsmålet, finder den bedste user story, læser op til fire filer, hvis navne ligner user storyens titel, og viser for hvert acceptkriterie, hvor kriteriets ord står i koden. Værktøjskaldene er ægte, men vurderingen er kun ord-matchning, ikke en AI-vurdering, og det står i svaret.
-
-## Kendte begrænsninger
-
-- **Ordsøgningen finder kun hele, ens ord.** Spørg med ord fra arkene, fx "acceptkriterier telefonnummer".
-- **Samme id findes i flere ark.** TC-011 findes både i Regninger og Min Profil, så søg med ord og ikke kun id.
-- **`list_code_files` sender alle filnavne.** I en stor løsning er det mange tokens i hvert skridt.
+- **Keyword search only.** It matches whole words, and the requirements are in Danish, so the agent searches with ids and Danish words.
+- **File listing size.** `list_code_files` returns every file name, which costs tokens on every step in a large solution.
+- **Free Gemini tier.** It is slow, and Google may use the data sent, which includes the code being checked.
