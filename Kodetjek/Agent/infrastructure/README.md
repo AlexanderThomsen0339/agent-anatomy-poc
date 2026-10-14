@@ -9,7 +9,7 @@ Den svarer på spørgsmålet: **Hvem tænker, og hvordan taler vi med dem?**
 Hvis `domain/` er logbogen og kravet til hovedet, og `application/` er arbejdsgangen, så er `infrastructure/` **hovederne**, der kan sættes i arbejde:
 
 - **Mesteren** (`claude_brain.py`) tænker selv. Hun læser opgaven, vælger værktøjer og skriver svaret.
-- **Lærlingen** (`scripted_brain.py`) tænker ikke selv. Han følger et manuskript, skridt for skridt. Men værktøjerne, han bruger, er rigtige.
+- **Lærlingen** (`rule_brain.py`) tænker ikke selv. Han følger faste regler for et kodetjek, skridt for skridt. Men værktøjerne, han bruger, er rigtige.
 
 Arbejdsgangen er den samme for begge.
 
@@ -23,7 +23,7 @@ flowchart TD
     T1 --> API[("Claude API<br/>tool use")]
     API --> T2["Oversæt ud<br/>text + tool_use → Decision"]
 
-    W -- ScriptedBrain --> C["Tæl skridt i historikken"]
+    W -- RuleBrain --> C["Tæl skridt i historikken"]
     C --> N["Næste Decision<br/>fra manuskriptet"]
 
     classDef tech fill:#FAECE7,stroke:#993C1D,color:#712B13
@@ -35,7 +35,7 @@ flowchart TD
 | Fil | Opfylder porten | Hvad den gør |
 |---|---|---|
 | `brains/claude_brain.py` | `AgentBrain` | Taler med Claude med værktøjer. Den eneste fil i laget, der kender Anthropic. |
-| `brains/scripted_brain.py` | `AgentBrain` | Spiller et fast manuskript. Indeholder også demo-opgaven og manuskriptet. |
+| `brains/rule_brain.py` | `AgentBrain` | Regelbaseret kodetjek uden API-nøgle: søger kravene, vælger filer efter navn, læser dem og matcher kriteriernes ord mod koden. Indeholder også demo-spørgsmålet. |
 
 ## Hvordan ClaudeBrain oversætter
 

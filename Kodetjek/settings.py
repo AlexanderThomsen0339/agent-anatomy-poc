@@ -49,11 +49,14 @@ SKILLS_FOLDER = ROOT / "Skills" / "data" / "skills"
 
 # 5. Agent
 # Grænsen for antal skridt. Beskytter mod en agent, der kører i ring.
-MAX_STEPS = 8
+# Et kodetjek skal både søge krav, liste filer og læse flere filer, så den er sat højere end i originalen.
+MAX_STEPS = 15
 
 # Grundinstruktionen. Kataloget over skills sættes på i Agent/api/build.py.
 SYSTEM_PROMPT = (
-    "Du er en hjælpsom assistent for Biblioteket Anatomi. Svar på dansk.\n"
-    "Brug værktøjerne, når du har brug for viden eller skal regne. Gæt aldrig.\n"
+    "Du hjælper udviklere med at tjekke, om deres kode løser opgaven. Svar på dansk.\n"
+    "Opgaverne er user stories og testcases for Mit Aalborg Forsyning, som du finder med search_requirements.\n"
+    "Udviklerens kode ser du med list_code_files og read_code_file. Du kan kun læse koden, aldrig ændre den.\n"
+    "Gæt aldrig: slå kravene op, og læs koden, før du svarer.\n"
     "Passer en opgave til en skill, så hent den med load_skill, før du går i gang."
 )
