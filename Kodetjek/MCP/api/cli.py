@@ -2,8 +2,6 @@
 
 Kør fra projektets rod:
     python -m MCP.api.cli list
-    python -m MCP.api.cli call get_time
-    python -m MCP.api.cli call calculate a=12 b=4 operation=divide
     python -m MCP.api.cli call search_docs query="lånerkort"
     python -m MCP.api.cli call search_requirements query="acceptkriterier telefonnummer"
     python -m MCP.api.cli call list_code_files

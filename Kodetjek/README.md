@@ -12,7 +12,7 @@ Mappen er en **fuld kopi** af de fem lag i roden af repoet (LLM, RAG, MCP, Skill
 | Data | Markdown-dokumenter om et bibliotek | RAG-laget søger i `RAG/data/` med user stories og testcases i xlsx |
 | Pakker | `requirements.txt` i roden | Egen [`requirements.txt`](requirements.txt), som også har `openpyxl` |
 
-Lagenes egne README-filer er kopieret uændret, så hvor de nævner `config/`, gælder `settings.py` i stedet.
+Lagenes egne README-filer er kopieret fra originalen og beskriver stadig mest biblioteksdemoen. Hvor de nævner `config/`, gælder `settings.py` i stedet, og værktøjerne `get_time` og `calculate` er fjernet i Kodetjek.
 
 ## Kom i gang
 

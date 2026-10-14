@@ -5,12 +5,10 @@ præcis de samme værktøjer.
 """
 import settings
 from MCP.application.tool_service import ToolService
-from MCP.infrastructure.tools.calculator_tool import CalculatorTool
 from MCP.infrastructure.tools.code_list_tool import CodeListTool
 from MCP.infrastructure.tools.code_read_tool import CodeReadTool
 from MCP.infrastructure.tools.docs_search_tool import DocsSearchTool
 from MCP.infrastructure.tools.requirements_search_tool import RequirementsSearchTool
-from MCP.infrastructure.tools.time_tool import TimeTool
 from RAG.application.ingest_service import IngestService
 from RAG.infrastructure.chunking.text_chunker import ParagraphChunker
 from RAG.infrastructure.index.keyword_index import KeywordIndex
@@ -29,8 +27,6 @@ def build_service() -> ToolService:
 
     # Her vælger vi, hvilke apparater der sættes i. Det eneste sted, det sker.
     tools = [
-        TimeTool(),
-        CalculatorTool(),
         DocsSearchTool(index, k=settings.SEARCH_K),
         RequirementsSearchTool(requirements, k=settings.SEARCH_K),
         CodeListTool(settings.CODE_FOLDER),
