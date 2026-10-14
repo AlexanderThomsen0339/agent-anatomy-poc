@@ -49,6 +49,12 @@ python -m Agent.api.cli "Løser vores kode US-001 Vis regningsoversigt?"
 
 Koden, agenten læser, sendes til den valgte model. Læg aldrig nøglen i koden.
 
+Eller som demo-webside, hvor man ser skridtene live. Åbn derefter http://localhost:8000:
+
+```bash
+python -m Agent.api.web          # eller med --fake
+```
+
 Hvert lag kan også prøves for sig:
 
 ```bash
