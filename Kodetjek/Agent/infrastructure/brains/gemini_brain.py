@@ -12,9 +12,9 @@ from MCP.domain.models import ToolSpec
 
 class GeminiBrain:
 
-    def __init__(self, model: str):
-        # SDK'en finder selv API-nøglen i miljøvariablen GEMINI_API_KEY.
-        self.client = genai.Client()
+    def __init__(self, model: str, api_key: str):
+        # Nøglen kommer fra settings.py. Det er det eneste sted, den står.
+        self.client = genai.Client(api_key=api_key)
         self.model = model
 
         # Hvorfor gemme Geminis egne svar?

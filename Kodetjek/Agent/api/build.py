@@ -22,7 +22,7 @@ def build_agent(fake: bool) -> AgentService:
         brain = RuleBrain()
     elif settings.BRAIN == "gemini":
         from Agent.infrastructure.brains.gemini_brain import GeminiBrain
-        brain = GeminiBrain(model=settings.GEMINI_MODEL)
+        brain = GeminiBrain(model=settings.GEMINI_MODEL, api_key=settings.GEMINI_API_KEY)
     else:
         from Agent.infrastructure.brains.claude_brain import ClaudeBrain
         brain = ClaudeBrain(model=settings.MODEL)

@@ -5,6 +5,7 @@ I originalen har hvert lag sin egen config/, så lagene kan stå alene.
 Kodetjek er én POC, der skal vises samlet, så alt, man kan skrue på,
 står her ét sted.
 """
+import os
 from pathlib import Path
 
 # Roden af Kodetjek-mappen. Alle stier herunder regnes ud fra den.
@@ -21,6 +22,10 @@ BRAIN = "gemini"
 
 # Gemini-modellen, når BRAIN er "gemini".
 GEMINI_MODEL = "gemini-2.5-flash"
+
+# Nøglen til Gemini. Læses fra miljøvariablen GEMINI_API_KEY, hvis den er sat.
+# Midlertidigt kan nøglen skrives direkte her lokalt, men commit den aldrig.
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 # Grundinstruktionen, når LLM-laget bruges direkte.
 LLM_SYSTEM_PROMPT = "Svar kort på dansk."
