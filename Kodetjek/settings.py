@@ -12,15 +12,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 
 
-# 1. LLM
-# Modellen, der svarer i LLM- og RAG-laget, og som tænker i agenten, når BRAIN er "claude".
-MODEL = "claude-sonnet-5-5"
-
-# Hvilken model der tænker i agenten uden --fake: "claude" (kræver ANTHROPIC_API_KEY)
-# eller "gemini" (kræver GEMINI_API_KEY).
-BRAIN = "gemini"
-
-# Gemini-modellen, når BRAIN er "gemini".
+# 1. Model
+# Gemini-modellen, der tænker i agenten uden --fake.
 GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 # Hvor meget Gemini tænker, før den svarer: "minimal", "low", "medium" eller "high".
@@ -37,22 +30,13 @@ try:
 except ImportError:
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-# Grundinstruktionen, når LLM-laget bruges direkte.
-LLM_SYSTEM_PROMPT = "Answer briefly in English."
-
 
 # 2. RAG
-# Mappen med user stories og testcases (.xlsx), som RAG-laget og MCP-lagets search_requirements søger i.
+# Mappen med user stories og testcases (.xlsx), som search_requirements søger i.
 DATA_FOLDER = ROOT / "RAG" / "data"
-
-# Hvor mange afsnit der sendes med til modellen.
-TOP_K = 3
 
 
 # 3. MCP
-# Navnet, MCP-klienter (fx Claude Desktop) ser serveren under.
-SERVER_NAME = "kodetjek-tools"
-
 # Hvor mange afsnit kravsøgningen returnerer.
 SEARCH_K = 3
 

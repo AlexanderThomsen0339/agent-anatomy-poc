@@ -5,7 +5,7 @@ Implementeringerne ligger i infrastructure/.
 """
 
 # Hvorfor Protocol?
-# Samme grund som i LLM-laget: en adapter skal bare have de rigtige metoder,
+# En adapter skal bare have de rigtige metoder,
 # den behøver ikke arve fra noget.
 from typing import Protocol
 

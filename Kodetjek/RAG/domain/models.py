@@ -7,7 +7,7 @@ eller om søgningen sker på ord eller på betydning.
 """
 
 # Hvorfor kun standardbiblioteket?
-# domain/ må ikke afhænge af noget udefra, præcis som i LLM-laget.
+# domain/ må ikke afhænge af noget udefra.
 from dataclasses import dataclass
 
 
@@ -47,12 +47,3 @@ class SearchResult:
     # kommer først, og helt irrelevante kan sorteres fra.
     score: float
 
-
-@dataclass(frozen=True)
-class Answer:
-    text: str
-
-    # Hvorfor sende kilderne med svaret?
-    # Brugeren skal kunne tjekke svaret. Og når svaret er forkert, kan man se,
-    # om fejlen lå i søgningen (forkerte afsnit) eller hos modellen.
-    sources: list[SearchResult]

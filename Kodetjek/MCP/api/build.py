@@ -1,8 +1,4 @@
-"""Samler MCP-laget: vælger hvilke værktøjer der sættes i.
-
-Både cli.py og mcp_server.py bruger build_service(), så de altid har
-præcis de samme værktøjer.
-"""
+"""Samler MCP-laget: vælger hvilke værktøjer der sættes i."""
 import settings
 from MCP.application.tool_service import ToolService
 from MCP.infrastructure.tools.code_list_tool import CodeListTool

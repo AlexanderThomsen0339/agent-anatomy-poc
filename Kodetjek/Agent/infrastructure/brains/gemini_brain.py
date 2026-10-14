@@ -1,7 +1,7 @@
-"""En anden rigtig hjerne: Googles Gemini med værktøjer (function calling).
+"""Den rigtige hjerne: Googles Gemini med værktøjer (function calling).
 
-Samme rolle som ClaudeBrain, bare med en anden model bag. Det er den eneste fil
-i Agent-laget, der kender til Google. Resten af laget mærker ikke forskel.
+Det er den eneste fil i Agent-laget, der kender til Google.
+Resten af laget mærker ikke forskel på Gemini og RuleBrain.
 """
 from google import genai
 from google.genai import types
