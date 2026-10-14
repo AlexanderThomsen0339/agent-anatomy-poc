@@ -6,6 +6,8 @@ præcis de samme værktøjer.
 import settings
 from MCP.application.tool_service import ToolService
 from MCP.infrastructure.tools.calculator_tool import CalculatorTool
+from MCP.infrastructure.tools.code_list_tool import CodeListTool
+from MCP.infrastructure.tools.code_read_tool import CodeReadTool
 from MCP.infrastructure.tools.docs_search_tool import DocsSearchTool
 from MCP.infrastructure.tools.requirements_search_tool import RequirementsSearchTool
 from MCP.infrastructure.tools.time_tool import TimeTool
@@ -31,5 +33,7 @@ def build_service() -> ToolService:
         CalculatorTool(),
         DocsSearchTool(index, k=settings.SEARCH_K),
         RequirementsSearchTool(requirements, k=settings.SEARCH_K),
+        CodeListTool(settings.CODE_FOLDER),
+        CodeReadTool(settings.CODE_FOLDER),
     ]
     return ToolService(tools)

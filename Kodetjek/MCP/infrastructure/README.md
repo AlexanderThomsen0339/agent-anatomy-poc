@@ -43,6 +43,8 @@ De orange bokse er det, værktøjerne rører i verden udenfor. Resten af laget s
 | `tools/calculator_tool.py` | `calculate` | Regner præcist med to tal. LLM'er kan regne forkert. |
 | `tools/docs_search_tool.py` | `search_docs` | Søger i bibliotekets dokumenter fra lag 2 |
 | `tools/requirements_search_tool.py` | `search_requirements` | Søger i user stories og testcases (xlsx) fra lag 2 |
+| `tools/code_list_tool.py` | `list_code_files` | Lister filerne i kodemappen (`CODE_FOLDER`) |
+| `tools/code_read_tool.py` | `read_code_file` | Læser én fil fra kodemappen med linjenumre. Afviser stier uden for mappen |
 
 Alle tre opfylder porten `Tool` fra `domain/ports.py`: de har et `spec` og en `run()`.
 

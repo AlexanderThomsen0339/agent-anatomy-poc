@@ -37,6 +37,10 @@ SERVER_NAME = "kodetjek-tools"
 # Hvor mange afsnit dokumentsøgningen returnerer.
 SEARCH_K = 3
 
+# Mappen med udviklerens kode, som list_code_files og read_code_file må læse i.
+# Peg den på den kode, der skal tjekkes. Værktøjerne kan ikke se uden for mappen.
+CODE_FOLDER = ROOT / "eksempel"
+
 
 # 4. Skills
 # Mappen med skills. Hver skill er en undermappe med en SKILL.md.

@@ -42,3 +42,7 @@ Uden `--fake` kræves `ANTHROPIC_API_KEY`, som beskrevet i [README i roden](../R
 RAG-laget læser dem med `XlsxLoader` (`RAG/infrastructure/loaders/xlsx_loader.py`). Hvert ark bliver ét dokument, og hver user story og testcase bliver ét afsnit, som ordsøgningen kan finde. Testresultaterne pr. testdato kommer med i teksten.
 
 MCP-laget har værktøjet `search_requirements`, som søger i de samme data, så agenten kan slå kravene op selv. Bibliotekets `search_docs` er der stadig, indtil agenten er lavet om til kodetjek.
+
+## Udviklerens kode
+
+`list_code_files` og `read_code_file` lader agenten se den kode, der skal tjekkes. De kan kun læse, og kun i mappen `CODE_FOLDER` i `settings.py` (som standard `Kodetjek/eksempel/`). Peg `CODE_FOLDER` på en anden mappe for at tjekke anden kode.
