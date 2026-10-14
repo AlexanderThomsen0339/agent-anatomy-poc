@@ -12,8 +12,15 @@ ROOT = Path(__file__).resolve().parent
 
 
 # 1. LLM
-# Modellen, der svarer i LLM- og RAG-laget, og som tænker i agenten.
+# Modellen, der svarer i LLM- og RAG-laget, og som tænker i agenten, når BRAIN er "claude".
 MODEL = "claude-sonnet-5-5"
+
+# Hvilken model der tænker i agenten uden --fake: "claude" (kræver ANTHROPIC_API_KEY)
+# eller "gemini" (kræver GEMINI_API_KEY).
+BRAIN = "gemini"
+
+# Gemini-modellen, når BRAIN er "gemini".
+GEMINI_MODEL = "gemini-2.5-flash"
 
 # Grundinstruktionen, når LLM-laget bruges direkte.
 LLM_SYSTEM_PROMPT = "Svar kort på dansk."

@@ -38,7 +38,17 @@ Kør så agenten:
 python -m Agent.api.cli "Løser vores kode US-001 Vis regningsoversigt?" --fake
 ```
 
-Uden `--fake` tænker Claude, og det kræver `ANTHROPIC_API_KEY`, som beskrevet i [README i roden](../README.md). Koden, agenten læser, sendes så til Claude.
+Uden `--fake` tænker en rigtig model. Hvilken bestemmes af `BRAIN` i `settings.py`:
+
+- `"gemini"`: Googles Gemini (`GEMINI_MODEL`). Kræver en nøgle fra Google AI Studio i miljøvariablen `GEMINI_API_KEY`.
+- `"claude"`: Claude (`MODEL`). Kræver `ANTHROPIC_API_KEY`, som beskrevet i [README i roden](../README.md).
+
+```powershell
+$env:GEMINI_API_KEY = "din-nøgle"
+python -m Agent.api.cli "Løser vores kode US-001 Vis regningsoversigt?"
+```
+
+Koden, agenten læser, sendes til den valgte model. Læg aldrig nøglen i koden.
 
 Hvert lag kan også prøves for sig:
 
@@ -58,7 +68,7 @@ python -m Skills.api.cli show kodevurdering
 | `RAG/` | `XlsxLoader` læser `RAG/data/*.xlsx`. Hvert ark bliver ét dokument, og hver user story og testcase bliver ét afsnit i ordsøgningen (`KeywordIndex`). |
 | `MCP/` | Tre værktøjer: `search_requirements` (søger i RAG-indekset), `list_code_files` og `read_code_file` (læser kun i `CODE_FOLDER`, aldrig uden for). Kan også startes som MCP-server med `python -m MCP.api.mcp_server`. |
 | `Skills/` | Én skill, `kodevurdering`, der beskriver hvordan svaret skal se ud. |
-| `Agent/` | `ClaudeBrain` med API-nøgle, `RuleBrain` med `--fake`. |
+| `Agent/` | `GeminiBrain` eller `ClaudeBrain` med API-nøgle (vælges med `BRAIN`), `RuleBrain` med `--fake`. |
 | [`settings.py`](settings.py) | Al konfiguration: model, datamappe, kodemappe, systemprompt, antal skridt. |
 
 ## Data
