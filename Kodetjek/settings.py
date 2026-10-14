@@ -5,6 +5,7 @@ I originalen har hvert lag sin egen config/, så lagene kan stå alene.
 Kodetjek er én POC, der skal vises samlet, så alt, man kan skrue på,
 står her ét sted.
 """
+import os
 from pathlib import Path
 
 # Roden af Kodetjek-mappen. Alle stier herunder regnes ud fra den.
@@ -12,8 +13,29 @@ ROOT = Path(__file__).resolve().parent
 
 
 # 1. LLM
-# Modellen, der svarer i LLM- og RAG-laget, og som tænker i agenten.
+# Modellen, der svarer i LLM- og RAG-laget, og som tænker i agenten, når BRAIN er "claude".
 MODEL = "claude-sonnet-5-5"
+
+# Hvilken model der tænker i agenten uden --fake: "claude" (kræver ANTHROPIC_API_KEY)
+# eller "gemini" (kræver GEMINI_API_KEY).
+BRAIN = "gemini"
+
+# Gemini-modellen, når BRAIN er "gemini".
+GEMINI_MODEL = "gemini-3.5-flash-lite"
+
+# Hvor meget Gemini tænker, før den svarer: "minimal", "low", "medium" eller "high".
+# Mere tænkning giver grundigere svar, men hvert skridt tager længere tid.
+# Sæt den til "", hvis modellen ikke kender niveauerne (fx gemini-2.5).
+GEMINI_THINKING = "low"
+
+# Nøglen til Gemini. Skriv den i local_secrets.py ved siden af denne fil:
+#     GEMINI_API_KEY = "din-nøgle"
+# Den fil ignoreres af git, så nøglen aldrig kommer med i et commit.
+# Findes filen ikke, læses nøglen fra miljøvariablen GEMINI_API_KEY.
+try:
+    from local_secrets import GEMINI_API_KEY
+except ImportError:
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 # Grundinstruktionen, når LLM-laget bruges direkte.
 LLM_SYSTEM_PROMPT = "Svar kort på dansk."
