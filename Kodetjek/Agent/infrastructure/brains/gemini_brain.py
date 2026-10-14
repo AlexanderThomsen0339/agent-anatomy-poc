@@ -41,7 +41,8 @@ class GeminiBrain:
                 # Agent-laget kalder selv værktøjerne, så SDK'en må ikke gøre det.
                 automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
                 # Mindre tænkning pr. skridt gør agenten hurtigere.
-                thinking_config=types.ThinkingConfig(thinking_level=self.thinking.upper()),
+                # Tom GEMINI_THINKING betyder modellens standard (ældre modeller kender ikke niveauerne).
+                thinking_config=types.ThinkingConfig(thinking_level=self.thinking.upper()) if self.thinking else None,
             ),
         )
 

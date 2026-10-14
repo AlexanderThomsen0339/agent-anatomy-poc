@@ -25,6 +25,7 @@ GEMINI_MODEL = "gemini-3.8-flash"
 
 # Hvor meget Gemini tænker, før den svarer: "minimal", "low", "medium" eller "high".
 # Mere tænkning giver grundigere svar, men hvert skridt tager længere tid.
+# Sæt den til "", hvis modellen ikke kender niveauerne (fx gemini-2.5).
 GEMINI_THINKING = "low"
 
 # Nøglen til Gemini. Skriv den i local_secrets.py ved siden af denne fil:
