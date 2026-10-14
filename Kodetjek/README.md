@@ -40,11 +40,10 @@ python -m Agent.api.cli "Løser vores kode US-001 Vis regningsoversigt?" --fake
 
 Uden `--fake` tænker en rigtig model. Hvilken bestemmes af `BRAIN` i `settings.py`:
 
-- `"gemini"`: Googles Gemini (`GEMINI_MODEL`). Kræver en nøgle fra Google AI Studio, enten i miljøvariablen `GEMINI_API_KEY` eller midlertidigt direkte i `GEMINI_API_KEY` i `settings.py` (commit den aldrig).
+- `"gemini"`: Googles Gemini (`GEMINI_MODEL`). Kræver en nøgle fra Google AI Studio. Læg den i en fil `local_secrets.py` i Kodetjek-mappen med linjen `GEMINI_API_KEY = "din-nøgle"`. Filen ignoreres af git. Alternativt miljøvariablen `GEMINI_API_KEY`.
 - `"claude"`: Claude (`MODEL`). Kræver `ANTHROPIC_API_KEY`, som beskrevet i [README i roden](../README.md).
 
-```powershell
-$env:GEMINI_API_KEY = "din-nøgle"
+```bash
 python -m Agent.api.cli "Løser vores kode US-001 Vis regningsoversigt?"
 ```
 

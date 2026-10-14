@@ -27,9 +27,14 @@ GEMINI_MODEL = "gemini-3.8-flash"
 # Mere tænkning giver grundigere svar, men hvert skridt tager længere tid.
 GEMINI_THINKING = "low"
 
-# Nøglen til Gemini. Læses fra miljøvariablen GEMINI_API_KEY, hvis den er sat.
-# Midlertidigt kan nøglen skrives direkte her lokalt, men commit den aldrig.
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+# Nøglen til Gemini. Skriv den i local_secrets.py ved siden af denne fil:
+#     GEMINI_API_KEY = "din-nøgle"
+# Den fil ignoreres af git, så nøglen aldrig kommer med i et commit.
+# Findes filen ikke, læses nøglen fra miljøvariablen GEMINI_API_KEY.
+try:
+    from local_secrets import GEMINI_API_KEY
+except ImportError:
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 # Grundinstruktionen, når LLM-laget bruges direkte.
 LLM_SYSTEM_PROMPT = "Svar kort på dansk."
