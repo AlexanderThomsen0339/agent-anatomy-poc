@@ -48,6 +48,13 @@ DATA_FOLDER = ROOT / "RAG" / "data"
 # Hvor mange afsnit der sendes med til modellen.
 TOP_K = 3
 
+# Modellen, der laver embeddings (tekst -> vektor) til søgning på betydning. Bruger GEMINI_API_KEY.
+EMBEDDING_MODEL = "gemini-embedding-001"
+
+# Hvor mange tal hver vektor har. Færre tal fylder mindre i databasen; 768 er rigeligt til kravene.
+# Skiftes tallet, skal alt lægges ind i databasen igen.
+EMBEDDING_DIMENSIONS = 768
+
 
 # 3. MCP
 # Navnet, MCP-klienter (fx Claude Desktop) ser serveren under.

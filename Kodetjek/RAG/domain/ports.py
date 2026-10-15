@@ -41,3 +41,17 @@ class SearchIndex(Protocol):
     def search(self, query: str, k: int) -> list[SearchResult]:
         """Finder de k afsnit, der passer bedst til forespørgslen."""
         ...
+
+
+# Hvorfor en port til embeddings?
+# En embedding er en liste af tal, der beskriver, hvad en tekst betyder.
+# Tekster med samme betydning får tal, der ligger tæt på hinanden, også når de bruger forskellige ord.
+# Hvem der laver tallene (Gemini, OpenAI, en lokal model), skal resten af laget ikke vide.
+class Embedder(Protocol):
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        """Laver én vektor pr. tekst, der skal gemmes og søges i."""
+        ...
+
+    def embed_query(self, text: str) -> list[float]:
+        """Laver vektoren for et spørgsmål, der skal søges med."""
+        ...
