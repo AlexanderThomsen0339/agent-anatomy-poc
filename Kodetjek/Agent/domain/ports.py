@@ -20,7 +20,7 @@ from .models import Decision, History
 #   - fortælle modellen, hvilke værktøjer der findes
 #   - få at vide, at modellen vil bruge et værktøj
 #   - sende resultatet tilbage
-# Porten siger præcis det, og hver hjerne (Gemini, RuleBrain) opfylder den.
+# Porten siger præcis det, og GeminiBrain opfylder den.
 class AgentBrain(Protocol):
 
     # Hvorfor får hjernen hele historikken hver gang?

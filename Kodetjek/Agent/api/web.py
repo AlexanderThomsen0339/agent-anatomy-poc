@@ -2,7 +2,6 @@
 
 Kør fra Kodetjek-mappen:
     python -m Agent.api.web
-    python -m Agent.api.web --fake
 Åbn derefter http://localhost:8000
 
 Hvorfor ingen JavaScript og ingen web-framework?
@@ -10,7 +9,6 @@ Det er en demo. Serveren skriver HTML-siden lidt ad gangen, mens agenten arbejde
 og browseren viser hvert stykke, så snart det kommer. Så ser man skridtene live
 med kun Pythons standardbibliotek.
 """
-import argparse
 import re
 from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -122,12 +120,8 @@ def make_handler(agent):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--fake", action="store_true", help="Use the rule-based apprentice, no API key")
-    args = parser.parse_args()
-
     # Agenten bygges én gang, så xlsx-filerne kun indlæses ved start.
-    agent = build_agent(args.fake)
+    agent = build_agent()
     server = ThreadingHTTPServer(("localhost", PORT), make_handler(agent))
     print(f"Code Check is running on http://localhost:{PORT} (Ctrl+C to stop)")
     server.serve_forever()

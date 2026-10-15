@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parent
 
 
 # 1. Model
-# Gemini-modellen, der tænker i agenten uden --fake.
+# Gemini-modellen, der tænker i agenten.
 GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 # Hvor meget Gemini tænker, før den svarer: "minimal", "low", "medium" eller "high".

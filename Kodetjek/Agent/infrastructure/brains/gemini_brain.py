@@ -1,7 +1,7 @@
 """Den rigtige hjerne: Googles Gemini med værktøjer (function calling).
 
 Det er den eneste fil i Agent-laget, der kender til Google.
-Resten af laget mærker ikke forskel på Gemini og RuleBrain.
+Resten af laget taler kun med porten AgentBrain.
 """
 from google import genai
 from google.genai import types

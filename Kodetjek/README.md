@@ -37,18 +37,17 @@ pip install -r requirements.txt
 ## Run
 
 ```bash
-python -m Agent.api.web                                  # demo page on http://localhost:8000
-python -m Agent.api.cli "Does our code solve US-001?"    # terminal
+python -m Agent.api.web
 ```
 
-Add `--fake` to either to run without a key. It uses `RuleBrain`, which makes the same tool calls but only matches words, not an AI review.
+Open http://localhost:8000 and ask e.g. "Does our code solve US-005 Download faktura?". Include the title: the same US id exists in several sheets.
 
 ## Layout
 
 | Path | Contents |
 |---|---|
 | `settings.py` | All configuration: Gemini model and thinking level, data folder, `CODE_FOLDER`, system prompt, `MAX_STEPS`. |
-| `Agent/` | `AgentService` loop. Brains: `GeminiBrain` and `RuleBrain` (`--fake`). Entry points: `api/web.py`, `api/cli.py`. |
+| `Agent/` | `AgentService` loop, `GeminiBrain`, and the demo page `api/web.py`. |
 | `MCP/` | The three tools. `list_code_files` follows the repo's `.gitignore`. `read_code_file` refuses paths outside `CODE_FOLDER`. |
 | `RAG/` | `XlsxLoader` (one chunk per user story and test case) and `KeywordIndex`. |
 | `Skills/` | `code-review`: how the answer is written. |
