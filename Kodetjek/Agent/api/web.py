@@ -1,13 +1,6 @@
-"""Demo-websiden til Agent-laget: ét tekstfelt, én knap og skridtene live.
-
+"""
 Kør fra Kodetjek-mappen:
     python -m Agent.api.web
-Åbn derefter http://localhost:8000
-
-Hvorfor ingen JavaScript og ingen web-framework?
-Det er en demo. Serveren skriver HTML-siden lidt ad gangen, mens agenten arbejder,
-og browseren viser hvert stykke, så snart det kommer. Så ser man skridtene live
-med kun Pythons standardbibliotek.
 """
 import re
 from html import escape
