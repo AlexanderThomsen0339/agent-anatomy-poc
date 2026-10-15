@@ -2,6 +2,8 @@
 
 A developer asks: *"Does our code solve this user story?"* An AI agent looks up the user story and its acceptance criteria, reads the developer's code, and answers with a verdict per criterion and a `file:line` reference.
 
+The code has four layers, each with its own README: [Agent](Agent/README.md), [MCP](MCP/README.md), [RAG](RAG/README.md) and [Skills](Skills/README.md).
+
 ## Run the demo
 
 Python 3.10+. Run everything from the `Kodetjek/` folder.
