@@ -37,37 +37,37 @@ Each step is marked in the code with a comment like `# 13: TÆNK`. Search for `#
 
 **When the server starts (once)**
 
-| # | Step | Where |
-|---|---|---|
-| 1 | START | `Agent/api/web.py` · `main()` |
-| 2 | Build the agent | `Agent/api/build.py` · `build_agent()` |
-| 3 | Skills | `Skills/api/build.py` · `build_service()` |
-| 4 | Tools | `MCP/api/build.py` · `build_service()` |
-| 5 | Load the requirements | `RAG/application/ingest_service.py` · `run()` |
-| 6 | Read the xlsx files | `RAG/infrastructure/loaders/xlsx_loader.py` · `load()` |
-| 7 | Split into user stories and test cases | `RAG/infrastructure/chunking/text_chunker.py` · `split()` |
-| 8 | Store in the search index | `RAG/infrastructure/index/keyword_index.py` · `add()` |
-| 9 | Assemble tools, system prompt and Gemini | `Agent/api/build.py` · `build_agent()` |
-| 10 | Wait for a question | `Agent/api/web.py` · `main()` |
+| # | Step | Where | Why |
+|---|---|---|---|
+| 1 | START | `Agent/api/web.py` · `main()` | The Agent layer owns the entry point, because the agent is what the user talks to. |
+| 2 | Build the agent | `Agent/api/build.py` · `build_agent()` | The Agent layer is the only place that knows all the other layers, so it wires them together. |
+| 3 | Skills | `Skills/api/build.py` · `build_service()` | Skills holds the answer format as plain text, so the review rules can change without touching code. |
+| 4 | Tools | `MCP/api/build.py` · `build_service()` | MCP is the list of things the agent can do. Gemini only sees tool names and descriptions, never the code behind them. |
+| 5 | Load the requirements | `RAG/application/ingest_service.py` · `run()` | RAG owns the requirements. It loads them once at start, so each question only searches. |
+| 6 | Read the xlsx files | `RAG/infrastructure/loaders/xlsx_loader.py` · `load()` | RAG reads the raw files. Only this adapter knows about Excel, so another source would only replace this file. |
+| 7 | Split into user stories and test cases | `RAG/infrastructure/chunking/text_chunker.py` · `split()` | RAG splits the text so a search returns one user story, not a whole workbook. |
+| 8 | Store in the search index | `RAG/infrastructure/index/keyword_index.py` · `add()` | RAG keeps the index. The rest of the code only knows the `SearchIndex` port, so keyword search could become vector search. |
+| 9 | Assemble tools, system prompt and Gemini | `Agent/api/build.py` · `build_agent()` | The Agent layer joins the MCP tools, the skill tool and the brain into one agent. |
+| 10 | Wait for a question | `Agent/api/web.py` · `main()` | The Agent layer serves the page, so the agent is built once and reused for every question. |
 
 **For each question**
 
-| # | Step | Where |
-|---|---|---|
-| 11 | Question arrives | `Agent/api/web.py` · `do_GET()` |
-| 12 | Agent loop starts | `Agent/application/agent_service.py` · `run()` |
-| 13 | Gemini thinks | `Agent/infrastructure/brains/gemini_brain.py` · `decide()` |
-| 14 | Done? If yes, go to 19 | `agent_service.py` |
-| 15 | Call the tools Gemini asked for | `agent_service.py` |
-| 16 | Tool runs | `MCP/application/tool_service.py` · `call()` |
-| 16a | `load_skill`: answer format | `Skills/api/skill_tool.py` |
-| 16b | `search_requirements`: keyword search | `MCP/infrastructure/tools/requirements_search_tool.py` |
-| 16c | `list_code_files`: files in `CODE_FOLDER` | `MCP/infrastructure/tools/code_list_tool.py` |
-| 16d | `read_code_file`: one file with line numbers | `MCP/infrastructure/tools/code_read_tool.py` |
-| 17 | Results go into the history | `agent_service.py` |
-| 18 | Step shown on the page, back to 13 | `web.py` · `render_step()` |
-| 19 | Answer ready | `agent_service.py` |
-| 20 | OUTPUT: answer shown on the page | `web.py` · `render_markdown()` |
+| # | Step | Where | Why |
+|---|---|---|---|
+| 11 | Question arrives | `Agent/api/web.py` · `do_GET()` | The question goes to the Agent layer, because only the agent decides what to do. |
+| 12 | Agent loop starts | `Agent/application/agent_service.py` · `run()` | The Agent layer runs the loop. It knows the steps (think, act, observe) but not which model or tools. |
+| 13 | Gemini thinks | `Agent/infrastructure/brains/gemini_brain.py` · `decide()` | The Agent layer's brain adapter talks to Gemini. Only this file knows the Gemini SDK. |
+| 14 | Done? If yes, go to 19 | `agent_service.py` | The Agent layer checks for an answer, since Gemini signals "done" by asking for no tools. |
+| 15 | Call the tools Gemini asked for | `agent_service.py` | The Agent layer hands the calls to MCP. It never runs a tool itself. |
+| 16 | Tool runs | `MCP/application/tool_service.py` · `call()` | MCP finds the tool by name and catches errors, so a failing tool can't crash the agent. |
+| 16a | `load_skill`: answer format | `Skills/api/skill_tool.py` | Skills gives Gemini the answer format only when it needs it, which keeps the system prompt short. |
+| 16b | `search_requirements`: keyword search | `MCP/infrastructure/tools/requirements_search_tool.py` | MCP wraps the RAG search as a tool. The agent doesn't know RAG exists; it just calls a tool. |
+| 16c | `list_code_files`: files in `CODE_FOLDER` | `MCP/infrastructure/tools/code_list_tool.py` | MCP gives read access to the code, limited to `CODE_FOLDER`. |
+| 16d | `read_code_file`: one file with line numbers | `MCP/infrastructure/tools/code_read_tool.py` | MCP returns line numbers so the answer can point to `file:line`. It refuses paths outside `CODE_FOLDER`. |
+| 17 | Results go into the history | `agent_service.py` | The Agent layer keeps the history, so Gemini sees everything it has learned on the next step. |
+| 18 | Step shown on the page, back to 13 | `web.py` · `render_step()` | The Agent layer's page shows each step live, so the user sees what the agent is doing. |
+| 19 | Answer ready | `agent_service.py` | The Agent layer returns the answer together with all the steps it took. |
+| 20 | OUTPUT: answer shown on the page | `web.py` · `render_markdown()` | The Agent layer's page turns the answer into HTML for the user. |
 
 Gemini decides which tools to call and in which order. The code only runs the loop.
 
