@@ -32,12 +32,13 @@ class CodeReadTool:
         self.folder = Path(folder).resolve()
 
     def run(self, arguments: dict) -> str:
+        # 16d: LÆS FIL: Én fil fra CODE_FOLDER med linjenumre, så svaret kan henvise til fil:linje.
         file = (self.folder / arguments["path"]).resolve()
 
         # Hvorfor tjekke stien?
         # LLM'en kunne bede om "../../hemmelig.txt". Alt uden for kodemappen afvises.
         if not file.is_relative_to(self.folder):
-            return "Afvist: filen ligger uden for kodemappen."
+            return "Refused: the file is outside the code folder."
         if not file.is_file():
             return f"File not found: {arguments['path']}"
 
@@ -52,5 +53,5 @@ class CodeReadTool:
         # Linjenumre, så svaret kan henvise til fil:linje.
         numbered = "\n".join(f"{i:4} | {line}" for i, line in enumerate(lines, start=1))
         if cut:
-            numbered += f"\n... (afkortet efter {MAX_CHARS} tegn)"
+            numbered += f"\n... (cut after {MAX_CHARS} characters)"
         return numbered

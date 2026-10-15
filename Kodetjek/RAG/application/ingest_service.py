@@ -12,11 +12,16 @@ class IngestService:
 
     def run(self) -> int:
         """Indlæs → del op → læg i indeks. Returnerer antal afsnit."""
+        # 5: INDLÆS KRAV: Tre trin efter hinanden.
+
+        # 6: LÆS XLSX: Fortsæt i RAG/infrastructure/loaders/xlsx_loader.py.
         documents = self.loader.load()
 
+        # 7: DEL OP: Fortsæt i RAG/infrastructure/chunking/text_chunker.py.
         chunks = []
         for document in documents:
             chunks.extend(self.chunker.split(document))
 
+        # 8: GEM I INDEKS: Fortsæt i RAG/infrastructure/index/keyword_index.py. Tilbage til MCP/api/build.py.
         self.index.add(chunks)
         return len(chunks)

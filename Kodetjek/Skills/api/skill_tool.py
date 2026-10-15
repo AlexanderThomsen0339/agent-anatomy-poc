@@ -29,5 +29,6 @@ class LoadSkillTool:
         )
 
     def run(self, arguments: dict) -> str:
+        # 16a: HENT SKILL: Læser SKILL.md via SkillService.load() og FileSkillRepository.get().
         skill = self.service.load(arguments["name"])
         return skill.instructions

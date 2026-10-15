@@ -28,6 +28,7 @@ class XlsxLoader:
         self.folder = Path(folder)
 
     def load(self) -> list[Document]:
+        # 6: LÆS XLSX: Hvert ark i hver xlsx-fil bliver til ét dokument med tekst.
         documents = []
         for file in sorted(self.folder.glob("*.xlsx")):
             workbook = load_workbook(file, read_only=True, data_only=True)

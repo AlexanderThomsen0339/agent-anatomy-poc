@@ -11,11 +11,12 @@ from RAG.infrastructure.loaders.xlsx_loader import XlsxLoader
 
 
 def build_service() -> ToolService:
-    # Fyld RAG-lagets indeks med user stories og testcases, så kravsøgningen har noget at søge i.
+    # 4: VÆRKTØJER: Først fyldes søgeindekset med kravene, så search_requirements har noget at søge i.
+    # 5: INDLÆS KRAV: Fortsæt i RAG/application/ingest_service.py.
     requirements = KeywordIndex()
     IngestService(XlsxLoader(settings.DATA_FOLDER), ParagraphChunker(), requirements).run()
 
-    # Her vælger vi, hvilke apparater der sættes i. Det eneste sted, det sker.
+    # De tre værktøjer, AI'en kan kalde. Tilbage til build_agent() (trin 9).
     tools = [
         RequirementsSearchTool(requirements, k=settings.SEARCH_K),
         CodeListTool(settings.CODE_FOLDER),

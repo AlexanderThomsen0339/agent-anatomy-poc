@@ -84,6 +84,7 @@ def make_handler(agent):
     class Handler(BaseHTTPRequestHandler):
 
         def do_GET(self):
+            # 11: SPØRGSMÅL: Browseren sender spørgsmålet som ?q=... i adressen.
             url = urlparse(self.path)
             if url.path != "/":
                 self.send_error(404)
@@ -104,7 +105,11 @@ def make_handler(agent):
 
             self.write("<h2>What I am doing</h2>")
             try:
+                # 12: AGENTEN KØRER: Fortsæt i Agent/application/agent_service.py.
+                # 18: VIS SKRIDT: on_step kaldes efter hvert skridt, og render_step() sender det til browseren med det samme.
                 run = agent.run(question, on_step=lambda d, s: self.write(render_step(d, s)))
+
+                # 20: OUTPUT: Svaret laves om fra markdown til HTML og sendes. Siden er færdig. SLUT.
                 title = "" if run.finished else "<h2>Not finished</h2>"
                 self.write(f'{title}<div class="answer">{render_markdown(run.answer)}</div>')
             except Exception as e:
@@ -120,8 +125,12 @@ def make_handler(agent):
 
 
 def main():
-    # Agenten bygges én gang, så xlsx-filerne kun indlæses ved start.
+    # 1: START: Her starter vi, når man kører "python -m Agent.api.web".
+    # Agenten bygges én gang, så xlsx-filerne kun indlæses ved start. Fortsæt i Agent/api/build.py.
     agent = build_agent()
+
+    # 10: VENT: Serveren er klar og venter på, at nogen stiller et spørgsmål på siden.
+    # Hvert spørgsmål lander i Handler.do_GET() herover.
     server = ThreadingHTTPServer(("localhost", PORT), make_handler(agent))
     print(f"Code Check is running on http://localhost:{PORT} (Ctrl+C to stop)")
     server.serve_forever()

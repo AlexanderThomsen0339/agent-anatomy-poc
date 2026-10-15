@@ -28,9 +28,11 @@ class KeywordIndex:
         self.chunks: list[Chunk] = []
 
     def add(self, chunks: list[Chunk]) -> None:
+        # 8: GEM I INDEKS: Afsnittene gemmes bare i en liste i hukommelsen.
         self.chunks.extend(chunks)
 
     def search(self, query: str, k: int) -> list[SearchResult]:
+        # 16b: SØG: Hvert afsnit får ét point pr. ord, det deler med søgningen.
         query_words = words(query)
 
         results = []

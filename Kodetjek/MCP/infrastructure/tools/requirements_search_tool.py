@@ -31,6 +31,7 @@ class RequirementsSearchTool:
         self.k = k
 
     def run(self, arguments: dict) -> str:
+        # 16b: SØG I KRAV: Søger i indekset fra trin 8. Fortsæt i RAG/infrastructure/index/keyword_index.py.
         results = self.index.search(arguments["query"], self.k)
         if not results:
             return "No results."
