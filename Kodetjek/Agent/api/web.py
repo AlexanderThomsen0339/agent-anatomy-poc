@@ -33,7 +33,8 @@ pre { white-space: pre-wrap; background: #f4f4f4; padding: 1em; }
 </style></head><body>
 <h1>Code Check</h1>
 <form method="get" action="/">
-<p><label>I am: <select name="role" onchange="if (this.form.q.value.trim()) this.form.submit()">{roles}</select></label></p>
+<p><label>I am: <select name="role" onchange="if (this.form.q.value.trim()) { this.form.reuse.value = '1'; this.form.submit() }">{roles}</select></label></p>
+<input type="hidden" name="reuse" value="">
 <textarea name="q" rows="3" placeholder="Does our code solve US-001?">{question}</textarea>
 <p><button>Check the code</button></p>
 </form>
@@ -179,8 +180,9 @@ def make_handler(agent, writer):
 
             try:
                 # Samme spørgsmål med andre store/små bogstaver, mellemrum eller tegnsætning genbruger vurderingen.
+                # Kun når man skifter rolle (reuse=1). Trykker man på knappen, tjekkes koden igen, for den kan være rettet.
                 key = " ".join(re.sub(r"[^\w\s-]", " ", question.lower()).split())
-                if key in checked:
+                if query.get("reuse") == ["1"] and key in checked:
                     run, assessment = checked[key]
                     self.write('<p class="step">♻️ Using the check already made for this question</p>')
                 else:
