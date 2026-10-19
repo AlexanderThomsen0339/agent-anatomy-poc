@@ -70,6 +70,7 @@ Each step is marked in the code with a comment like `# 13: TÆNK`. Search for `#
 | 16c | `list_code_files`: files in `CODE_FOLDER` | `MCP/infrastructure/tools/code_list_tool.py` | MCP gives read access to the code, limited to `CODE_FOLDER`. |
 | 16d | `read_code_file`: one file with line numbers | `MCP/infrastructure/tools/code_read_tool.py` | MCP returns line numbers so the answer can point to `file:line`. It refuses paths outside `CODE_FOLDER`. |
 | 16e | `search_specification`: business requirements | `MCP/infrastructure/tools/specification_search_tool.py` | The test cases say what the test team checks; the kravspec says what the business ordered. Searching for a US id returns exactly the requirements that cover it, or says none are documented, so the agent can't invent one. |
+| 16f | `search_ot_documents`: the OT team's documents | `MCP/infrastructure/tools/ot_document_search_tool.py` | OT's documents (such as the signal list) are a separate source with their own index, so thousands of signals don't crowd out the requirements. Each row of a sheet is one result. |
 | 17 | Results go into the history | `agent_service.py` | The Agent layer keeps the history, so Gemini sees everything it has learned on the next step. |
 | 18 | Step shown on the page, back to 13 | `web.py` · `render_step()` | The Agent layer's page shows each step live, so the user sees what the agent is doing. |
 | 19 | Assessment ready | `agent_service.py` | The Agent layer returns Gemini's assessment text together with all the steps it took. Back in `web.py`, `parse_assessment()` (`answer_writer.py`) reads one line per requirement, and `Assessment.verdict` counts the verdict from it. If the agent didn't finish or wrote no assessment lines, the page shows what it wrote under *Not finished*. |
@@ -318,7 +319,7 @@ SkillService ..> Skill
 SkillService ..> SkillSummary
 ```
 
-`LoadSkillTool` lives in Skills but behaves like an MCP tool, so the agent sees it next to the other four. `History` is not a class but a list of `Decision`s and lists of `Observation`s. `AnswerWriter` uses the same `AgentBrain` port as the agent, but with no tools, and gets the `audience-<role>` instructions through a function that `build_writer()` passes in, so it never imports the Skills layer.
+`LoadSkillTool` lives in Skills but behaves like an MCP tool, so the agent sees it next to the other five. `History` is not a class but a list of `Decision`s and lists of `Observation`s. `AnswerWriter` uses the same `AgentBrain` port as the agent, but with no tools, and gets the `audience-<role>` instructions through a function that `build_writer()` passes in, so it never imports the Skills layer.
 
 ## Dependencies
 
@@ -452,7 +453,8 @@ Everything is in `settings.py`:
 | `GEMINI_MODEL`, `GEMINI_THINKING` | Which Gemini model thinks, and how much it thinks per step. |
 | `GEMINI_API_KEY` | Read from `local_secrets.py`, or from the `GEMINI_API_KEY` environment variable if that file doesn't exist. |
 | `DATA_FOLDER`, `SPEC_FOLDER` | The xlsx test cases and the kravspec `.md` files that RAG loads. |
-| `SEARCH_K` | How many results a search returns. |
+| `OT_FOLDER` | The OT team's xlsx documents. Each sheet is read as a table, one result per row. The files are kept out of git. |
+| `SEARCH_K`, `OT_SEARCH_K` | How many results a search returns. |
 | `CODE_FOLDER` | The code to check. The code tools can't see outside it. |
 | `SKILLS_FOLDER` | The skill folders. |
 | `TEAM` | Which `architecture-<team>` skill the code is checked against. |

@@ -39,10 +39,19 @@ DATA_FOLDER = ROOT / "RAG" / "data"
 # Hvert krav har et id som KRAV-REG-03 og en linje "Dækker:" med de user stories og testcases, det hører til.
 SPEC_FOLDER = ROOT / "RAG" / "data" / "kravspec"
 
+# Mappen med OT-holdets dokumenter (.xlsx), som search_ot_documents søger i, fx signallisten for anlægget.
+# Hvert ark læses som en tabel, og hver række bliver ét afsnit.
+# Filerne ignoreres af git, fordi de beskriver et rigtigt anlæg. Læg dem selv i mappen.
+OT_FOLDER = ROOT / "RAG" / "data" / "ot"
+
 
 # 3. MCP
 # Hvor mange afsnit kravsøgningen returnerer.
 SEARCH_K = 3
+
+# Hvor mange signaler eller rækker OT-søgningen returnerer. Lidt flere end kravsøgningen,
+# fordi et spørgsmål som "kølevandspumpe 2" ofte rammer flere signaler på samme pumpe.
+OT_SEARCH_K = 5
 
 # Mappen med udviklerens kode, som list_code_files og read_code_file må læse i.
 # Peg den på den kode, der skal tjekkes. Værktøjerne kan ikke se uden for mappen.

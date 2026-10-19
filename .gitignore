@@ -17,3 +17,7 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+# OT's dokumenter beskriver et rigtigt anlæg og skal ikke i git
+AIPlatform/RAG/data/ot/*
+!AIPlatform/RAG/data/ot/README.md
