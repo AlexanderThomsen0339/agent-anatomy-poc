@@ -28,12 +28,13 @@ class XlsxTableLoader:
 
     def load(self) -> list[Document]:
         documents = []
-        for file in sorted(self.folder.glob("*.xlsx")):
+        # Også undermapper, ligesom PdfLoader.
+        for file in sorted(f for f in self.folder.rglob("*") if f.is_file() and f.suffix.lower() == ".xlsx" and not f.name.startswith("~$")):
             workbook = load_workbook(file, read_only=True, data_only=True)
             for sheet in workbook.worksheets:
                 text = self._table(sheet.iter_rows(values_only=True))
                 if text:
-                    documents.append(Document(source=f"{file.name} › {sheet.title.strip()}", text=text))
+                    documents.append(Document(source=f"{file.relative_to(self.folder).as_posix()} › {sheet.title.strip()}", text=text))
         return documents
 
     @staticmethod

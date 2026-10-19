@@ -55,4 +55,8 @@ def build_ot_service() -> ToolService:
     print(f"OT documents: {rows} rows from spreadsheets and {pages} PDF pages in {settings.OT_FOLDER}")
     if pdf_loader.files_without_text:
         print("  PDFs without text (scanned?), so they can't be searched: " + ", ".join(pdf_loader.files_without_text))
+    # Filer, der hverken er regneark eller PDF, fx Word-dokumenter. Dem kan søgningen ikke læse endnu.
+    skipped = sorted(f.name for f in settings.OT_FOLDER.rglob("*") if f.is_file() and f.suffix.lower() not in (".xlsx", ".pdf", ".md"))
+    if skipped:
+        print(f"  {len(skipped)} files can't be read yet (only .xlsx and .pdf): " + ", ".join(skipped[:10]) + (" ..." if len(skipped) > 10 else ""))
     return ToolService([OtDocumentSearchTool(pdfs, tables, k=settings.OT_SEARCH_K)])
