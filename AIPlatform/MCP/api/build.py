@@ -42,8 +42,17 @@ def build_ot_service() -> ToolService:
     Ikke alle roller ser OT. Som to sæt kan Agent-laget give hver rolle præcis de værktøjer,
     dens hold har (ROLE_TEAMS), så Vedligehold ikke kan læse kode, og Product ikke kan søge i OT.
     """
-    # OT's dokumenter får deres eget indeks. Hver række i et ark og hver side i en PDF bliver ét afsnit.
-    ot_documents = KeywordIndex()
-    IngestService(XlsxTableLoader(settings.OT_FOLDER), ParagraphChunker(), ot_documents).run()
-    IngestService(PdfLoader(settings.OT_FOLDER), ParagraphChunker(), ot_documents).run()
-    return ToolService([OtDocumentSearchTool(ot_documents, k=settings.OT_SEARCH_K)])
+    # OT's regneark og PDF'er får hvert sit indeks. Hver række i et ark og hver side i en PDF bliver ét afsnit.
+    # Hvorfor to? Signallisten har over 20.000 rækker. I ét indeks ville rækkerne skubbe PDF-siderne ud af resultaterne,
+    # så et spørgsmål om fx "QAL2" kun gav signaler og aldrig dokumentet, der forklarer det.
+    tables = KeywordIndex()
+    rows = IngestService(XlsxTableLoader(settings.OT_FOLDER), ParagraphChunker(), tables).run()
+    pdfs = KeywordIndex()
+    pdf_loader = PdfLoader(settings.OT_FOLDER)
+    pages = IngestService(pdf_loader, ParagraphChunker(), pdfs).run()
+
+    # Vises i konsollen ved start, så man kan se, om dokumenterne faktisk blev læst.
+    print(f"OT documents: {rows} rows from spreadsheets and {pages} PDF pages in {settings.OT_FOLDER}")
+    if pdf_loader.files_without_text:
+        print("  PDFs without text (scanned?), so they can't be searched: " + ", ".join(pdf_loader.files_without_text))
+    return ToolService([OtDocumentSearchTool(pdfs, tables, k=settings.OT_SEARCH_K)])

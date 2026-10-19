@@ -127,6 +127,8 @@ OT_PROMPT = (
     "Answer short: what was asked, then the signal or row it comes from with its name in both the old and the new system, "
     "its description, unit and range when they are there. End each point with the document and sheet in brackets.\n"
     "If several rows match, list at most 5 and say which detail would tell them apart.\n"
+    "Results come as PDF documents first, then the signal list. For what something means, how it is done or why, "
+    "answer from the PDF documents and name the file and page. Use the signal list for signal names, units and ranges.\n"
     "If the user asks which document contains certain words, or puts words in quotes, search with exact set to true "
     "and answer with every document and page that contains them, word for word.\n"
     "Never guess: if the documents don't say it, say it is not in OT's documents."

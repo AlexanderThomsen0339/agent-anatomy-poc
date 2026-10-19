@@ -15,10 +15,13 @@ class PdfLoader:
 
     def __init__(self, folder: str | Path):
         self.folder = Path(folder)
+        # PDF'er uden tekst, fx skannede sider. Dem kan søgningen ikke finde noget i, så de vises ved start.
+        self.files_without_text: list[str] = []
 
     def load(self) -> list[Document]:
         documents = []
         for file in sorted(self.folder.glob("*.pdf")):
+            before = len(documents)
             for number, page in enumerate(PdfReader(file).pages, start=1):
                 # Hvorfor samle teksten på én linje?
                 # ParagraphChunker deler ved tomme linjer, og en side skal være ét afsnit.
@@ -26,4 +29,6 @@ class PdfLoader:
                 text = " ".join((page.extract_text() or "").split())
                 if text:
                     documents.append(Document(source=f"{file.name} › page {number}", text=text))
+            if len(documents) == before:
+                self.files_without_text.append(file.name)
         return documents
