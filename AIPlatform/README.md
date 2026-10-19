@@ -35,15 +35,15 @@ The page shows each step live, then a folded *Sources* box with the test documen
 
 Only Regninger has a business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`, an example written for the demo). For Min Profil and Mit Overblik the answer says that no business requirement is documented.
 
-### Vedligehold: OT's documents
+### OT's documents (Vedligehold and IT)
 
-Choose *Vedligehold* in the dropdown to ask about the documents the OT team makes, such as the plant's signal list. Put the xlsx files in `RAG/data/ot/` first; they are kept out of git because they describe a real plant.
+Choose *Vedligehold* or *IT* in the dropdown to ask about the documents the OT team makes, such as the plant's signal list. Put the xlsx files in `RAG/data/ot/` first; they are kept out of git because they describe a real plant.
 
 - Which signal is Kedel Fyr Nødud in 800xA?
 - What is the range of MKF20AP001A?
 - Which signals are there for kølevandspumpe 2?
 
-This uses its own agent (`build_maintenance_agent()`) with one tool, `search_ot_documents`, and no skills or code. It answers straight away with the signal, its old and new name, description, unit and range, and the *Sources* box lists the sheets it used. There is no assessment and nothing is saved, because there is no code to judge.
+Which teams a role sees is set in `ROLE_TEAMS` in `settings.py`, and the code gives each role an agent with only those teams' tools; the AI doesn't choose. *Product / communication* sees web (code check), *Vedligehold* sees OT (only `search_ot_documents`, no code), and *IT* sees both, because IT covers both teams. IT's agent decides from the question whether it is a code check or an OT lookup. An OT lookup answers straight away with the signal, its old and new name, description, unit and range, and the *Sources* box lists the sheets it used. There is no assessment and nothing is saved, because there is no code to judge.
 
 ## The flow
 
@@ -54,7 +54,7 @@ Each step is marked in the code with a comment like `# 13: TÆNK`. Search for `#
 | # | Step | Where | Why |
 |---|---|---|---|
 | 1 | START | `Agent/api/web.py` · `main()` | The Agent layer owns the entry point, because the agent is what the user talks to. |
-| 2 | Build the agent | `Agent/api/build.py` · `build_agent()` | The Agent layer is the only place that knows all the other layers, so it wires them together. `main()` also calls `build_writer()`, which builds the `AnswerWriter` used in step 20b. |
+| 2 | Build the agents | `Agent/api/build.py` · `build_agents()` | The Agent layer is the only place that knows all the other layers, so it wires them together: one agent per role, with the tools for the teams in `ROLE_TEAMS`. The tools are built once and shared. `main()` also calls `build_writer()`, which builds the `AnswerWriter` used in step 20b. |
 | 3 | Skills | `Skills/api/build.py` · `build_service()` | Skills holds the answer format as plain text, so the review rules can change without touching code. |
 | 4 | Tools | `MCP/api/build.py` · `build_service()` | MCP is the list of things the agent can do. Gemini only sees tool names and descriptions, never the code behind them. |
 | 5 | Load the requirements | `RAG/application/ingest_service.py` · `run()` | RAG owns the requirements. It loads them once at start, so each question only searches. |
@@ -62,7 +62,7 @@ Each step is marked in the code with a comment like `# 13: TÆNK`. Search for `#
 | 6b | Read the business requirements (kravspec) | `RAG/infrastructure/loaders/markdown_loader.py` · `load()` | Steps 5–8 run a second time for `RAG/data/kravspec/*.md`, into their own index, so a requirement isn't crowded out by test cases. |
 | 7 | Split into user stories and test cases | `RAG/infrastructure/chunking/text_chunker.py` · `split()` | RAG splits the text so a search returns one user story, not a whole workbook. |
 | 8 | Store in the search index | `RAG/infrastructure/index/keyword_index.py` · `add()` | RAG keeps the index. The rest of the code only knows the `SearchIndex` port, so keyword search could become vector search. |
-| 9 | Assemble tools, system prompt and Gemini | `Agent/api/build.py` · `build_agent()` | The Agent layer joins the MCP tools, the skill tool and the brain into one agent. The system prompt names the team (`TEAM`) and lists the skills, except the `audience-` skills: the role must not affect the assessment. |
+| 9 | Assemble tools, system prompt and Gemini | `Agent/api/build.py` · `build_agent()` inside `build_agents()` | For a role that sees web, the Agent layer joins the MCP code-check tools, the skill tool and the brain; the system prompt names the team (`TEAM`) and lists the skills, except the `audience-` skills: the role must not affect the assessment. For a role that sees OT, it adds `search_ot_documents` and `OT_PROMPT`. A role that sees both gets both, and is told to decide from the question which one it is. |
 | 10 | Wait for a question | `Agent/api/web.py` · `main()` | The Agent layer serves the page, so the agent is built once and reused for every question. |
 
 **For each question**
@@ -80,7 +80,7 @@ Each step is marked in the code with a comment like `# 13: TÆNK`. Search for `#
 | 16c | `list_code_files`: files in `CODE_FOLDER` | `MCP/infrastructure/tools/code_list_tool.py` | MCP gives read access to the code, limited to `CODE_FOLDER`. |
 | 16d | `read_code_file`: one file with line numbers | `MCP/infrastructure/tools/code_read_tool.py` | MCP returns line numbers so the answer can point to `file:line`. It refuses paths outside `CODE_FOLDER`. |
 | 16e | `search_specification`: business requirements | `MCP/infrastructure/tools/specification_search_tool.py` | The test cases say what the test team checks; the kravspec says what the business ordered. Searching for a US id returns exactly the requirements that cover it, or says none are documented, so the agent can't invent one. |
-| 16f | `search_ot_documents`: the OT team's documents (Vedligehold only) | `MCP/infrastructure/tools/ot_document_search_tool.py` | Only the Vedligehold agent has this tool (`build_ot_service()`), and the code-check agent doesn't, so neither can mix the other's sources into an answer. Each row of a sheet is one result. |
+| 16f | `search_ot_documents`: the OT team's documents (roles that see OT) | `MCP/infrastructure/tools/ot_document_search_tool.py` | Only roles whose `ROLE_TEAMS` include OT (IT and Vedligehold) get this tool (`build_ot_service()`), so Product / communication never sees OT's documents and Vedligehold never sees code. Each row of a sheet is one result. |
 | 17 | Results go into the history | `agent_service.py` | The Agent layer keeps the history, so Gemini sees everything it has learned on the next step. |
 | 18 | Step shown on the page, back to 13 | `web.py` · `render_step()` | The Agent layer's page shows each step live, so the user sees what the agent is doing. |
 | 19 | Assessment ready | `agent_service.py` | The Agent layer returns Gemini's assessment text together with all the steps it took. Back in `web.py`, `parse_assessment()` (`answer_writer.py`) reads one line per requirement, and `Assessment.verdict` counts the verdict from it. If the agent didn't finish or wrote no assessment lines, the page shows what it wrote under *Not finished*. |
@@ -467,12 +467,12 @@ Everything is in `settings.py`:
 | `SEARCH_K`, `OT_SEARCH_K` | How many results a search returns. |
 | `CODE_FOLDER` | The code to check. The code tools can't see outside it. |
 | `SKILLS_FOLDER` | The skill folders. |
-| `TEAMS` | IT's teams and what each one does: web writes the code that is checked, OT makes the documents Vedligehold searches. The agents get the description. |
+| `TEAMS` | IT's teams and what each one does: web builds Mit Aalborg Forsyning, OT runs the plant's control systems and makes their documents. The agents get the description. |
 | `TEAM` | The team whose code is checked, and so which `architecture-<team>` skill it is checked against. |
-| `DOCUMENT_TEAM` | The team whose documents Vedligehold searches (`ot`). |
-| `ROLES`, `DEFAULT_ROLE` | The code-check roles in the dropdown. Each key needs an `audience-<key>` skill. |
-| `DOCUMENT_ROLES` | The roles that search OT's documents instead (Vedligehold). |
-| `MAX_STEPS`, `SYSTEM_PROMPT`, `MAINTENANCE_PROMPT` | The step limit and the base instruction for the code-check agent and the Vedligehold agent. |
+| `DOCUMENT_TEAM` | The team whose documents `search_ot_documents` searches (`ot`). |
+| `ROLES`, `DEFAULT_ROLE` | The roles in the dropdown. A role that sees web needs an `audience-<key>` skill. |
+| `ROLE_TEAMS` | Which teams each role sees, and so which tools its agent gets: Product / communication web, IT web and OT, Vedligehold OT. |
+| `MAX_STEPS`, `SYSTEM_PROMPT`, `OT_PROMPT` | The step limit, the instruction for code checks and the instruction for OT lookups. |
 
 How the code is reviewed is in `Skills/data/skills/code-review/SKILL.md`, and the answer formats are in `audience-product/SKILL.md` and `audience-it/SKILL.md`.
 

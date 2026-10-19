@@ -2,13 +2,13 @@
 
 **What it is:** the agent's hands. A fixed list of tools, each with a name, a description and the input it takes. The name comes from the Model Context Protocol, the standard for describing tools to an LLM. The AI Platform POC uses the same idea (`ToolSpec`, `ToolCall`, `ToolResult`) inside the program, without running an MCP server.
 
-**What it does:** it gives the code-check agent four tools and the Vedligehold agent one and runs them when asked:
+**What it does:** it gives a role four code-check tools if it sees web, and `search_ot_documents` if it sees OT (`ROLE_TEAMS` in `settings.py`) and runs them when asked:
 
 | Tool | Does | Why |
 |---|---|---|
 | `search_requirements` | Searches the user stories and test cases | Wraps the RAG search as a tool, so the agent chooses what to search for. |
 | `search_specification` | Searches the business requirements (kravspec) | A separate source from the tests. A US id returns exactly the requirements that cover it, or "not documented", so the agent can't invent one. |
-| `search_ot_documents` | Searches the OT team's documents, such as the signal list. Only the Vedligehold agent gets it, from `build_ot_service()` | Maintenance needs to find signals by code or Danish description. Its own index and its own agent keep them apart from the requirements and the code. |
+| `search_ot_documents` | Searches the OT team's documents, such as the signal list. Only roles that see OT (IT and Vedligehold) get it, from `build_ot_service()` | Maintenance needs to find signals by code or Danish description. Its own index and tool set keep them apart from the requirements and the code. |
 | `list_code_files` | Lists the files in `CODE_FOLDER` | The agent has to find the relevant files before it can read them. |
 | `read_code_file` | Returns one file with line numbers | Line numbers let the answer point to `file:line`. Paths outside `CODE_FOLDER` are refused. |
 

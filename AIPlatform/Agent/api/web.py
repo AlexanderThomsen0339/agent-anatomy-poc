@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import settings
-from Agent.api.build import build_agent, build_maintenance_agent, build_writer
+from Agent.api.build import build_agents, build_writer
 from Agent.application.answer_writer import parse_assessment
 from Agent.domain.models import Assessment, Decision, Step
 
@@ -52,12 +52,20 @@ FRIENDLY = {
     "search_ot_documents": lambda a: f"🔎 Searching OT's documents: {a.get('query', '')}",
 }
 
-# Teksten på siden for hver slags opgave: overskrift, eksempel i feltet og knappen.
-# Hvorfor? Vedligehold tjekker ikke kode, så "Check the code" ville forvirre.
+# Teksten på siden for hvert hold: overskrift og eksempel i feltet. En rolle, der ser flere hold, får dem alle.
+# Hvorfor? Vedligehold tjekker ikke kode, så "Does our code solve US-001?" ville forvirre.
 PAGE_TEXT = {
-    "code": ("Code Check", "Does our code solve US-001?", "Check the code"),
-    "documents": ("OT documents", "Which signal is Kedel Fyr Nødud in 800xA?", "Ask"),
+    settings.TEAM: ("Code Check", "Does our code solve US-001?"),
+    settings.DOCUMENT_TEAM: ("OT documents", "Which signal is Kedel Fyr Nødud in 800xA?"),
 }
+
+
+def page_text(teams: list[str]) -> tuple[str, str, str]:
+    """Overskrift, eksempel og knap til siden for en rolle, der ser de givne hold."""
+    heading = " · ".join(PAGE_TEXT[t][0] for t in teams)
+    placeholder = " Or: ".join(PAGE_TEXT[t][1] for t in teams)
+    button = "Check the code" if teams == [settings.TEAM] else "Ask"
+    return heading, placeholder, button
 
 
 def render_step(decision: Decision, steps: list[Step]) -> str:
@@ -117,7 +125,7 @@ def render_sources(steps: list[Step]) -> str:
 
 
 def render_document_sources(steps: list[Step]) -> str:
-    """Kildeboksen for Vedligehold: de OT-dokumenter og ark, svaret bygger på. Der er ingen kode."""
+    """Kildeboksen for et opslag i OT's dokumenter: de dokumenter og ark, svaret bygger på. Der er ingen kode."""
     sheets = set()
     for step in steps:
         if step.action.tool == "search_ot_documents" and not step.observation.is_error:
@@ -177,7 +185,7 @@ def render_markdown(text: str) -> str:
     return html + ("</ul>" if in_list else "")
 
 
-def make_handler(agent, maintenance_agent, writer):
+def make_handler(agents, writer):
 
     # Hvorfor gemme vurderingen?
     # Skifter man rolle eller spørger igen om uændret kode, skal svaret bygge på den samme vurdering.
@@ -196,11 +204,14 @@ def make_handler(agent, maintenance_agent, writer):
             query = parse_qs(url.query)
             question = query.get("q", [""])[0].strip()
             # Rollen kommer fra dropdownen. Den står i adressen, så den er valgt igen ved næste spørgsmål.
-            # Skifter man mellem kodetjek og Vedligehold, tømmes feltet, fordi spørgsmålet ikke giver mening i den anden.
+            # Skifter man til en rolle, der ser andre hold, tømmes feltet, fordi spørgsmålet måske ikke giver mening der.
             role = query.get("role", [settings.DEFAULT_ROLE])[0]
-            if role not in settings.ROLES and role not in settings.DOCUMENT_ROLES:
+            if role not in settings.ROLES:
                 role = settings.DEFAULT_ROLE
-            use_case = "documents" if role in settings.DOCUMENT_ROLES else "code"
+            teams = settings.ROLE_TEAMS[role]
+            # Rollen bestemmer agenten, og dermed hvilke hold AI'en kan se. AI'en vælger det ikke selv.
+            agent = agents[role]
+            checks_code = settings.TEAM in teams
 
             # Hvorfor ingen Content-Length?
             # Siden er ikke færdig, når vi begynder at sende den. Browseren læser,
@@ -209,29 +220,26 @@ def make_handler(agent, maintenance_agent, writer):
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
             roles = "".join(
-                f'<option value="{key}" data-use="{"documents" if key in settings.DOCUMENT_ROLES else "code"}"'
+                f'<option value="{key}" data-use="{"+".join(settings.ROLE_TEAMS[key])}"'
                 f'{" selected" if key == role else ""}>{escape(label)}</option>'
-                for key, label in {**settings.ROLES, **settings.DOCUMENT_ROLES}.items()
+                for key, label in settings.ROLES.items()
             )
-            heading, placeholder, button = PAGE_TEXT[use_case]
+            heading, placeholder, button = page_text(teams)
             self.write(
                 HEAD.replace("{roles}", roles).replace("{question}", escape(question))
-                .replace("{use_case_key}", use_case).replace("{use_case}", heading).replace("{placeholder}", placeholder).replace("{button}", button)
+                .replace("{use_case_key}", "+".join(teams)).replace("{use_case}", heading).replace("{placeholder}", placeholder).replace("{button}", button)
             )
 
             if not question:
                 self.write("</body></html>")
                 return
 
-            if use_case == "documents":
-                self.answer_from_documents(question, role)
-                return
-
             try:
                 # Samme spørgsmål med andre store/små bogstaver, mellemrum eller tegnsætning genbruger vurderingen,
                 # så længe koden og kravene er uændrede. Er en fil rettet, tjekkes koden igen.
                 key = " ".join(re.sub(r"[^\w\s-]", " ", question.lower()).split())
-                cached = checked.get(key)
+                # Kun roller, der tjekker kode, kan genbruge en vurdering. Vedligehold har ingen.
+                cached = checked.get(key) if checks_code else None
                 if cached and cached[2] == fingerprint(cached[0].steps):
                     run, assessment, _ = cached
                     self.write('<p class="step">♻️ The code and requirements have not changed, so the earlier check is used</p>')
@@ -241,11 +249,19 @@ def make_handler(agent, maintenance_agent, writer):
                     # 18: VIS SKRIDT: on_step kaldes efter hvert skridt, og render_step() sender det til browseren med det samme.
                     # Agenten får ikke rollen. Vurderingen skal være den samme, uanset hvem der spørger.
                     run = agent.run(question, on_step=lambda d, s: self.write(render_step(d, s)))
-                    assessment = parse_assessment(run.answer) if run.finished else None
+                    assessment = parse_assessment(run.answer) if run.finished and checks_code else None
                     if assessment:
                         checked[key] = (run, assessment, fingerprint(run.steps))
 
-                if not assessment:
+                looked_up_ot = any(s.action.tool == "search_ot_documents" for s in run.steps)
+                if not assessment and run.finished and looked_up_ot:
+                    # Et opslag i OT's dokumenter: der er ingen kode at vurdere, så agentens svar vises direkte.
+                    self.write(
+                        render_document_sources(run.steps)
+                        + f'<h2>Answer for {escape(settings.ROLES[role])}</h2>'
+                        + f'<div class="answer">{render_markdown(run.answer)}</div>'
+                    )
+                elif not assessment:
                     # Agenten blev ikke færdig eller skrev ikke en vurdering. Vis det, den skrev.
                     self.write(f'<h2>Not finished</h2>{render_sources(run.steps)}<div class="answer">{render_markdown(run.answer)}</div>')
                 else:
@@ -265,21 +281,6 @@ def make_handler(agent, maintenance_agent, writer):
                 self.write(f'<h2 class="error">Error</h2><pre>{escape(repr(e))}</pre>')
             self.write("</body></html>")
 
-        def answer_from_documents(self, question: str, role: str) -> None:
-            """Vedligehold: agenten slår op i OT's dokumenter og svarer direkte.
-
-            Hvorfor uden vurdering og gemt svar?
-            Der er ingen kode at vurdere, og svaret er bare det, der står i dokumenterne.
-            """
-            try:
-                self.write("<h2>What I am doing</h2>")
-                run = maintenance_agent.run(question, on_step=lambda d, s: self.write(render_step(d, s)))
-                title = f"Answer for {escape(settings.DOCUMENT_ROLES[role])}" if run.finished else "Not finished"
-                self.write(f'{render_document_sources(run.steps)}<h2>{title}</h2><div class="answer">{render_markdown(run.answer)}</div>')
-            except Exception as e:
-                self.write(f'<h2 class="error">Error</h2><pre>{escape(repr(e))}</pre>')
-            self.write("</body></html>")
-
         def write(self, html: str) -> None:
             self.wfile.write(html.encode("utf-8"))
             self.wfile.flush()
@@ -290,14 +291,12 @@ def make_handler(agent, maintenance_agent, writer):
 def main():
     # 1: START: Her starter vi, når man kører "python -m Agent.api.web".
     # Agenten bygges én gang, så xlsx-filerne kun indlæses ved start. Fortsæt i Agent/api/build.py.
-    agent = build_agent()
-    # Vedligehold får sin egen agent, som kun kan søge i OT's dokumenter.
-    maintenance_agent = build_maintenance_agent()
+    agents = build_agents()
     writer = build_writer()
 
     # 10: VENT: Serveren er klar og venter på, at nogen stiller et spørgsmål på siden.
     # Hvert spørgsmål lander i Handler.do_GET() herover.
-    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agent, maintenance_agent, writer))
+    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agents, writer))
     print(f"AI Platform POC is running on http://localhost:{PORT} (Ctrl+C to stop)")
     server.serve_forever()
 

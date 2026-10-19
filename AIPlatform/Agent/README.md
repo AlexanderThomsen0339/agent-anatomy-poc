@@ -11,10 +11,10 @@
 | `domain/` | `Decision`, `Action`, `Observation`, `Step`, `AgentRun`, `Finding`, `Assessment` and the `AgentBrain` port | Describes a step without knowing which model takes it. |
 | `application/` | `AgentService.run()`: think, act, observe, repeat. `AnswerWriter`: turns the assessment into the answer for a role | The loop is the same whatever the model or tools are. The writer gets no tools, so the role can only change how the answer is written, not what was found. |
 | `infrastructure/` | `GeminiBrain`: the only file that knows the Gemini SDK | Changing model means replacing this file, nothing else. |
-| `api/` | `web.py` (the page, the *Sources* and *Assessment* boxes, and the saved assessments) and `build.py` (`build_agent()` wires all four layers together, `build_writer()` builds the `AnswerWriter`, `build_maintenance_agent()` builds the Vedligehold agent with only `search_ot_documents`) | The only place that knows every layer, so the rest stay independent. |
+| `api/` | `web.py` (the page, the *Sources* and *Assessment* boxes, and the saved assessments) and `build.py` (`build_agents()` wires all four layers together into one agent per role, with the tools for the teams the role sees in `ROLE_TEAMS`; `build_writer()` builds the `AnswerWriter`) | The only place that knows every layer, so the rest stay independent. |
 
 `MAX_STEPS` in `settings.py` stops an agent that goes in circles.
 
-The Vedligehold role uses a second `AgentService` with the same loop and brain but one tool and `MAINTENANCE_PROMPT`. It answers directly from OT's documents, with no assessment or `AnswerWriter`.
+Each role gets its own `AgentService` with the same loop and brain but only its teams' tools (`ROLE_TEAMS`): Product / communication web, Vedligehold OT, and IT both. An OT lookup is answered directly from OT's documents, with no assessment or `AnswerWriter`; IT's agent decides from the question which kind it is.
 
 `web.py` saves each assessment in memory by question. Asking again, or switching role, reuses it as long as `fingerprint()` shows that the code files read and the requirement files are unchanged, so the same code always gets the same verdict.
