@@ -18,8 +18,8 @@ class LoadSkillTool:
         self.spec = ToolSpec(
             name="load_skill",
             description=(
-                "Henter de fulde instruktioner for en skill fra kataloget. "
-                "Brug det, før du løser en opgave, som en skill passer til."
+                "Loads the full instructions for a skill from the catalog. "
+                "Use it before solving a task that a skill fits."
             ),
             input_schema={
                 "type": "object",
@@ -29,5 +29,6 @@ class LoadSkillTool:
         )
 
     def run(self, arguments: dict) -> str:
+        # 16a: HENT SKILL: Læser SKILL.md via SkillService.load() og FileSkillRepository.get().
         skill = self.service.load(arguments["name"])
         return skill.instructions

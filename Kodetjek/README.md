@@ -1,93 +1,426 @@
-# Kodetjek
+# Kodetjek demo
 
-POC'en til forretningsdemoen: en udvikler spørger AI'en, om den kode, udvikleren har skrevet, løser opgaven, og AI'en ser i koden og svarer ud fra user stories og testcases.
+A developer asks: *"Does our code solve this user story?"* An AI agent looks up the user story and its acceptance criteria, reads the developer's code, and answers with a verdict per criterion and a `file:line` reference.
 
-Kodetjek bygger på de samme fem lag som originalen i roden af repoet (LLM, RAG, MCP, Skills, Agent), med samme ports & adapters-struktur. Originalen røres ikke og står som reference, også for forklaringen af lagene i dens README-filer.
+The code has four layers, each with its own README: [Agent](Agent/README.md), [MCP](MCP/README.md), [RAG](RAG/README.md) and [Skills](Skills/README.md).
 
-## Flowet
+## Run the demo
 
-```
-Udvikler: "Løser vores kode US-001 Vis regningsoversigt?"
-   ▼
-Agent ── vælger selv værktøjer ──┬─ load_skill("kodevurdering")   Skills
-                                 ├─ search_requirements(...)      MCP → RAG (xlsx)
-                                 ├─ list_code_files()             MCP → CODE_FOLDER
-                                 └─ read_code_file(...)           MCP → CODE_FOLDER
-   ▼
-Svar: hvert acceptkriterie med henvisning til fil:linje
-```
-
-## Kom i gang
-
-Kræver Python 3.10 eller nyere. Alle kommandoer køres fra **Kodetjek-mappen**, så lagene her bruges og ikke originalen.
+Python 3.10+. Run everything from the `Kodetjek/` folder.
 
 ```bash
-cd Kodetjek
 pip install -r requirements.txt
 ```
 
-Sæt `CODE_FOLDER` i [`settings.py`](settings.py) til roden af den kode, der skal tjekkes, fx:
+1. Set `CODE_FOLDER` in `settings.py` to the code to check.
+2. Put a Gemini key from Google AI Studio in `local_secrets.py` (ignored by git):
+   ```python
+   GEMINI_API_KEY = "your-key"
+   ```
+3. Start the page:
+   ```bash
+   python -m Agent.api.web
+   ```
+4. Open http://localhost:8000 and ask a question.
 
-```python
-CODE_FOLDER = Path(r"C:\Users\...\source\repos\MitProjekt")
+## Questions to ask
+
+Include the title, because the same US id exists in several sheets.
+
+- Does our code solve US-005 Download faktura?
+- Does our code solve US-002 Ingen regninger tilgængelige?
+- Does our code solve US-002 Opdater telefonnummer?
+
+The page shows each step live, then a folded *Sources* box with the test documents, requirement files and code folder (and its git repo) the agent actually used, then the verdict: **Solved**, **Partly solved** or **Not solved**, in at most 8 lines of plain English for a non-technical reader: how many requirements are met, only what is missing, and at most two risks from how the code is built (`architecture-web`).
+
+Only Regninger has a business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`, an example written for the demo). For Min Profil and Mit Overblik the answer says that no business requirement is documented.
+
+## The flow
+
+Each step is marked in the code with a comment like `# 13: TÆNK`. Search for `# 13:` to jump to it.
+
+**When the server starts (once)**
+
+| # | Step | Where | Why |
+|---|---|---|---|
+| 1 | START | `Agent/api/web.py` · `main()` | The Agent layer owns the entry point, because the agent is what the user talks to. |
+| 2 | Build the agent | `Agent/api/build.py` · `build_agent()` | The Agent layer is the only place that knows all the other layers, so it wires them together. |
+| 3 | Skills | `Skills/api/build.py` · `build_service()` | Skills holds the answer format as plain text, so the review rules can change without touching code. |
+| 4 | Tools | `MCP/api/build.py` · `build_service()` | MCP is the list of things the agent can do. Gemini only sees tool names and descriptions, never the code behind them. |
+| 5 | Load the requirements | `RAG/application/ingest_service.py` · `run()` | RAG owns the requirements. It loads them once at start, so each question only searches. |
+| 6 | Read the xlsx files | `RAG/infrastructure/loaders/xlsx_loader.py` · `load()` | RAG reads the raw files. Only this adapter knows about Excel, so another source would only replace this file. |
+| 6b | Read the business requirements (kravspec) | `RAG/infrastructure/loaders/markdown_loader.py` · `load()` | Steps 5–8 run a second time for `RAG/data/kravspec/*.md`, into their own index, so a requirement isn't crowded out by test cases. |
+| 7 | Split into user stories and test cases | `RAG/infrastructure/chunking/text_chunker.py` · `split()` | RAG splits the text so a search returns one user story, not a whole workbook. |
+| 8 | Store in the search index | `RAG/infrastructure/index/keyword_index.py` · `add()` | RAG keeps the index. The rest of the code only knows the `SearchIndex` port, so keyword search could become vector search. |
+| 9 | Assemble tools, system prompt and Gemini | `Agent/api/build.py` · `build_agent()` | The Agent layer joins the MCP tools, the skill tool and the brain into one agent. |
+| 10 | Wait for a question | `Agent/api/web.py` · `main()` | The Agent layer serves the page, so the agent is built once and reused for every question. |
+
+**For each question**
+
+| # | Step | Where | Why |
+|---|---|---|---|
+| 11 | Question arrives | `Agent/api/web.py` · `do_GET()` | The question goes to the Agent layer, because only the agent decides what to do. |
+| 12 | Agent loop starts | `Agent/application/agent_service.py` · `run()` | The Agent layer runs the loop. It knows the steps (think, act, observe) but not which model or tools. |
+| 13 | Gemini thinks | `Agent/infrastructure/brains/gemini_brain.py` · `decide()` | The Agent layer's brain adapter talks to Gemini. Only this file knows the Gemini SDK. |
+| 14 | Done? If yes, go to 19 | `agent_service.py` | The Agent layer checks for an answer, since Gemini signals "done" by asking for no tools. |
+| 15 | Call the tools Gemini asked for | `agent_service.py` | The Agent layer hands the calls to MCP. It never runs a tool itself. |
+| 16 | Tool runs | `MCP/application/tool_service.py` · `call()` | MCP finds the tool by name and catches errors, so a failing tool can't crash the agent. |
+| 16a | `load_skill`: answer format | `Skills/api/skill_tool.py` | Skills gives Gemini the answer format only when it needs it, which keeps the system prompt short. |
+| 16b | `search_requirements`: keyword search | `MCP/infrastructure/tools/requirements_search_tool.py` | MCP wraps the RAG search as a tool. The agent doesn't know RAG exists; it just calls a tool. |
+| 16c | `list_code_files`: files in `CODE_FOLDER` | `MCP/infrastructure/tools/code_list_tool.py` | MCP gives read access to the code, limited to `CODE_FOLDER`. |
+| 16d | `read_code_file`: one file with line numbers | `MCP/infrastructure/tools/code_read_tool.py` | MCP returns line numbers so the answer can point to `file:line`. It refuses paths outside `CODE_FOLDER`. |
+| 16e | `search_specification`: business requirements | `MCP/infrastructure/tools/specification_search_tool.py` | The test cases say what the test team checks; the kravspec says what the business ordered. Searching for a US id returns exactly the requirements that cover it, or says none are documented, so the agent can't invent one. |
+| 17 | Results go into the history | `agent_service.py` | The Agent layer keeps the history, so Gemini sees everything it has learned on the next step. |
+| 18 | Step shown on the page, back to 13 | `web.py` · `render_step()` | The Agent layer's page shows each step live, so the user sees what the agent is doing. |
+| 19 | Answer ready | `agent_service.py` | The Agent layer returns the answer together with all the steps it took. |
+| 20 | OUTPUT: answer shown on the page | `web.py` · `render_markdown()` | The Agent layer's page turns the answer into HTML for the user. |
+
+Gemini decides which tools to call and in which order. The code only runs the loop.
+
+## Classes
+
+Each layer has the same shape: **domain** (data and ports), **application** (one service) and **infrastructure** (adapters that do the real work). Ports are marked `<<Protocol>>`. The adapters don't inherit from them; they just have the same methods (dotted arrow). Services only know the ports, never the adapters.
+
+```mermaid
+classDiagram
+direction LR
+
+namespace Agent {
+  class AgentService {
+    +brain: AgentBrain
+    +tools: ToolService
+    +system: str
+    +max_steps: int
+    +run(question, on_step) AgentRun
+  }
+  class AgentBrain {
+    <<Protocol>>
+    +decide(system, question, history, tools) Decision
+  }
+  class GeminiBrain {
+    +client: genai.Client
+    +model: str
+    +thinking: str
+    +decide(system, question, history, tools) Decision
+    -_to_contents(question, history)
+  }
+  class Decision {
+    +text: str
+    +actions: list~Action~
+    +is_final() bool
+  }
+  class Action {
+    +id: str
+    +tool: str
+    +arguments: dict
+  }
+  class Observation {
+    +action_id: str
+    +content: str
+    +is_error: bool
+  }
+  class Step {
+    +action: Action
+    +observation: Observation
+  }
+  class AgentRun {
+    +answer: str
+    +steps: list~Step~
+    +finished: bool
+  }
+}
+
+namespace MCP {
+  class ToolService {
+    +tools: dict
+    +list_tools() list~ToolSpec~
+    +call(call: ToolCall) ToolResult
+  }
+  class Tool {
+    <<Protocol>>
+    +spec: ToolSpec
+    +run(arguments) str
+  }
+  class ToolSpec {
+    +name: str
+    +description: str
+    +input_schema: dict
+  }
+  class ToolCall {
+    +name: str
+    +arguments: dict
+  }
+  class ToolResult {
+    +name: str
+    +content: str
+    +is_error: bool
+  }
+  class RequirementsSearchTool {
+    +index: SearchIndex
+    +k: int
+    +run(arguments) str
+  }
+  class SpecificationSearchTool {
+    +index: SearchIndex
+    +k: int
+    +run(arguments) str
+  }
+  class CodeListTool {
+    +folder: Path
+    +run(arguments) str
+  }
+  class CodeReadTool {
+    +folder: Path
+    +run(arguments) str
+  }
+}
+
+namespace RAG {
+  class IngestService {
+    +loader: DocumentLoader
+    +chunker: Chunker
+    +index: SearchIndex
+    +run() int
+  }
+  class DocumentLoader {
+    <<Protocol>>
+    +load() list~Document~
+  }
+  class Chunker {
+    <<Protocol>>
+    +split(document) list~Chunk~
+  }
+  class SearchIndex {
+    <<Protocol>>
+    +add(chunks)
+    +search(query, k) list~SearchResult~
+  }
+  class XlsxLoader {
+    +folder: Path
+    +load() list~Document~
+  }
+  class MarkdownLoader {
+    +folder: Path
+    +load() list~Document~
+  }
+  class ParagraphChunker {
+    +split(document) list~Chunk~
+  }
+  class KeywordIndex {
+    +add(chunks)
+    +search(query, k) list~SearchResult~
+  }
+  class Document {
+    +source: str
+    +text: str
+  }
+  class Chunk {
+    +source: str
+    +text: str
+    +position: int
+  }
+  class SearchResult {
+    +chunk: Chunk
+    +score: float
+  }
+}
+
+namespace Skills {
+  class SkillService {
+    +repository: SkillRepository
+    +list_skills() list~SkillSummary~
+    +catalog() str
+    +load(name) Skill
+  }
+  class SkillRepository {
+    <<Protocol>>
+    +list() list~SkillSummary~
+    +get(name) Skill
+  }
+  class FileSkillRepository {
+    +folder: Path
+    +list() list~SkillSummary~
+    +get(name) Skill
+  }
+  class LoadSkillTool {
+    +service: SkillService
+    +spec: ToolSpec
+    +run(arguments) str
+  }
+  class SkillSummary {
+    +name: str
+    +description: str
+  }
+  class Skill {
+    +name: str
+    +description: str
+    +instructions: str
+  }
+}
+
+AgentService --> AgentBrain : brain
+AgentService --> ToolService : tools
+GeminiBrain ..|> AgentBrain
+AgentService ..> AgentRun : returns
+Decision *-- Action
+Step *-- Action
+Step *-- Observation
+AgentRun *-- Step
+
+ToolService o-- Tool : tools
+Tool --> ToolSpec : spec
+ToolService ..> ToolCall
+ToolService ..> ToolResult
+RequirementsSearchTool ..|> Tool
+SpecificationSearchTool ..|> Tool
+CodeListTool ..|> Tool
+CodeReadTool ..|> Tool
+LoadSkillTool ..|> Tool
+
+RequirementsSearchTool --> SearchIndex : index
+SpecificationSearchTool --> SearchIndex : index
+IngestService --> DocumentLoader
+IngestService --> Chunker
+IngestService --> SearchIndex
+XlsxLoader ..|> DocumentLoader
+MarkdownLoader ..|> DocumentLoader
+ParagraphChunker ..|> Chunker
+KeywordIndex ..|> SearchIndex
+SearchResult *-- Chunk
+
+LoadSkillTool --> SkillService : service
+SkillService --> SkillRepository
+FileSkillRepository ..|> SkillRepository
+SkillService ..> Skill
+SkillService ..> SkillSummary
 ```
 
-Kør så agenten:
+`LoadSkillTool` lives in Skills but behaves like an MCP tool, so the agent sees it next to the other four. `History` is not a class but a list of `Decision`s and lists of `Observation`s.
 
-```bash
-python -m Agent.api.cli "Løser vores kode US-001 Vis regningsoversigt?" --fake
+## Dependencies
+
+An arrow means "imports". Only three dependencies cross layers: Agent uses MCP's types, MCP uses RAG's `SearchIndex` port, and Skills uses MCP's `ToolSpec`. RAG depends on no other layer.
+
+```mermaid
+flowchart LR
+  W["web.py"] --> A["Agent"]
+  A -->|"ToolSpec, ToolCall, ToolService"| M["MCP"]
+  M -->|"SearchIndex"| R["RAG"]
+  S["Skills"] -->|"ToolSpec"| M
+  A -. "only in build.py" .-> S
 ```
 
-Uden `--fake` tænker en rigtig model. Hvilken bestemmes af `BRAIN` i `settings.py`:
+File by file. Only the three `api/build.py` files and `web.py` (for the folder paths in the *Sources* box) read `settings.py`; everything else gets its values passed in. `Agent/api/build.py` is the one place where all four layers meet.
 
-- `"gemini"`: Googles Gemini (`GEMINI_MODEL`). Kræver en nøgle fra Google AI Studio. Læg den i en fil `local_secrets.py` i Kodetjek-mappen med linjen `GEMINI_API_KEY = "din-nøgle"`. Filen ignoreres af git. Alternativt miljøvariablen `GEMINI_API_KEY`.
-- `"claude"`: Claude (`MODEL`). Kræver `ANTHROPIC_API_KEY`, som beskrevet i [README i roden](../README.md).
+```mermaid
+flowchart TD
+  web["Agent/api/web.py"]
+  settings[["settings.py"]]
 
-```bash
-python -m Agent.api.cli "Løser vores kode US-001 Vis regningsoversigt?"
+  subgraph AGENT["Agent"]
+    abuild["api/build.py"]
+    asvc["application/agent_service.py"]
+    agem["infrastructure/brains/gemini_brain.py"]
+    aports["domain/ports.py"]
+    amodels["domain/models.py"]
+  end
+
+  subgraph MCPL["MCP"]
+    mbuild["api/build.py"]
+    msvc["application/tool_service.py"]
+    msearch["infrastructure/tools/requirements_search_tool.py"]
+    mspec["infrastructure/tools/specification_search_tool.py"]
+    mlist["infrastructure/tools/code_list_tool.py"]
+    mread["infrastructure/tools/code_read_tool.py"]
+    mports["domain/ports.py"]
+    mmodels["domain/models.py"]
+  end
+
+  subgraph RAGL["RAG"]
+    ringest["application/ingest_service.py"]
+    rxlsx["infrastructure/loaders/xlsx_loader.py"]
+    rmd["infrastructure/loaders/markdown_loader.py"]
+    rchunk["infrastructure/chunking/text_chunker.py"]
+    rindex["infrastructure/index/keyword_index.py"]
+    rports["domain/ports.py"]
+    rmodels["domain/models.py"]
+  end
+
+  subgraph SKL["Skills"]
+    sbuild["api/build.py"]
+    stool["api/skill_tool.py"]
+    ssvc["application/skill_service.py"]
+    srepo["infrastructure/file_skill_repository.py"]
+    sports["domain/ports.py"]
+    smodels["domain/models.py"]
+  end
+
+  web --> abuild
+  web --> amodels
+  web --> settings
+
+  abuild --> settings
+  abuild --> asvc
+  abuild --> agem
+  abuild --> mbuild
+  abuild --> msvc
+  abuild --> sbuild
+  abuild --> stool
+
+  asvc --> amodels
+  asvc --> aports
+  asvc --> msvc
+  asvc --> mmodels
+  agem --> amodels
+  agem --> mmodels
+  aports --> amodels
+  aports --> mmodels
+
+  mbuild --> settings
+  mbuild --> msvc
+  mbuild --> msearch
+  mbuild --> mspec
+  mbuild --> mlist
+  mbuild --> mread
+  mbuild --> ringest
+  mbuild --> rxlsx
+  mbuild --> rmd
+  mbuild --> rchunk
+  mbuild --> rindex
+  msvc --> mmodels
+  msvc --> mports
+  mports --> mmodels
+  msearch --> mmodels
+  msearch --> rports
+  mspec --> mmodels
+  mspec --> rports
+  mlist --> mmodels
+  mread --> mmodels
+
+  ringest --> rports
+  rports --> rmodels
+  rxlsx --> rmodels
+  rmd --> rmodels
+  rchunk --> rmodels
+  rindex --> rmodels
+
+  sbuild --> settings
+  sbuild --> ssvc
+  sbuild --> srepo
+  stool --> mmodels
+  stool --> ssvc
+  ssvc --> smodels
+  ssvc --> sports
+  sports --> smodels
+  srepo --> smodels
 ```
 
-Koden, agenten læser, sendes til den valgte model. Læg aldrig nøglen i koden.
+## Configuration
 
-Hvert lag kan også prøves for sig:
+Everything is in `settings.py`: `GEMINI_MODEL`, `GEMINI_THINKING`, `CODE_FOLDER`, `SPEC_FOLDER`, `TEAM`, `SYSTEM_PROMPT`, `MAX_STEPS`. The answer format is in `Skills/data/skills/code-review/SKILL.md`.
 
-```bash
-python -m RAG.api.cli "acceptkriterier download faktura" --fake
-python -m MCP.api.cli list
-python -m MCP.api.cli call search_requirements query="acceptkriterier telefonnummer"
-python -m MCP.api.cli call list_code_files
-python -m Skills.api.cli show kodevurdering
-```
+## Limitations
 
-## Hvad ligger hvor
-
-| Lag | Hvad Kodetjek bruger |
-|---|---|
-| `LLM/` | `LLMService` med `AnthropicProvider` eller `FakeProvider`. Bruges af RAG-laget. |
-| `RAG/` | `XlsxLoader` læser `RAG/data/*.xlsx`. Hvert ark bliver ét dokument, og hver user story og testcase bliver ét afsnit i ordsøgningen (`KeywordIndex`). |
-| `MCP/` | Tre værktøjer: `search_requirements` (søger i RAG-indekset), `list_code_files` og `read_code_file` (læser kun i `CODE_FOLDER`, aldrig uden for). Kan også startes som MCP-server med `python -m MCP.api.mcp_server`. |
-| `Skills/` | Én skill, `kodevurdering`, der beskriver hvordan svaret skal se ud. |
-| `Agent/` | `GeminiBrain` eller `ClaudeBrain` med API-nøgle (vælges med `BRAIN`), `RuleBrain` med `--fake`. |
-| [`settings.py`](settings.py) | Al konfiguration: model, datamappe, kodemappe, systemprompt, antal skridt. |
-
-## Data
-
-`RAG/data/` indeholder user stories og testcases for Mit Aalborg Forsyning:
-
-- `Mit Aalborg Forsyning_Mit Overblik_Testcases.xlsx`
-- `Mit Aalborg Forsyning_Regninger_Testcases.xlsx`
-- `Testcases_minprofil_mitaalborgforsyning.xlsx`
-
-## Udviklerens kode
-
-`list_code_files` og `read_code_file` kan kun læse, og kun i `CODE_FOLDER`. Er mappen et git-repo, følger `list_code_files` repoets `.gitignore`, så `bin`, `obj`, `.vs` og lignende ikke kommer med. Nye filer, der ikke er committet endnu, kommer med.
-
-## Uden API-nøgle
-
-Med `--fake` bruges `RuleBrain` (`Agent/infrastructure/brains/rule_brain.py`). Den tager spørgsmålet, finder den bedste user story, læser op til fire filer, hvis navne ligner user storyens titel, og viser for hvert acceptkriterie, hvor kriteriets ord står i koden. Værktøjskaldene er ægte, men vurderingen er kun ord-matchning, ikke en AI-vurdering, og det står i svaret.
-
-## Kendte begrænsninger
-
-- **Ordsøgningen finder kun hele, ens ord.** Spørg med ord fra arkene, fx "acceptkriterier telefonnummer".
-- **Samme id findes i flere ark.** TC-011 findes både i Regninger og Min Profil, så søg med ord og ikke kun id.
-- **`list_code_files` sender alle filnavne.** I en stor løsning er det mange tokens, når Claude bruges.
+- **Keyword search.** It only matches whole words, and the requirements are in Danish, so the agent searches with ids and Danish words.
+- **Every file name on every step.** `list_code_files` returns all files, which is slow on a large solution.
+- **Free Gemini tier.** It is slow, and Google may use what is sent, including the code being checked.

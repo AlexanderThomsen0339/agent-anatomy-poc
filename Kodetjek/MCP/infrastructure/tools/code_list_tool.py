@@ -19,7 +19,7 @@ class CodeListTool:
 
     spec = ToolSpec(
         name="list_code_files",
-        description="Lister filerne i udviklerens kode. Brug det først for at se, hvilke filer der findes.",
+        description="Lists the files in the developer's code. Use it first to see which files exist.",
     )
 
     def __init__(self, folder: str | Path):
@@ -27,11 +27,12 @@ class CodeListTool:
         self.folder = Path(folder)
 
     def run(self, arguments: dict) -> str:
+        # 16c: LIST FILER: Alle filer i CODE_FOLDER, helst via git, så .gitignore respekteres.
         if not self.folder.is_dir():
-            return f"Kodemappen findes ikke: {self.folder}"
+            return f"Code folder not found: {self.folder}"
 
         files = self._git_files() or self._all_files()
-        return "\n".join(files) if files else "Kodemappen er tom."
+        return "\n".join(files) if files else "The code folder is empty."
 
     def _git_files(self) -> list[str]:
         # Hvorfor spørge git?

@@ -1,7 +1,7 @@
-"""En anden rigtig hjerne: Googles Gemini med værktøjer (function calling).
+"""Den rigtige hjerne: Googles Gemini med værktøjer (function calling).
 
-Samme rolle som ClaudeBrain, bare med en anden model bag. Det er den eneste fil
-i Agent-laget, der kender til Google. Resten af laget mærker ikke forskel.
+Det er den eneste fil i Agent-laget, der kender til Google.
+Resten af laget taler kun med porten AgentBrain.
 """
 from google import genai
 from google.genai import types
@@ -24,7 +24,8 @@ class GeminiBrain:
         self.raw: dict[int, types.Content] = {}
 
     def decide(self, system: str, question: str, history: History, tools: list[ToolSpec]) -> Decision:
-        # 1. Oversæt ind: spørgsmål + historik + værktøjer -> Geminis format.
+        # 13: TÆNK: Spørgsmål, historik og værktøjer oversættes til Geminis format (_to_contents),
+        # og Gemini kaldes over internettet med generate_content().
         result = self.client.models.generate_content(
             model=self.model,
             contents=self._to_contents(question, history),
@@ -46,7 +47,8 @@ class GeminiBrain:
             ),
         )
 
-        # 2. Oversæt ud: Geminis svar -> en Decision.
+        # Geminis svar oversættes til en Decision: tekst og eventuelle værktøjskald.
+        # Tilbage til AgentService.run() (trin 14).
         content = result.candidates[0].content
         parts = content.parts or []
         text = "".join(p.text for p in parts if p.text and not p.thought)

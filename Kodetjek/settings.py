@@ -12,15 +12,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 
 
-# 1. LLM
-# Modellen, der svarer i LLM- og RAG-laget, og som tænker i agenten, når BRAIN er "claude".
-MODEL = "claude-sonnet-5-5"
-
-# Hvilken model der tænker i agenten uden --fake: "claude" (kræver ANTHROPIC_API_KEY)
-# eller "gemini" (kræver GEMINI_API_KEY).
-BRAIN = "gemini"
-
-# Gemini-modellen, når BRAIN er "gemini".
+# 1. Model
+# Gemini-modellen, der tænker i agenten.
 GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 # Hvor meget Gemini tænker, før den svarer: "minimal", "low", "medium" eller "high".
@@ -29,7 +22,7 @@ GEMINI_MODEL = "gemini-3.5-flash-lite"
 GEMINI_THINKING = "low"
 
 # Nøglen til Gemini. Skriv den i local_secrets.py ved siden af denne fil:
-#     GEMINI_API_KEY = "din-nøgle"
+#     GEMINI_API_KEY = "your-key"
 # Den fil ignoreres af git, så nøglen aldrig kommer med i et commit.
 # Findes filen ikke, læses nøglen fra miljøvariablen GEMINI_API_KEY.
 try:
@@ -37,22 +30,17 @@ try:
 except ImportError:
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-# Grundinstruktionen, når LLM-laget bruges direkte.
-LLM_SYSTEM_PROMPT = "Svar kort på dansk."
-
 
 # 2. RAG
-# Mappen med user stories og testcases (.xlsx), som RAG-laget og MCP-lagets search_requirements søger i.
+# Mappen med user stories og testcases (.xlsx), som search_requirements søger i.
 DATA_FOLDER = ROOT / "RAG" / "data"
 
-# Hvor mange afsnit der sendes med til modellen.
-TOP_K = 3
+# Mappen med forretningens kravspec (.md), som search_specification søger i.
+# Hvert krav har et id som KRAV-REG-03 og en linje "Dækker:" med de user stories og testcases, det hører til.
+SPEC_FOLDER = ROOT / "RAG" / "data" / "kravspec"
 
 
 # 3. MCP
-# Navnet, MCP-klienter (fx Claude Desktop) ser serveren under.
-SERVER_NAME = "kodetjek-tools"
-
 # Hvor mange afsnit kravsøgningen returnerer.
 SEARCH_K = 3
 
@@ -65,17 +53,28 @@ CODE_FOLDER = ROOT / "C:\\Users\\n1majt\\source\\repos\\FremsynNordDK"
 # Mappen med skills. Hver skill er en undermappe med en SKILL.md.
 SKILLS_FOLDER = ROOT / "Skills" / "data" / "skills"
 
+# Holdet, der ejer koden i CODE_FOLDER. Agenten tjekker koden mod, hvordan holdet koder,
+# beskrevet i skillen architecture-<TEAM>, fx architecture-web.
+# Hvorfor pr. hold? Web og FDAP koder ikke efter de samme retningslinjer, så hvert hold har sin egen skill.
+# Skillen er fast og uafhængig af projektet og af kravene i RAG.
+TEAM = "web"
+
 
 # 5. Agent
 # Grænsen for antal skridt. Beskytter mod en agent, der kører i ring.
-# Et kodetjek skal både søge krav, liste filer og læse flere filer, så den er sat højere end i originalen.
-MAX_STEPS = 15
+# Et kodetjek skal både søge krav og kravspec, hente to skills, liste filer og læse flere filer, så den er sat højere end i originalen.
+MAX_STEPS = 20
 
 # Grundinstruktionen. Kataloget over skills sættes på i Agent/api/build.py.
 SYSTEM_PROMPT = (
-    "Du hjælper udviklere med at tjekke, om deres kode løser opgaven. Svar på dansk.\n"
-    "Opgaverne er user stories og testcases for Mit Aalborg Forsyning, som du finder med search_requirements.\n"
-    "Udviklerens kode ser du med list_code_files og read_code_file. Du kan kun læse koden, aldrig ændre den.\n"
-    "Gæt aldrig: slå kravene op, og læs koden, før du svarer.\n"
-    "Passer en opgave til en skill, så hent den med load_skill, før du går i gang."
+    "You help people check whether the code solves the task. The reader may not be a developer, "
+    "so answer in plain English and keep technical details in references. Always answer in English.\n"
+    "The tasks are user stories and test cases for Mit Aalborg Forsyning, found with search_requirements. "
+    "They are written in Danish, so search with ids and Danish words.\n"
+    "The business requirements (kravspec) are found with search_specification. They say what the business ordered, "
+    "and the test cases say what the test team checks. Check the code against both.\n"
+    "You see the developer's code with list_code_files and read_code_file. You can only read the code, never change it.\n"
+    "Never guess: look up the requirements and read the code before you answer. "
+    "If a requirement is not written down anywhere, say it is not documented instead of inventing one.\n"
+    "If a task fits a skill, load it with load_skill before you start."
 )

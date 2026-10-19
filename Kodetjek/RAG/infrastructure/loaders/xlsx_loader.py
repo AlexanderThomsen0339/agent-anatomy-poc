@@ -28,6 +28,7 @@ class XlsxLoader:
         self.folder = Path(folder)
 
     def load(self) -> list[Document]:
+        # 6: LÆS XLSX: Hvert ark i hver xlsx-fil bliver til ét dokument med tekst.
         documents = []
         for file in sorted(self.folder.glob("*.xlsx")):
             workbook = load_workbook(file, read_only=True, data_only=True)
@@ -75,6 +76,6 @@ class XlsxLoader:
 
             line = f"{label}: {value}" if label else f"  {value}"
             if results:
-                line += f" [testresultater: {', '.join(results)}]"
+                line += f" [test results: {', '.join(results)}]"
             blocks[-1].append(line)
         return "\n\n".join("\n".join(block) for block in blocks)

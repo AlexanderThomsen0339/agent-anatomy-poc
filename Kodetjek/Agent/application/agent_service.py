@@ -18,19 +18,22 @@ class AgentService:
 
     def run(self, question: str, on_step: Callable[[Decision, list[Step]], None] | None = None) -> AgentRun:
         """Løs opgaven. on_step kaldes efter hvert skridt, så man kan følge med."""
+        # 12: AGENTEN KØRER: En løkke, der gentages, indtil Gemini har et svar (højst MAX_STEPS gange).
         history: History = []
         steps: list[Step] = []
 
         for _ in range(self.max_steps):
-            # 1. Tænk: hjernen ser spørgsmålet, alt hidtil og værktøjerne.
+            # 13: TÆNK: Gemini ser spørgsmålet, alt hidtil og værktøjerne og beslutter, hvad der skal ske.
+            # Fortsæt i Agent/infrastructure/brains/gemini_brain.py.
             decision = self.brain.decide(self.system, question, history, self.tools.list_tools())
             history.append(decision)
 
-            # 2. Færdig? Så er teksten svaret.
+            # 14: FÆRDIG? Beder Gemini ikke om flere værktøjer, er teksten svaret. Hop til trin 19.
             if decision.is_final:
+                # 19: SVAR: Løkken slutter. Tilbage til do_GET() i Agent/api/web.py (trin 20).
                 return AgentRun(decision.text, steps)
 
-            # 3. Handl: udfør hver handling med værktøjerne fra lag 3.
+            # 15: HANDL: Hvert værktøj, Gemini bad om, kaldes. Fortsæt i MCP/application/tool_service.py.
             observations = []
             new_steps = []
             for action in decision.actions:
@@ -39,11 +42,12 @@ class AgentService:
                 observations.append(observation)
                 new_steps.append(Step(action, observation))
 
-            # 4. Se: resultaterne kommer med i næste runde.
+            # 17: SE: Resultaterne lægges i historikken, så Gemini ser dem i næste runde.
             history.append(observations)
             steps.extend(new_steps)
+            # 18: VIS SKRIDT: Fortæl web-siden, hvad der lige skete. Derefter tilbage til trin 13.
             if on_step:
                 on_step(decision, new_steps)
 
         # Grænsen for antal skridt beskytter mod en agent, der kører i ring.
-        return AgentRun("Jeg nåede ikke at blive færdig inden for grænsen.", steps, finished=False)
+        return AgentRun("I did not finish within the step limit.", steps, finished=False)

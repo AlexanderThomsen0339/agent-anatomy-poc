@@ -12,6 +12,8 @@ STOP_WORDS = {
     "og", "i", "at", "er", "en", "et", "den", "det", "de", "til", "på", "med",
     "for", "som", "har", "man", "hos", "os", "vi", "jeg", "du", "hvor", "hvem",
     "hvad", "hvordan", "skal", "kan", "om", "af", "mange", "der", "ikke",
+    # Engelske småord, fordi spørgsmålene stilles på engelsk.
+    "the", "a", "an", "is", "are", "does", "do", "our", "we", "my", "it", "of", "to", "in", "and", "or", "what", "how",
 }
 
 
@@ -26,9 +28,11 @@ class KeywordIndex:
         self.chunks: list[Chunk] = []
 
     def add(self, chunks: list[Chunk]) -> None:
+        # 8: GEM I INDEKS: Afsnittene gemmes bare i en liste i hukommelsen.
         self.chunks.extend(chunks)
 
     def search(self, query: str, k: int) -> list[SearchResult]:
+        # 16b: SØG: Hvert afsnit får ét point pr. ord, det deler med søgningen.
         query_words = words(query)
 
         results = []

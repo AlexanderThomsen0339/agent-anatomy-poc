@@ -15,9 +15,15 @@ class ToolService:
 
     def call(self, call: ToolCall) -> ToolResult:
         """Kalder ét værktøj. Går det galt, får man en fejl tilbage i stedet for et nedbrud."""
+        # 16: VÆRKTØJET KØRER: Værktøjet findes på navn, og dets run() kaldes:
+        #   16a load_skill          Skills/api/skill_tool.py
+        #   16b search_requirements MCP/infrastructure/tools/requirements_search_tool.py
+        #   16c list_code_files     MCP/infrastructure/tools/code_list_tool.py
+        #   16d read_code_file      MCP/infrastructure/tools/code_read_tool.py
+        # Resultatet går tilbage til AgentService.run() (trin 17).
         tool = self.tools.get(call.name)
         if tool is None:
-            return ToolResult(call.name, f"Ukendt værktøj: {call.name}", is_error=True)
+            return ToolResult(call.name, f"Unknown tool: {call.name}", is_error=True)
 
         try:
             content = tool.run(call.arguments)

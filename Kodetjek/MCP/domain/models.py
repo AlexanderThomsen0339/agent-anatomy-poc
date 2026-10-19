@@ -23,7 +23,7 @@ class ToolSpec:
 
     # Hvorfor et JSON-skema?
     # Det er det fælles sprog for "hvilke argumenter tager værktøjet".
-    # Både Claude og MCP forstår det direkte, så vi skal ikke oversætte.
+    # Gemini forstår det direkte, så vi skal ikke oversætte.
     input_schema: dict = field(default_factory=lambda: {"type": "object", "properties": {}})
 
 

@@ -15,13 +15,12 @@ from MCP.domain.models import ToolSpec
 from .models import Decision, History
 
 
-# Hvorfor ikke bare bruge LLMProvider fra lag 1?
-# LLMProvider kan kun tekst ind og tekst ud. En agent skal også kunne:
+# Hvorfor en port og ikke bare tekst ind og tekst ud?
+# En agent skal også kunne:
 #   - fortælle modellen, hvilke værktøjer der findes
 #   - få at vide, at modellen vil bruge et værktøj
 #   - sende resultatet tilbage
-# I stedet for at gøre lag 1 mere kompliceret for alle, får agenten sin
-# egen lille port, der siger præcis det, den har brug for.
+# Porten siger præcis det, og GeminiBrain opfylder den.
 class AgentBrain(Protocol):
 
     # Hvorfor får hjernen hele historikken hver gang?

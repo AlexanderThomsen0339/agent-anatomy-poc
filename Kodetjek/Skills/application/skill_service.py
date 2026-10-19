@@ -16,12 +16,12 @@ class SkillService:
     def catalog(self) -> str:
         """Indholdsfortegnelsen som tekst. Det er det, LLM'en altid får at se."""
         lines = [f"- {s.name}: {s.description}" for s in self.list_skills()]
-        return "\n".join(lines) or "(ingen skills)"
+        return "\n".join(lines) or "(no skills)"
 
     def load(self, name: str) -> Skill:
         """Henter hele skillen. Findes den ikke, får man at vide, hvilke der findes."""
         skill = self.repository.get(name)
         if skill is None:
             names = ", ".join(s.name for s in self.list_skills())
-            raise ValueError(f"Ukendt skill: {name}. Findes: {names}")
+            raise ValueError(f"Unknown skill: {name}. Available: {names}")
         return skill
