@@ -17,26 +17,59 @@ from Agent.domain.models import Assessment, Decision, Step
 PORT = 8000
 
 HEAD = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>AI Platform POC</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Platform POC</title>
 <style>
-body { font-family: system-ui, sans-serif; max-width: 860px; margin: 2em auto; padding: 0 1em; }
-textarea { width: 100%; font: inherit; }
-select { font: inherit; }
-.step { color: #666; margin: .3em 0; }
-.error { color: #b00; }
-.answer { border: 1px solid #ddd; border-radius: 8px; padding: .5em 1.2em; margin-top: 1.5em; }
-.answer li { margin: .3em 0; }
-.sources { color: #888; font-size: .8em; margin-top: 1.5em; }
-.sources summary { cursor: pointer; }
+/* Aalborg Forsynings farver (brand colours). Mørk tilstand følger styresystemet. */
+:root {
+  --primary: #005b63; --primary-dark: #00464d; --primary-light: #e6f1f1;
+  --secondary: #72b5a3; --secondary-light: #edf6f3;
+  --accent: #e66f45; --accent-dark: #d45c36;
+  --bg: #f7f9f8; --surface: #ffffff; --text: #17383b; --muted: #5b6f71; --border: #d8e3e1;
+  --hero: #005b63; --hero-text: #ffffff; --heading: #005b63;
+  --highlight: rgba(0, 91, 99, 0.08); --code-bg: #e6f1f1; --error: #c62828; --edge: #005b63;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17383b; --surface: #1d4448; --text: #ffffff; --muted: #b9cbc9; --border: rgba(114, 181, 163, 0.30);
+    --hero: #00464d; --heading: #72b5a3;
+    --highlight: rgba(114, 181, 163, 0.12); --code-bg: rgba(114, 181, 163, 0.20); --error: #ff8a80; --edge: #72b5a3;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 "Segoe UI", system-ui, sans-serif; }
+header { background: var(--hero); color: var(--hero-text); padding: 1.6em 1em 1.4em; }
+header div, main { max-width: 860px; margin: 0 auto; }
+header h1 { margin: 0; font-size: 1.6em; font-weight: 600; letter-spacing: .01em; }
+header p { margin: .2em 0 0; opacity: .85; }
+main { padding: 1.5em 1em 3em; }
+form { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.2em 1.4em; margin-bottom: 1.5em; }
+form p { margin: 0 0 .9em; }
+label { font-weight: 600; color: var(--heading); }
+select, textarea { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+select { padding: .35em .6em; margin-left: .4em; font-weight: 400; }
+textarea { width: 100%; padding: .7em .8em; resize: vertical; }
+select:focus, textarea:focus { outline: 2px solid var(--secondary); outline-offset: 1px; border-color: var(--secondary); }
+button { font: inherit; font-weight: 600; color: #fff; background: var(--accent); border: 0; border-radius: 6px; padding: .55em 1.4em; cursor: pointer; }
+button:hover { background: var(--accent-dark); }
+h2 { color: var(--heading); font-size: 1.15em; margin: 1.6em 0 .6em; }
+.step { color: var(--muted); margin: .25em 0; padding: .2em .7em; border-left: 3px solid var(--secondary); background: var(--highlight); border-radius: 0 4px 4px 0; }
+.error { color: var(--error); border-left-color: var(--error); }
+.answer { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--edge); border-radius: 8px; padding: .6em 1.4em; }
+.answer li { margin: .35em 0; }
+.answer code, .sources code { background: var(--code-bg); border-radius: 4px; padding: .05em .35em; font-size: .9em; }
+.sources { color: var(--muted); font-size: .85em; margin-top: 1em; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .5em 1em; }
+.sources summary { cursor: pointer; font-weight: 600; color: var(--heading); }
 .sources code { word-break: break-all; }
-.sources td { padding: .2em .5em; vertical-align: top; }
-pre { white-space: pre-wrap; background: #f4f4f4; padding: 1em; }
+.sources table { border-collapse: collapse; margin-top: .5em; }
+.sources td { padding: .35em .5em; vertical-align: top; border-top: 1px solid var(--border); }
+pre { white-space: pre-wrap; background: var(--code-bg); padding: 1em; border-radius: 6px; }
 </style></head><body>
-<h1>AI Platform POC</h1>
-<p class="step">{use_case}</p>
+<header><div><h1>AI Platform POC</h1><p>{use_case}</p></div></header>
+<main>
 <form method="get" action="/">
-<p><label>I am: <select name="role" onchange="if (this.selectedOptions[0].dataset.use != '{use_case_key}') this.form.q.value = ''; this.form.submit()">{roles}</select></label></p>
-<textarea name="q" rows="3" placeholder="{placeholder}">{question}</textarea>
+<p><label>I am <select name="role" onchange="if (this.selectedOptions[0].dataset.use != '{use_case_key}') this.form.q.value = ''; this.form.submit()">{roles}</select></label></p>
+<p><textarea name="q" rows="3" placeholder="{placeholder}">{question}</textarea></p>
 <p><button>{button}</button></p>
 </form>
 """
@@ -231,7 +264,7 @@ def make_handler(agents, writer):
             )
 
             if not question:
-                self.write("</body></html>")
+                self.write("</main></body></html>")
                 return
 
             try:
@@ -279,7 +312,7 @@ def make_handler(agents, writer):
             except Exception as e:
                 # Fejlen vises på siden, så demoen ikke bare hænger.
                 self.write(f'<h2 class="error">Error</h2><pre>{escape(repr(e))}</pre>')
-            self.write("</body></html>")
+            self.write("</main></body></html>")
 
         def write(self, html: str) -> None:
             self.wfile.write(html.encode("utf-8"))
