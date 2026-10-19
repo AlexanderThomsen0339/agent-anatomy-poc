@@ -26,7 +26,8 @@ def build_agent() -> AgentService:
     system = (
         settings.SYSTEM_PROMPT
         + f"\nThe code belongs to the {settings.TEAM} team. Check it against how that team codes, in the skill architecture-{settings.TEAM}."
-        + "\n\nSkills:\n" + skills.catalog()
+        # audience-skills skjules: rollen bruges først, når svaret skrives (AnswerWriter), aldrig i vurderingen.
+        + "\n\nSkills:\n" + skills.catalog(hide="audience-")
     )
 
     # Hjernen, der taler med Gemini.
