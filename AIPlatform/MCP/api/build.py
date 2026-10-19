@@ -24,16 +24,24 @@ def build_service() -> ToolService:
     specification = KeywordIndex()
     IngestService(MarkdownLoader(settings.SPEC_FOLDER), ParagraphChunker(), specification).run()
 
-    # OT's dokumenter får også deres eget indeks. Hver række i et ark bliver ét afsnit.
-    ot_documents = KeywordIndex()
-    IngestService(XlsxTableLoader(settings.OT_FOLDER), ParagraphChunker(), ot_documents).run()
-
-    # De fem værktøjer, AI'en kan kalde. Tilbage til build_agent() (trin 9).
+    # De fire værktøjer, AI'en kan kalde. Tilbage til build_agent() (trin 9).
     tools = [
         RequirementsSearchTool(requirements, k=settings.SEARCH_K),
         SpecificationSearchTool(specification, k=settings.SEARCH_K),
         CodeListTool(settings.CODE_FOLDER),
         CodeReadTool(settings.CODE_FOLDER),
-        OtDocumentSearchTool(ot_documents, k=settings.OT_SEARCH_K),
     ]
     return ToolService(tools)
+
+
+def build_ot_service() -> ToolService:
+    """Værktøjerne til Vedligehold: kun søgningen i OT's dokumenter.
+
+    Hvorfor ikke bare et værktøj mere i build_service()?
+    Vedligehold skal finde dokumenter, ikke læse kode. Får agenten kun det værktøj, den skal bruge,
+    kan den ikke komme til at læse koden eller blande krav ind i svaret.
+    """
+    # OT's dokumenter får deres eget indeks. Hver række i et ark bliver ét afsnit.
+    ot_documents = KeywordIndex()
+    IngestService(XlsxTableLoader(settings.OT_FOLDER), ParagraphChunker(), ot_documents).run()
+    return ToolService([OtDocumentSearchTool(ot_documents, k=settings.OT_SEARCH_K)])

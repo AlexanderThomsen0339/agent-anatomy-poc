@@ -77,6 +77,13 @@ ROLES = {
 }
 DEFAULT_ROLE = "product"
 
+# Rollerne, der ikke tjekker kode, men slår op i OT-holdets dokumenter (OT_FOLDER).
+# Hvorfor for sig? De bruger en anden agent med kun search_ot_documents, og agenten svarer direkte.
+# Nøglen står i adressen, værdien er det, brugeren ser i dropdownen.
+DOCUMENT_ROLES = {
+    "maintenance": "Vedligehold",
+}
+
 
 # 5. Agent
 # Grænsen for antal skridt. Beskytter mod en agent, der kører i ring.
@@ -95,4 +102,16 @@ SYSTEM_PROMPT = (
     "Never guess: look up the requirements and read the code before you answer. "
     "If a requirement is not written down anywhere, say it is not documented instead of inventing one.\n"
     "If a task fits a skill, load it with load_skill before you start."
+)
+
+# Grundinstruktionen til Vedligehold, som slår op i OT's dokumenter i stedet for at tjekke kode.
+MAINTENANCE_PROMPT = (
+    "You help the maintenance department (Vedligehold) find information in the documents the OT team makes, "
+    "such as the plant's signal list. Always answer in English, in plain language.\n"
+    "Find everything with search_ot_documents. The documents are in Danish, so search with signal codes "
+    "(like MKF20AP001A) or short Danish words (like kølevandspumpe). If the first search misses, try other words.\n"
+    "Answer short: what was asked, then the signal or row it comes from with its name in both the old and the new system, "
+    "its description, unit and range when they are there. End each point with the document and sheet in brackets.\n"
+    "If several rows match, list at most 5 and say which detail would tell them apart.\n"
+    "Never guess: if the documents don't say it, say it is not in OT's documents."
 )

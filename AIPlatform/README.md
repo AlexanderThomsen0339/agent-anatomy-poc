@@ -31,9 +31,19 @@ Include the title, because the same US id exists in several sheets.
 - Does our code solve US-002 Ingen regninger tilgængelige?
 - Does our code solve US-002 Opdater telefonnummer?
 
-The page shows each step live, then a folded *Sources* box with the test documents, requirement files and code folder (and its git repo) the agent actually used, then a folded *Assessment* box with every requirement's status, then the answer. The agent assesses the code once per question, the same whoever asks: one line per requirement (met, not met, can't tell) plus risks. The verdict (**Solved**, **Partly solved** or **Not solved**, "X of Y requirements met") is counted from that list by the code, not written by the AI. A dropdown above the question says who is asking, and the answer is written from the assessment for that role; switching role on the same question reuses the assessment. *Product / communication* gets at most 8 lines of plain English: how many requirements are met, only what is missing, and at most two risks from how the code is built (`architecture-web`). *Developer* gets a technical answer with file:line, what can't be told from the code, architecture deviations and what to fix first.
+The page shows each step live, then a folded *Sources* box with the test documents, requirement files and code folder (and its git repo) the agent actually used, then a folded *Assessment* box with every requirement's status, then the answer. The agent assesses the code once per question, the same whoever asks: one line per requirement (met, not met, can't tell) plus risks. The verdict (**Solved**, **Partly solved** or **Not solved**, "X of Y requirements met") is counted from that list by the code, not written by the AI. A dropdown above the question says who is asking, and the answer is written from the assessment for that role; switching role on the same question reuses the assessment. *Product / communication* gets at most 8 lines of plain English: how many requirements are met, only what is missing, and at most two risks from how the code is built (`architecture-web`). *IT* gets a technical answer with file:line, what can't be told from the code, architecture deviations and what to fix first.
 
 Only Regninger has a business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`, an example written for the demo). For Min Profil and Mit Overblik the answer says that no business requirement is documented.
+
+### Vedligehold: OT's documents
+
+Choose *Vedligehold* in the dropdown to ask about the documents the OT team makes, such as the plant's signal list. Put the xlsx files in `RAG/data/ot/` first; they are kept out of git because they describe a real plant.
+
+- Which signal is Kedel Fyr Nødud in 800xA?
+- What is the range of MKF20AP001A?
+- Which signals are there for kølevandspumpe 2?
+
+This uses its own agent (`build_maintenance_agent()`) with one tool, `search_ot_documents`, and no skills or code. It answers straight away with the signal, its old and new name, description, unit and range, and the *Sources* box lists the sheets it used. There is no assessment and nothing is saved, because there is no code to judge.
 
 ## The flow
 
@@ -70,7 +80,7 @@ Each step is marked in the code with a comment like `# 13: TÆNK`. Search for `#
 | 16c | `list_code_files`: files in `CODE_FOLDER` | `MCP/infrastructure/tools/code_list_tool.py` | MCP gives read access to the code, limited to `CODE_FOLDER`. |
 | 16d | `read_code_file`: one file with line numbers | `MCP/infrastructure/tools/code_read_tool.py` | MCP returns line numbers so the answer can point to `file:line`. It refuses paths outside `CODE_FOLDER`. |
 | 16e | `search_specification`: business requirements | `MCP/infrastructure/tools/specification_search_tool.py` | The test cases say what the test team checks; the kravspec says what the business ordered. Searching for a US id returns exactly the requirements that cover it, or says none are documented, so the agent can't invent one. |
-| 16f | `search_ot_documents`: the OT team's documents | `MCP/infrastructure/tools/ot_document_search_tool.py` | OT's documents (such as the signal list) are a separate source with their own index, so thousands of signals don't crowd out the requirements. Each row of a sheet is one result. |
+| 16f | `search_ot_documents`: the OT team's documents (Vedligehold only) | `MCP/infrastructure/tools/ot_document_search_tool.py` | Only the Vedligehold agent has this tool (`build_ot_service()`), and the code-check agent doesn't, so neither can mix the other's sources into an answer. Each row of a sheet is one result. |
 | 17 | Results go into the history | `agent_service.py` | The Agent layer keeps the history, so Gemini sees everything it has learned on the next step. |
 | 18 | Step shown on the page, back to 13 | `web.py` · `render_step()` | The Agent layer's page shows each step live, so the user sees what the agent is doing. |
 | 19 | Assessment ready | `agent_service.py` | The Agent layer returns Gemini's assessment text together with all the steps it took. Back in `web.py`, `parse_assessment()` (`answer_writer.py`) reads one line per requirement, and `Assessment.verdict` counts the verdict from it. If the agent didn't finish or wrote no assessment lines, the page shows what it wrote under *Not finished*. |
@@ -458,8 +468,9 @@ Everything is in `settings.py`:
 | `CODE_FOLDER` | The code to check. The code tools can't see outside it. |
 | `SKILLS_FOLDER` | The skill folders. |
 | `TEAM` | Which `architecture-<team>` skill the code is checked against. |
-| `ROLES`, `DEFAULT_ROLE` | The roles in the dropdown. Each key needs an `audience-<key>` skill. |
-| `MAX_STEPS`, `SYSTEM_PROMPT` | The step limit and the agent's base instruction. |
+| `ROLES`, `DEFAULT_ROLE` | The code-check roles in the dropdown. Each key needs an `audience-<key>` skill. |
+| `DOCUMENT_ROLES` | The roles that search OT's documents instead (Vedligehold). |
+| `MAX_STEPS`, `SYSTEM_PROMPT`, `MAINTENANCE_PROMPT` | The step limit and the base instruction for the code-check agent and the Vedligehold agent. |
 
 How the code is reviewed is in `Skills/data/skills/code-review/SKILL.md`, and the answer formats are in `audience-product/SKILL.md` and `audience-it/SKILL.md`.
 

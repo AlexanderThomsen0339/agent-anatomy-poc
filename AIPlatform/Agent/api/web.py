@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import settings
-from Agent.api.build import build_agent, build_writer
+from Agent.api.build import build_agent, build_maintenance_agent, build_writer
 from Agent.application.answer_writer import parse_assessment
 from Agent.domain.models import Assessment, Decision, Step
 
@@ -33,11 +33,11 @@ select { font: inherit; }
 pre { white-space: pre-wrap; background: #f4f4f4; padding: 1em; }
 </style></head><body>
 <h1>AI Platform POC</h1>
-<p class="step">Code Check</p>
+<p class="step">{use_case}</p>
 <form method="get" action="/">
-<p><label>I am: <select name="role" onchange="if (this.form.q.value.trim()) this.form.submit()">{roles}</select></label></p>
-<textarea name="q" rows="3" placeholder="Does our code solve US-001?">{question}</textarea>
-<p><button>Check the code</button></p>
+<p><label>I am: <select name="role" onchange="if (this.selectedOptions[0].dataset.use != '{use_case_key}') this.form.q.value = ''; this.form.submit()">{roles}</select></label></p>
+<textarea name="q" rows="3" placeholder="{placeholder}">{question}</textarea>
+<p><button>{button}</button></p>
 </form>
 """
 
@@ -49,6 +49,14 @@ FRIENDLY = {
     "search_specification": lambda a: f"📋 Looking up the business requirements: {a.get('query', '')}",
     "list_code_files": lambda a: "📂 Listing the project's files",
     "read_code_file": lambda a: f"📄 Reading {a.get('path', '').replace(chr(92), '/').split('/')[-1]}",
+    "search_ot_documents": lambda a: f"🔎 Searching OT's documents: {a.get('query', '')}",
+}
+
+# Teksten på siden for hver slags opgave: overskrift, eksempel i feltet og knappen.
+# Hvorfor? Vedligehold tjekker ikke kode, så "Check the code" ville forvirre.
+PAGE_TEXT = {
+    "code": ("Code Check", "Does our code solve US-001?", "Check the code"),
+    "documents": ("OT documents", "Which signal is Kedel Fyr Nødud in 800xA?", "Ask"),
 }
 
 
@@ -108,6 +116,19 @@ def render_sources(steps: list[Step]) -> str:
     )
 
 
+def render_document_sources(steps: list[Step]) -> str:
+    """Kildeboksen for Vedligehold: de OT-dokumenter og ark, svaret bygger på. Der er ingen kode."""
+    sheets = set()
+    for step in steps:
+        if step.action.tool == "search_ot_documents" and not step.observation.is_error:
+            sheets |= set(re.findall(r"^\[(.+?)\]", step.observation.content, re.MULTILINE))
+    items = "".join(f"<li><code>{escape(s)}</code></li>" for s in sorted(sheets)) or "<li>None found</li>"
+    return (
+        '<details class="sources"><summary>Sources</summary>'
+        f"<p>OT documents in <code>{escape(str(settings.OT_FOLDER))}</code>:</p><ul>{items}</ul></details>"
+    )
+
+
 def render_assessment(assessment: Assessment) -> str:
     """Vurderingen, som begge roller bygger på, i en lukket boks under kilderne."""
     icons = {"MET": "✅", "NOT_MET": "❌", "CANT_TELL": "❓", "RISK": "⚠️"}
@@ -156,7 +177,7 @@ def render_markdown(text: str) -> str:
     return html + ("</ul>" if in_list else "")
 
 
-def make_handler(agent, writer):
+def make_handler(agent, maintenance_agent, writer):
 
     # Hvorfor gemme vurderingen?
     # Skifter man rolle eller spørger igen om uændret kode, skal svaret bygge på den samme vurdering.
@@ -175,9 +196,11 @@ def make_handler(agent, writer):
             query = parse_qs(url.query)
             question = query.get("q", [""])[0].strip()
             # Rollen kommer fra dropdownen. Den står i adressen, så den er valgt igen ved næste spørgsmål.
+            # Skifter man mellem kodetjek og Vedligehold, tømmes feltet, fordi spørgsmålet ikke giver mening i den anden.
             role = query.get("role", [settings.DEFAULT_ROLE])[0]
-            if role not in settings.ROLES:
+            if role not in settings.ROLES and role not in settings.DOCUMENT_ROLES:
                 role = settings.DEFAULT_ROLE
+            use_case = "documents" if role in settings.DOCUMENT_ROLES else "code"
 
             # Hvorfor ingen Content-Length?
             # Siden er ikke færdig, når vi begynder at sende den. Browseren læser,
@@ -186,13 +209,22 @@ def make_handler(agent, writer):
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
             roles = "".join(
-                f'<option value="{key}"{" selected" if key == role else ""}>{escape(label)}</option>'
-                for key, label in settings.ROLES.items()
+                f'<option value="{key}" data-use="{"documents" if key in settings.DOCUMENT_ROLES else "code"}"'
+                f'{" selected" if key == role else ""}>{escape(label)}</option>'
+                for key, label in {**settings.ROLES, **settings.DOCUMENT_ROLES}.items()
             )
-            self.write(HEAD.replace("{roles}", roles).replace("{question}", escape(question)))
+            heading, placeholder, button = PAGE_TEXT[use_case]
+            self.write(
+                HEAD.replace("{roles}", roles).replace("{question}", escape(question))
+                .replace("{use_case_key}", use_case).replace("{use_case}", heading).replace("{placeholder}", placeholder).replace("{button}", button)
+            )
 
             if not question:
                 self.write("</body></html>")
+                return
+
+            if use_case == "documents":
+                self.answer_from_documents(question, role)
                 return
 
             try:
@@ -233,6 +265,21 @@ def make_handler(agent, writer):
                 self.write(f'<h2 class="error">Error</h2><pre>{escape(repr(e))}</pre>')
             self.write("</body></html>")
 
+        def answer_from_documents(self, question: str, role: str) -> None:
+            """Vedligehold: agenten slår op i OT's dokumenter og svarer direkte.
+
+            Hvorfor uden vurdering og gemt svar?
+            Der er ingen kode at vurdere, og svaret er bare det, der står i dokumenterne.
+            """
+            try:
+                self.write("<h2>What I am doing</h2>")
+                run = maintenance_agent.run(question, on_step=lambda d, s: self.write(render_step(d, s)))
+                title = f"Answer for {escape(settings.DOCUMENT_ROLES[role])}" if run.finished else "Not finished"
+                self.write(f'{render_document_sources(run.steps)}<h2>{title}</h2><div class="answer">{render_markdown(run.answer)}</div>')
+            except Exception as e:
+                self.write(f'<h2 class="error">Error</h2><pre>{escape(repr(e))}</pre>')
+            self.write("</body></html>")
+
         def write(self, html: str) -> None:
             self.wfile.write(html.encode("utf-8"))
             self.wfile.flush()
@@ -244,12 +291,14 @@ def main():
     # 1: START: Her starter vi, når man kører "python -m Agent.api.web".
     # Agenten bygges én gang, så xlsx-filerne kun indlæses ved start. Fortsæt i Agent/api/build.py.
     agent = build_agent()
+    # Vedligehold får sin egen agent, som kun kan søge i OT's dokumenter.
+    maintenance_agent = build_maintenance_agent()
     writer = build_writer()
 
     # 10: VENT: Serveren er klar og venter på, at nogen stiller et spørgsmål på siden.
     # Hvert spørgsmål lander i Handler.do_GET() herover.
-    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agent, writer))
-    print(f"Code Check is running on http://localhost:{PORT} (Ctrl+C to stop)")
+    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agent, maintenance_agent, writer))
+    print(f"AI Platform POC is running on http://localhost:{PORT} (Ctrl+C to stop)")
     server.serve_forever()
 
 

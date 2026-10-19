@@ -3,7 +3,7 @@ import settings
 from Agent.application.agent_service import AgentService
 from Agent.application.answer_writer import AnswerWriter
 from Agent.infrastructure.brains.gemini_brain import GeminiBrain
-from MCP.api.build import build_service as build_tools
+from MCP.api.build import build_ot_service, build_service as build_tools
 from MCP.application.tool_service import ToolService
 from Skills.api.build import build_service as build_skills
 from Skills.api.skill_tool import LoadSkillTool
@@ -43,3 +43,10 @@ def build_writer() -> AnswerWriter:
     skills = build_skills()
     brain = GeminiBrain(model=settings.GEMINI_MODEL, api_key=settings.GEMINI_API_KEY, thinking=settings.GEMINI_THINKING)
     return AnswerWriter(brain, lambda role: skills.load(f"audience-{role}").instructions)
+
+
+def build_maintenance_agent() -> AgentService:
+    # Agenten til Vedligehold. Den har kun søgningen i OT's dokumenter og ingen skills,
+    # og den svarer direkte uden en vurdering, fordi der ikke er kode at vurdere.
+    brain = GeminiBrain(model=settings.GEMINI_MODEL, api_key=settings.GEMINI_API_KEY, thinking=settings.GEMINI_THINKING)
+    return AgentService(brain, build_ot_service(), settings.MAINTENANCE_PROMPT, max_steps=settings.MAX_STEPS)

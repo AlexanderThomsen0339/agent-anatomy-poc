@@ -20,6 +20,8 @@ class ToolService:
         #   16b search_requirements MCP/infrastructure/tools/requirements_search_tool.py
         #   16c list_code_files     MCP/infrastructure/tools/code_list_tool.py
         #   16d read_code_file      MCP/infrastructure/tools/code_read_tool.py
+        #   16e search_specification MCP/infrastructure/tools/specification_search_tool.py
+        #   16f search_ot_documents MCP/infrastructure/tools/ot_document_search_tool.py
         # Resultatet går tilbage til AgentService.run() (trin 17).
         tool = self.tools.get(call.name)
         if tool is None:
