@@ -6,7 +6,7 @@ import re
 from html import escape
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlparse
 
 import settings
 from Agent.api.build import build_agent, build_writer
@@ -33,7 +33,7 @@ pre { white-space: pre-wrap; background: #f4f4f4; padding: 1em; }
 </style></head><body>
 <h1>Code Check</h1>
 <form method="get" action="/">
-<p><label>I am: <select name="role">{roles}</select></label></p>
+<p><label>I am: <select name="role" onchange="if (this.form.q.value.trim()) this.form.submit()">{roles}</select></label></p>
 <textarea name="q" rows="3" placeholder="Does our code solve US-001?">{question}</textarea>
 <p><button>Check the code</button></p>
 </form>
@@ -201,14 +201,12 @@ def make_handler(agent, writer):
                     # Kilderne og vurderingen står øverst i lukkede bokse, så de ikke fylder, men kan foldes ud.
                     self.write('<p class="step">✍️ Writing the answer</p>')
                     answer = writer.write(question, assessment, role)
-                    others = " · ".join(
-                        f'<a href="/?{escape(urlencode({"q": question, "role": key}))}">{escape(label)}</a>'
-                        for key, label in settings.ROLES.items() if key != role
-                    )
+                    # Overskriften siger, hvem svaret er til. Skifter man rolle i dropdownen, hentes svaret til den anden rolle
+                    # med det samme, og vurderingen genbruges.
                     self.write(
                         render_sources(run.steps) + render_assessment(assessment)
+                        + f'<h2>Answer for {escape(settings.ROLES[role])}</h2>'
                         + f'<div class="answer">{render_markdown(answer)}</div>'
-                        + f'<p class="step">Show the answer for: {others}</p>'
                     )
             except Exception as e:
                 # Fejlen vises på siden, så demoen ikke bare hænger.
