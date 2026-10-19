@@ -125,7 +125,7 @@ def render_document_sources(steps: list[Step]) -> str:
     items = "".join(f"<li><code>{escape(s)}</code></li>" for s in sorted(sheets)) or "<li>None found</li>"
     return (
         '<details class="sources"><summary>Sources</summary>'
-        f"<p>OT documents in <code>{escape(str(settings.OT_FOLDER))}</code>:</p><ul>{items}</ul></details>"
+        f"<p>Documents from the {escape(settings.DOCUMENT_TEAM.upper())} team in <code>{escape(str(settings.OT_FOLDER))}</code>:</p><ul>{items}</ul></details>"
     )
 
 

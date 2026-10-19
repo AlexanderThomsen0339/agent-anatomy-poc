@@ -25,7 +25,7 @@ def build_agent() -> AgentService:
     # Holdet fortæller agenten, hvilken skill der beskriver, hvordan koden skal være bygget.
     system = (
         settings.SYSTEM_PROMPT
-        + f"\nThe code belongs to the {settings.TEAM} team. Check it against how that team codes, in the skill architecture-{settings.TEAM}."
+        + f"\nThe code belongs to IT's {settings.TEAM} team, which {settings.TEAMS[settings.TEAM]} Check it against how that team codes, in the skill architecture-{settings.TEAM}."
         # audience-skills skjules: rollen bruges først, når svaret skrives (AnswerWriter), aldrig i vurderingen.
         + "\n\nSkills:\n" + skills.catalog(hide="audience-")
     )
@@ -49,4 +49,7 @@ def build_maintenance_agent() -> AgentService:
     # Agenten til Vedligehold. Den har kun søgningen i OT's dokumenter og ingen skills,
     # og den svarer direkte uden en vurdering, fordi der ikke er kode at vurdere.
     brain = GeminiBrain(model=settings.GEMINI_MODEL, api_key=settings.GEMINI_API_KEY, thinking=settings.GEMINI_THINKING)
-    return AgentService(brain, build_ot_service(), settings.MAINTENANCE_PROMPT, max_steps=settings.MAX_STEPS)
+    # Holdet fortæller agenten, hvem der har lavet dokumenterne, og hvad de handler om.
+    team = settings.DOCUMENT_TEAM
+    system = settings.MAINTENANCE_PROMPT + f"\nThe documents are made by IT's {team.upper()} team, which {settings.TEAMS[team]}"
+    return AgentService(brain, build_ot_service(), system, max_steps=settings.MAX_STEPS)

@@ -467,7 +467,9 @@ Everything is in `settings.py`:
 | `SEARCH_K`, `OT_SEARCH_K` | How many results a search returns. |
 | `CODE_FOLDER` | The code to check. The code tools can't see outside it. |
 | `SKILLS_FOLDER` | The skill folders. |
-| `TEAM` | Which `architecture-<team>` skill the code is checked against. |
+| `TEAMS` | IT's teams and what each one does: web writes the code that is checked, OT makes the documents Vedligehold searches. The agents get the description. |
+| `TEAM` | The team whose code is checked, and so which `architecture-<team>` skill it is checked against. |
+| `DOCUMENT_TEAM` | The team whose documents Vedligehold searches (`ot`). |
 | `ROLES`, `DEFAULT_ROLE` | The code-check roles in the dropdown. Each key needs an `audience-<key>` skill. |
 | `DOCUMENT_ROLES` | The roles that search OT's documents instead (Vedligehold). |
 | `MAX_STEPS`, `SYSTEM_PROMPT`, `MAINTENANCE_PROMPT` | The step limit and the base instruction for the code-check agent and the Vedligehold agent. |

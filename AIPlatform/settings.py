@@ -62,11 +62,21 @@ CODE_FOLDER = ROOT / "C:\\Users\\n1majt\\source\\repos\\FremsynNordDK"
 # Mappen med skills. Hver skill er en undermappe med en SKILL.md.
 SKILLS_FOLDER = ROOT / "Skills" / "data" / "skills"
 
+# IT's hold, og hvad hvert hold laver. Agenterne får beskrivelsen, så de ved, hvis kode eller dokumenter de ser på.
+# Hvorfor her? IT har flere hold, og hver use case bygger på ét af dem: kodetjekket på web, Vedligehold på OT.
+TEAMS = {
+    "web": "builds Mit Aalborg Forsyning (Umbraco). Its code is what Code Check checks.",
+    "ot": "runs the plant's control systems (OT) and makes their documents, such as the signal list. Vedligehold looks things up in them.",
+}
+
 # Holdet, der ejer koden i CODE_FOLDER. Agenten tjekker koden mod, hvordan holdet koder,
 # beskrevet i skillen architecture-<TEAM>, fx architecture-web.
 # Hvorfor pr. hold? Web og FDAP koder ikke efter de samme retningslinjer, så hvert hold har sin egen skill.
 # Skillen er fast og uafhængig af projektet og af kravene i RAG.
 TEAM = "web"
+
+# Holdet, der laver dokumenterne i OT_FOLDER, som Vedligehold slår op i.
+DOCUMENT_TEAM = "ot"
 
 # Rollerne, man kan vælge på siden. Rollen bestemmer, hvordan svaret skrives, beskrevet i skillen audience-<rolle>.
 # Hvorfor? En udvikler vil have kode og file:line, mens en fra kommunikation vil vide, hvad kunden oplever.
@@ -77,7 +87,7 @@ ROLES = {
 }
 DEFAULT_ROLE = "product"
 
-# Rollerne, der ikke tjekker kode, men slår op i OT-holdets dokumenter (OT_FOLDER).
+# Rollerne, der ikke tjekker kode, men slår op i DOCUMENT_TEAM's dokumenter (OT_FOLDER).
 # Hvorfor for sig? De bruger en anden agent med kun search_ot_documents, og agenten svarer direkte.
 # Nøglen står i adressen, værdien er det, brugeren ser i dropdownen.
 DOCUMENT_ROLES = {
