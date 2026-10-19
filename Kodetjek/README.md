@@ -31,7 +31,9 @@ Include the title, because the same US id exists in several sheets.
 - Does our code solve US-002 Ingen regninger tilgængelige?
 - Does our code solve US-002 Opdater telefonnummer?
 
-The page shows each step live, then the verdict: **Solved**, **Partly solved** or **Not solved**.
+The page shows each step live, then the verdict: **Solved**, **Partly solved** or **Not solved**, with one line per business requirement (KRAV id) and one per acceptance criterion.
+
+Only Regninger has a business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`, an example written for the demo). For Min Profil and Mit Overblik the answer says that no business requirement is documented.
 
 ## The flow
 
@@ -47,6 +49,7 @@ Each step is marked in the code with a comment like `# 13: TÆNK`. Search for `#
 | 4 | Tools | `MCP/api/build.py` · `build_service()` | MCP is the list of things the agent can do. Gemini only sees tool names and descriptions, never the code behind them. |
 | 5 | Load the requirements | `RAG/application/ingest_service.py` · `run()` | RAG owns the requirements. It loads them once at start, so each question only searches. |
 | 6 | Read the xlsx files | `RAG/infrastructure/loaders/xlsx_loader.py` · `load()` | RAG reads the raw files. Only this adapter knows about Excel, so another source would only replace this file. |
+| 6b | Read the business requirements (kravspec) | `RAG/infrastructure/loaders/markdown_loader.py` · `load()` | Steps 5–8 run a second time for `RAG/data/kravspec/*.md`, into their own index, so a requirement isn't crowded out by test cases. |
 | 7 | Split into user stories and test cases | `RAG/infrastructure/chunking/text_chunker.py` · `split()` | RAG splits the text so a search returns one user story, not a whole workbook. |
 | 8 | Store in the search index | `RAG/infrastructure/index/keyword_index.py` · `add()` | RAG keeps the index. The rest of the code only knows the `SearchIndex` port, so keyword search could become vector search. |
 | 9 | Assemble tools, system prompt and Gemini | `Agent/api/build.py` · `build_agent()` | The Agent layer joins the MCP tools, the skill tool and the brain into one agent. |
@@ -66,6 +69,7 @@ Each step is marked in the code with a comment like `# 13: TÆNK`. Search for `#
 | 16b | `search_requirements`: keyword search | `MCP/infrastructure/tools/requirements_search_tool.py` | MCP wraps the RAG search as a tool. The agent doesn't know RAG exists; it just calls a tool. |
 | 16c | `list_code_files`: files in `CODE_FOLDER` | `MCP/infrastructure/tools/code_list_tool.py` | MCP gives read access to the code, limited to `CODE_FOLDER`. |
 | 16d | `read_code_file`: one file with line numbers | `MCP/infrastructure/tools/code_read_tool.py` | MCP returns line numbers so the answer can point to `file:line`. It refuses paths outside `CODE_FOLDER`. |
+| 16e | `search_specification`: business requirements | `MCP/infrastructure/tools/specification_search_tool.py` | The test cases say what the test team checks; the kravspec says what the business ordered. Searching for a US id returns exactly the requirements that cover it, or says none are documented, so the agent can't invent one. |
 | 17 | Results go into the history | `agent_service.py` | The Agent layer keeps the history, so Gemini sees everything it has learned on the next step. |
 | 18 | Step shown on the page, back to 13 | `web.py` · `render_step()` | The Agent layer's page shows each step live, so the user sees what the agent is doing. |
 | 19 | Answer ready | `agent_service.py` | The Agent layer returns the answer together with all the steps it took. |
@@ -156,6 +160,11 @@ namespace MCP {
     +k: int
     +run(arguments) str
   }
+  class SpecificationSearchTool {
+    +index: SearchIndex
+    +k: int
+    +run(arguments) str
+  }
   class CodeListTool {
     +folder: Path
     +run(arguments) str
@@ -187,6 +196,10 @@ namespace RAG {
     +search(query, k) list~SearchResult~
   }
   class XlsxLoader {
+    +folder: Path
+    +load() list~Document~
+  }
+  class MarkdownLoader {
     +folder: Path
     +load() list~Document~
   }
@@ -259,15 +272,18 @@ Tool --> ToolSpec : spec
 ToolService ..> ToolCall
 ToolService ..> ToolResult
 RequirementsSearchTool ..|> Tool
+SpecificationSearchTool ..|> Tool
 CodeListTool ..|> Tool
 CodeReadTool ..|> Tool
 LoadSkillTool ..|> Tool
 
 RequirementsSearchTool --> SearchIndex : index
+SpecificationSearchTool --> SearchIndex : index
 IngestService --> DocumentLoader
 IngestService --> Chunker
 IngestService --> SearchIndex
 XlsxLoader ..|> DocumentLoader
+MarkdownLoader ..|> DocumentLoader
 ParagraphChunker ..|> Chunker
 KeywordIndex ..|> SearchIndex
 SearchResult *-- Chunk
@@ -279,7 +295,7 @@ SkillService ..> Skill
 SkillService ..> SkillSummary
 ```
 
-`LoadSkillTool` lives in Skills but behaves like an MCP tool, so the agent sees it next to the other three. `History` is not a class but a list of `Decision`s and lists of `Observation`s.
+`LoadSkillTool` lives in Skills but behaves like an MCP tool, so the agent sees it next to the other four. `History` is not a class but a list of `Decision`s and lists of `Observation`s.
 
 ## Dependencies
 
@@ -313,6 +329,7 @@ flowchart TD
     mbuild["api/build.py"]
     msvc["application/tool_service.py"]
     msearch["infrastructure/tools/requirements_search_tool.py"]
+    mspec["infrastructure/tools/specification_search_tool.py"]
     mlist["infrastructure/tools/code_list_tool.py"]
     mread["infrastructure/tools/code_read_tool.py"]
     mports["domain/ports.py"]
@@ -322,6 +339,7 @@ flowchart TD
   subgraph RAGL["RAG"]
     ringest["application/ingest_service.py"]
     rxlsx["infrastructure/loaders/xlsx_loader.py"]
+    rmd["infrastructure/loaders/markdown_loader.py"]
     rchunk["infrastructure/chunking/text_chunker.py"]
     rindex["infrastructure/index/keyword_index.py"]
     rports["domain/ports.py"]
@@ -360,10 +378,12 @@ flowchart TD
   mbuild --> settings
   mbuild --> msvc
   mbuild --> msearch
+  mbuild --> mspec
   mbuild --> mlist
   mbuild --> mread
   mbuild --> ringest
   mbuild --> rxlsx
+  mbuild --> rmd
   mbuild --> rchunk
   mbuild --> rindex
   msvc --> mmodels
@@ -371,12 +391,15 @@ flowchart TD
   mports --> mmodels
   msearch --> mmodels
   msearch --> rports
+  mspec --> mmodels
+  mspec --> rports
   mlist --> mmodels
   mread --> mmodels
 
   ringest --> rports
   rports --> rmodels
   rxlsx --> rmodels
+  rmd --> rmodels
   rchunk --> rmodels
   rindex --> rmodels
 
@@ -393,7 +416,7 @@ flowchart TD
 
 ## Configuration
 
-Everything is in `settings.py`: `GEMINI_MODEL`, `GEMINI_THINKING`, `CODE_FOLDER`, `SYSTEM_PROMPT`, `MAX_STEPS`. The answer format is in `Skills/data/skills/code-review/SKILL.md`.
+Everything is in `settings.py`: `GEMINI_MODEL`, `GEMINI_THINKING`, `CODE_FOLDER`, `SPEC_FOLDER`, `SYSTEM_PROMPT`, `MAX_STEPS`. The answer format is in `Skills/data/skills/code-review/SKILL.md`.
 
 ## Limitations
 

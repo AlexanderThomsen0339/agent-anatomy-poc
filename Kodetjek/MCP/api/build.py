@@ -4,9 +4,11 @@ from MCP.application.tool_service import ToolService
 from MCP.infrastructure.tools.code_list_tool import CodeListTool
 from MCP.infrastructure.tools.code_read_tool import CodeReadTool
 from MCP.infrastructure.tools.requirements_search_tool import RequirementsSearchTool
+from MCP.infrastructure.tools.specification_search_tool import SpecificationSearchTool
 from RAG.application.ingest_service import IngestService
 from RAG.infrastructure.chunking.text_chunker import ParagraphChunker
 from RAG.infrastructure.index.keyword_index import KeywordIndex
+from RAG.infrastructure.loaders.markdown_loader import MarkdownLoader
 from RAG.infrastructure.loaders.xlsx_loader import XlsxLoader
 
 
@@ -16,9 +18,14 @@ def build_service() -> ToolService:
     requirements = KeywordIndex()
     IngestService(XlsxLoader(settings.DATA_FOLDER), ParagraphChunker(), requirements).run()
 
-    # De tre værktøjer, AI'en kan kalde. Tilbage til build_agent() (trin 9).
+    # Kravspec får sit eget indeks, så et krav ikke drukner mellem testcases i søgningen.
+    specification = KeywordIndex()
+    IngestService(MarkdownLoader(settings.SPEC_FOLDER), ParagraphChunker(), specification).run()
+
+    # De fire værktøjer, AI'en kan kalde. Tilbage til build_agent() (trin 9).
     tools = [
         RequirementsSearchTool(requirements, k=settings.SEARCH_K),
+        SpecificationSearchTool(specification, k=settings.SEARCH_K),
         CodeListTool(settings.CODE_FOLDER),
         CodeReadTool(settings.CODE_FOLDER),
     ]

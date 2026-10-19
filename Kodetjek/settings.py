@@ -35,6 +35,10 @@ except ImportError:
 # Mappen med user stories og testcases (.xlsx), som search_requirements søger i.
 DATA_FOLDER = ROOT / "RAG" / "data"
 
+# Mappen med forretningens kravspec (.md), som search_specification søger i.
+# Hvert krav har et id som KRAV-REG-03 og en linje "Dækker:" med de user stories og testcases, det hører til.
+SPEC_FOLDER = ROOT / "RAG" / "data" / "kravspec"
+
 
 # 3. MCP
 # Hvor mange afsnit kravsøgningen returnerer.
@@ -60,7 +64,10 @@ SYSTEM_PROMPT = (
     "You help developers check whether their code solves the task. Always answer in English.\n"
     "The tasks are user stories and test cases for Mit Aalborg Forsyning, found with search_requirements. "
     "They are written in Danish, so search with ids and Danish words.\n"
+    "The business requirements (kravspec) are found with search_specification. They say what the business ordered, "
+    "and the test cases say what the test team checks. Check the code against both.\n"
     "You see the developer's code with list_code_files and read_code_file. You can only read the code, never change it.\n"
-    "Never guess: look up the requirements and read the code before you answer.\n"
+    "Never guess: look up the requirements and read the code before you answer. "
+    "If a requirement is not written down anywhere, say it is not documented instead of inventing one.\n"
     "If a task fits a skill, load it with load_skill before you start."
 )

@@ -2,7 +2,7 @@
 
 **What it is:** instructions the agent can load when a task needs them. Each skill is a folder in `data/skills/` with a `SKILL.md`: a name, a one-line description and the full instructions.
 
-**What it does:** the names and descriptions go into the system prompt as a catalog (flow step 3). When Gemini sees a task that fits, it calls `load_skill` and gets the full instructions (step 16a). Kodetjek has one skill, `code-review`, which sets the answer format: **Solved**, **Partly solved** or **Not solved**, one line per acceptance criterion with `file:line`, at most 15 lines.
+**What it does:** the names and descriptions go into the system prompt as a catalog (flow step 3). When Gemini sees a task that fits, it calls `load_skill` and gets the full instructions (step 16a). Kodetjek has one skill, `code-review`, which sets the answer format: **Solved**, **Partly solved** or **Not solved**, one line per business requirement (KRAV id) and one per acceptance criterion with `file:line`, at most 20 lines. It also forbids invented requirements: if none is found, the answer says so.
 
 **Why it's there:**
 - **The rules are text, not code.** Changing the answer format means editing `SKILL.md`, not Python.
