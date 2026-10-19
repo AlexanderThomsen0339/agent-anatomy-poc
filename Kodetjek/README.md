@@ -31,7 +31,7 @@ Include the title, because the same US id exists in several sheets.
 - Does our code solve US-002 Ingen regninger tilgængelige?
 - Does our code solve US-002 Opdater telefonnummer?
 
-The page shows each step live, then a folded *Sources* box with the test documents, requirement files and code folder (and its git repo) the agent actually used, then the verdict: **Solved**, **Partly solved** or **Not solved**, in at most 8 lines of plain English for a non-technical reader: how many requirements are met, only what is missing, and at most two risks from how the code is built (`architecture-web`).
+The page shows each step live, then a folded *Sources* box with the test documents, requirement files and code folder (and its git repo) the agent actually used, then the verdict: **Solved**, **Partly solved** or **Not solved**. A dropdown above the question says who is asking. *Product / communication* gets at most 8 lines of plain English: how many requirements are met, only what is missing, and at most two risks from how the code is built (`architecture-web`). *Developer* gets a technical answer with file:line, what can't be told from the code, architecture deviations and what to fix first.
 
 Only Regninger has a business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`, an example written for the demo). For Min Profil and Mit Overblik the answer says that no business requirement is documented.
 
@@ -417,7 +417,7 @@ flowchart TD
 
 ## Configuration
 
-Everything is in `settings.py`: `GEMINI_MODEL`, `GEMINI_THINKING`, `CODE_FOLDER`, `SPEC_FOLDER`, `TEAM`, `SYSTEM_PROMPT`, `MAX_STEPS`. The answer format is in `Skills/data/skills/code-review/SKILL.md`.
+Everything is in `settings.py`: `GEMINI_MODEL`, `GEMINI_THINKING`, `CODE_FOLDER`, `SPEC_FOLDER`, `TEAM`, `ROLES`, `SYSTEM_PROMPT`, `MAX_STEPS`. The answer formats are in `Skills/data/skills/audience-product/SKILL.md` and `audience-developer/SKILL.md`.
 
 ## Limitations
 

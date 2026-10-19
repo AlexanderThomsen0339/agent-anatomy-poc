@@ -19,6 +19,7 @@ HEAD = """<!doctype html>
 <style>
 body { font-family: system-ui, sans-serif; max-width: 860px; margin: 2em auto; padding: 0 1em; }
 textarea { width: 100%; font: inherit; }
+select { font: inherit; }
 .step { color: #666; margin: .3em 0; }
 .error { color: #b00; }
 .answer { border: 1px solid #ddd; border-radius: 8px; padding: .5em 1.2em; margin-top: 1.5em; }
@@ -30,6 +31,7 @@ pre { white-space: pre-wrap; background: #f4f4f4; padding: 1em; }
 </style></head><body>
 <h1>Code Check</h1>
 <form method="get" action="/">
+<p><label>I am: <select name="role">{roles}</select></label></p>
 <textarea name="q" rows="3" placeholder="Does our code solve US-001?">{question}</textarea>
 <p><button>Check the code</button></p>
 </form>
@@ -133,7 +135,12 @@ def make_handler(agent):
             if url.path != "/":
                 self.send_error(404)
                 return
-            question = parse_qs(url.query).get("q", [""])[0].strip()
+            query = parse_qs(url.query)
+            question = query.get("q", [""])[0].strip()
+            # Rollen kommer fra dropdownen. Den står i adressen, så den er valgt igen ved næste spørgsmål.
+            role = query.get("role", [settings.DEFAULT_ROLE])[0]
+            if role not in settings.ROLES:
+                role = settings.DEFAULT_ROLE
 
             # Hvorfor ingen Content-Length?
             # Siden er ikke færdig, når vi begynder at sende den. Browseren læser,
@@ -141,7 +148,11 @@ def make_handler(agent):
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
-            self.write(HEAD.replace("{question}", escape(question)))
+            roles = "".join(
+                f'<option value="{key}"{" selected" if key == role else ""}>{escape(label)}</option>'
+                for key, label in settings.ROLES.items()
+            )
+            self.write(HEAD.replace("{roles}", roles).replace("{question}", escape(question)))
 
             if not question:
                 self.write("</body></html>")
@@ -151,7 +162,9 @@ def make_handler(agent):
             try:
                 # 12: AGENTEN KØRER: Fortsæt i Agent/application/agent_service.py.
                 # 18: VIS SKRIDT: on_step kaldes efter hvert skridt, og render_step() sender det til browseren med det samme.
-                run = agent.run(question, on_step=lambda d, s: self.write(render_step(d, s)))
+                # Hvem der spørger, sættes på spørgsmålet, så agenten henter den rigtige audience-skill.
+                asked_by = f"\n\n(Asked by: {settings.ROLES[role]}. Write the answer as in the skill audience-{role}.)"
+                run = agent.run(question + asked_by, on_step=lambda d, s: self.write(render_step(d, s)))
 
                 # 20: OUTPUT: Svaret laves om fra markdown til HTML og sendes. Siden er færdig. SLUT.
                 # Kilderne står øverst i en lukket boks, så de ikke fylder, men kan foldes ud.
