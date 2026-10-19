@@ -178,8 +178,10 @@ def make_handler(agent, writer):
                 return
 
             try:
-                if question in checked:
-                    run, assessment = checked[question]
+                # Samme spørgsmål med andre store/små bogstaver, mellemrum eller tegnsætning genbruger vurderingen.
+                key = " ".join(re.sub(r"[^\w\s-]", " ", question.lower()).split())
+                if key in checked:
+                    run, assessment = checked[key]
                     self.write('<p class="step">♻️ Using the check already made for this question</p>')
                 else:
                     self.write("<h2>What I am doing</h2>")
@@ -189,7 +191,7 @@ def make_handler(agent, writer):
                     run = agent.run(question, on_step=lambda d, s: self.write(render_step(d, s)))
                     assessment = parse_assessment(run.answer) if run.finished else None
                     if assessment:
-                        checked[question] = (run, assessment)
+                        checked[key] = (run, assessment)
 
                 if not assessment:
                     # Agenten blev ikke færdig eller skrev ikke en vurdering. Vis det, den skrev.
