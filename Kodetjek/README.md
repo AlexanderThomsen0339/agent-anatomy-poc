@@ -31,7 +31,7 @@ Include the title, because the same US id exists in several sheets.
 - Does our code solve US-002 Ingen regninger tilgængelige?
 - Does our code solve US-002 Opdater telefonnummer?
 
-The page shows each step live, then the verdict: **Solved**, **Partly solved** or **Not solved**, with one line per business requirement (KRAV id), one per acceptance criterion, and where the code differs from how the team codes (`architecture-web`).
+The page shows each step live, then the verdict: **Solved**, **Partly solved** or **Not solved**, in plain English for a non-technical reader: what the business asked for (KRAV ids), what the test team checks (acceptance criteria), how it is built compared with the team's way of coding (`architecture-web`), and what to do next.
 
 Only Regninger has a business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`, an example written for the demo). For Min Profil and Mit Overblik the answer says that no business requirement is documented.
 

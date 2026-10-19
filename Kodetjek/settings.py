@@ -67,7 +67,8 @@ MAX_STEPS = 20
 
 # Grundinstruktionen. Kataloget over skills sættes på i Agent/api/build.py.
 SYSTEM_PROMPT = (
-    "You help developers check whether their code solves the task. Always answer in English.\n"
+    "You help people check whether the code solves the task. The reader may not be a developer, "
+    "so answer in plain English and keep technical details in references. Always answer in English.\n"
     "The tasks are user stories and test cases for Mit Aalborg Forsyning, found with search_requirements. "
     "They are written in Danish, so search with ids and Danish words.\n"
     "The business requirements (kravspec) are found with search_specification. They say what the business ordered, "
