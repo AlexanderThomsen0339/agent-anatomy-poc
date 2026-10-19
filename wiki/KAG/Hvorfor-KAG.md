@@ -23,9 +23,9 @@ Svaret står ikke i ét stykke tekst. Det kræver at følge flere led: komponent
 | **Konsistens** | Den samme ting har ét navn og én node, også når den omtales forskelligt i forskellige dokumenter. |
 | **Genbrug** | Grafen er et aktiv i sig selv og kan også bruges til rapporter, sporbarhed og analyser uden en LLM. |
 
-## Hvorfor KAG i Kodetjek
+## Hvorfor KAG i AI Platform POC'en
 
-Testdataene i Kodetjek er allerede næsten en graf: sider har user stories, user stories har acceptkriterier, testcases tester user stories og har resultater pr. testdato. Med KAG kunne Kodetjek gå fra "løser koden opgaven?" til spørgsmål om sporbarhed, for eksempel hvilke krav på en side der mangler en testcase, der er bestået. Det er den slags svar, der er svære at give med ordsøgning alene.
+Testdataene i AI Platform POC'en er allerede næsten en graf: sider har user stories, user stories har acceptkriterier, testcases tester user stories og har resultater pr. testdato. Med KAG kunne Kodetjek gå fra "løser koden opgaven?" til spørgsmål om sporbarhed, for eksempel hvilke krav på en side der mangler en testcase, der er bestået. Det er den slags svar, der er svære at give med ordsøgning alene.
 
 ## Hvornår KAG *ikke* er svaret
 

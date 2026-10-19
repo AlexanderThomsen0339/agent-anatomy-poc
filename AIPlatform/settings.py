@@ -1,14 +1,14 @@
-"""Den samlede konfiguration for Kodetjek.
+"""Den samlede konfiguration for AI Platform POC'en.
 
 Hvorfor én fil i stedet for en config/ pr. lag?
 I originalen har hvert lag sin egen config/, så lagene kan stå alene.
-Kodetjek er én POC, der skal vises samlet, så alt, man kan skrue på,
+AI Platform POC'en er én POC, der skal vises samlet, så alt, man kan skrue på,
 står her ét sted.
 """
 import os
 from pathlib import Path
 
-# Roden af Kodetjek-mappen. Alle stier herunder regnes ud fra den.
+# Roden af AIPlatform-mappen. Alle stier herunder regnes ud fra den.
 ROOT = Path(__file__).resolve().parent
 
 

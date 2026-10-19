@@ -48,9 +48,9 @@ flowchart LR
 | Sted | Data | Søgning |
 |---|---|---|
 | `RAG/` (lag 2 i undervisningseksemplet) | Markdown-dokumenter om et fiktivt bibliotek (`ferie.md`, `it.md` …) | Ordsøgning |
-| `Kodetjek/RAG/` (POC'en) | User stories og testcases fra xlsx-filerne i `Kodetjek/RAG/data/` | Ordsøgning |
+| `AIPlatform/RAG/` (AI Platform POC'en) | User stories og testcases fra xlsx-filerne i `AIPlatform/RAG/data/` | Ordsøgning |
 
-I Kodetjek bliver hvert ark i et regneark til ét dokument, og hver user story (`US-…`) og testcase (`TC-…`) bliver sit eget stykke. Når udvikleren spørger, om koden løser en opgave, henter agenten de relevante krav via RAG og vurderer koden op imod dem.
+I AI Platform POC'en bliver hvert ark i et regneark til ét dokument, og hver user story (`US-…`) og testcase (`TC-…`) bliver sit eget stykke. Når udvikleren spørger, om koden løser en opgave, henter agenten de relevante krav via RAG og vurderer koden op imod dem.
 
 ## Hvornår passer RAG?
 

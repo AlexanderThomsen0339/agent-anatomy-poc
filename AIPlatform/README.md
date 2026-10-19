@@ -1,4 +1,4 @@
-# Kodetjek demo
+# AI Platform POC
 
 A developer asks: *"Does our code solve this user story?"* An AI agent looks up the user story, its acceptance criteria and the business requirements, reads the developer's code, and assesses each requirement with a `file:line` reference. The answer is then written for whoever asks: a product person or a developer.
 
@@ -6,7 +6,7 @@ The code has four layers, each with its own README: [Agent](Agent/README.md), [M
 
 ## Run the demo
 
-Python 3.10+. Run everything from the `Kodetjek/` folder.
+Python 3.10+. Run everything from the `AIPlatform/` folder.
 
 ```bash
 pip install -r requirements.txt

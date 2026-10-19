@@ -1,6 +1,6 @@
 # MCP
 
-**What it is:** the agent's hands. A fixed list of tools, each with a name, a description and the input it takes. The name comes from the Model Context Protocol, the standard for describing tools to an LLM. Kodetjek uses the same idea (`ToolSpec`, `ToolCall`, `ToolResult`) inside the program, without running an MCP server.
+**What it is:** the agent's hands. A fixed list of tools, each with a name, a description and the input it takes. The name comes from the Model Context Protocol, the standard for describing tools to an LLM. The AI Platform POC uses the same idea (`ToolSpec`, `ToolCall`, `ToolResult`) inside the program, without running an MCP server.
 
 **What it does:** it gives Gemini four tools and runs them when asked:
 

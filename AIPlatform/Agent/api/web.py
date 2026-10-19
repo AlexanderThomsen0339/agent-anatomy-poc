@@ -1,5 +1,5 @@
 """
-Kør fra Kodetjek-mappen:
+Kør fra AIPlatform-mappen:
     python -m Agent.api.web
 """
 import hashlib
@@ -17,7 +17,7 @@ from Agent.domain.models import Assessment, Decision, Step
 PORT = 8000
 
 HEAD = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Code Check</title>
+<html lang="en"><head><meta charset="utf-8"><title>AI Platform POC</title>
 <style>
 body { font-family: system-ui, sans-serif; max-width: 860px; margin: 2em auto; padding: 0 1em; }
 textarea { width: 100%; font: inherit; }
@@ -32,7 +32,8 @@ select { font: inherit; }
 .sources td { padding: .2em .5em; vertical-align: top; }
 pre { white-space: pre-wrap; background: #f4f4f4; padding: 1em; }
 </style></head><body>
-<h1>Code Check</h1>
+<h1>AI Platform POC</h1>
+<p class="step">Code Check</p>
 <form method="get" action="/">
 <p><label>I am: <select name="role" onchange="if (this.form.q.value.trim()) this.form.submit()">{roles}</select></label></p>
 <textarea name="q" rows="3" placeholder="Does our code solve US-001?">{question}</textarea>

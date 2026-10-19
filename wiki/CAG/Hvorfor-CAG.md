@@ -19,7 +19,7 @@ Moderne modeller kan læse meget lange kontekster. Når vidensgrundlaget er lill
 | **Hurtige svar efter opstart** | Når cachen er bygget, skal modellen kun bearbejde det nye spørgsmål. |
 | **Billigere end det lyder** | Cachede tokens koster typisk kun en brøkdel af almindelige input-tokens hos udbyderne. |
 
-## Hvorfor CAG i Kodetjek
+## Hvorfor CAG i AI Platform POC'en
 
 De tre regneark med user stories og testcases er små. De kan sagtens ligge i konteksten på én gang. Med CAG ville agenten altid se alle acceptkriterier for en side, også dem som ordsøgningen ikke finder, og den ville bruge færre skridt, fordi den ikke skal søge. Det gør CAG til en oplagt sammenligning med RAG i demoen.
 
