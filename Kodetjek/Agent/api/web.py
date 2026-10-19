@@ -6,11 +6,12 @@ import re
 from html import escape
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import settings
-from Agent.api.build import build_agent
-from Agent.domain.models import Decision, Step
+from Agent.api.build import build_agent, build_writer
+from Agent.application.answer_writer import parse_assessment
+from Agent.domain.models import Assessment, Decision, Step
 
 PORT = 8000
 
@@ -27,6 +28,7 @@ select { font: inherit; }
 .sources { color: #888; font-size: .8em; margin-top: 1.5em; }
 .sources summary { cursor: pointer; }
 .sources code { word-break: break-all; }
+.sources td { padding: .2em .5em; vertical-align: top; }
 pre { white-space: pre-wrap; background: #f4f4f4; padding: 1em; }
 </style></head><body>
 <h1>Code Check</h1>
@@ -104,6 +106,17 @@ def render_sources(steps: list[Step]) -> str:
     )
 
 
+def render_assessment(assessment: Assessment) -> str:
+    """Vurderingen, som begge roller bygger på, i en lukket boks under kilderne."""
+    icons = {"MET": "✅", "NOT_MET": "❌", "CANT_TELL": "❓", "RISK": "⚠️"}
+    rows = "".join(
+        f"<tr><td>{icons[f.status]}</td><td>{escape(f.ids)}</td><td>{escape(f.requirement)}</td>"
+        f"<td>{escape(f.code)}</td><td><code>{escape(f.where)}</code></td></tr>"
+        for f in assessment.findings
+    )
+    return f'<details class="sources"><summary>Assessment</summary><table>{rows}</table></details>'
+
+
 def render_markdown(text: str) -> str:
     """Den lille smule markdown, svaret bruger: fed, kode og punktlister."""
     def inline(line: str) -> str:
@@ -125,7 +138,13 @@ def render_markdown(text: str) -> str:
     return html + ("</ul>" if in_list else "")
 
 
-def make_handler(agent):
+def make_handler(agent, writer):
+
+    # Hvorfor gemme vurderingen?
+    # Skifter man rolle på samme spørgsmål, skal svaret bygge på den samme vurdering.
+    # Ellers vurderer AI'en koden forfra og kan komme frem til noget andet.
+    # Den ligger kun i hukommelsen, så en genstart af serveren laver en ny.
+    checked: dict[str, tuple] = {}
 
     class Handler(BaseHTTPRequestHandler):
 
@@ -158,18 +177,37 @@ def make_handler(agent):
                 self.write("</body></html>")
                 return
 
-            self.write("<h2>What I am doing</h2>")
             try:
-                # 12: AGENTEN KØRER: Fortsæt i Agent/application/agent_service.py.
-                # 18: VIS SKRIDT: on_step kaldes efter hvert skridt, og render_step() sender det til browseren med det samme.
-                # Hvem der spørger, sættes på spørgsmålet, så agenten henter den rigtige audience-skill.
-                asked_by = f"\n\n(Asked by: {settings.ROLES[role]}. Write the answer as in the skill audience-{role}.)"
-                run = agent.run(question + asked_by, on_step=lambda d, s: self.write(render_step(d, s)))
+                if question in checked:
+                    run, assessment = checked[question]
+                    self.write('<p class="step">♻️ Using the check already made for this question</p>')
+                else:
+                    self.write("<h2>What I am doing</h2>")
+                    # 12: AGENTEN KØRER: Fortsæt i Agent/application/agent_service.py.
+                    # 18: VIS SKRIDT: on_step kaldes efter hvert skridt, og render_step() sender det til browseren med det samme.
+                    # Agenten får ikke rollen. Vurderingen skal være den samme, uanset hvem der spørger.
+                    run = agent.run(question, on_step=lambda d, s: self.write(render_step(d, s)))
+                    assessment = parse_assessment(run.answer) if run.finished else None
+                    if assessment:
+                        checked[question] = (run, assessment)
 
-                # 20: OUTPUT: Svaret laves om fra markdown til HTML og sendes. Siden er færdig. SLUT.
-                # Kilderne står øverst i en lukket boks, så de ikke fylder, men kan foldes ud.
-                title = "" if run.finished else "<h2>Not finished</h2>"
-                self.write(f'{title}{render_sources(run.steps)}<div class="answer">{render_markdown(run.answer)}</div>')
+                if not assessment:
+                    # Agenten blev ikke færdig eller skrev ikke en vurdering. Vis det, den skrev.
+                    self.write(f'<h2>Not finished</h2>{render_sources(run.steps)}<div class="answer">{render_markdown(run.answer)}</div>')
+                else:
+                    # 20: OUTPUT: Vurderingen skrives om til et svar til rollen, laves om fra markdown til HTML og sendes. SLUT.
+                    # Kilderne og vurderingen står øverst i lukkede bokse, så de ikke fylder, men kan foldes ud.
+                    self.write('<p class="step">✍️ Writing the answer</p>')
+                    answer = writer.write(question, assessment, role)
+                    others = " · ".join(
+                        f'<a href="/?{escape(urlencode({"q": question, "role": key}))}">{escape(label)}</a>'
+                        for key, label in settings.ROLES.items() if key != role
+                    )
+                    self.write(
+                        render_sources(run.steps) + render_assessment(assessment)
+                        + f'<div class="answer">{render_markdown(answer)}</div>'
+                        + f'<p class="step">Show the answer for: {others}</p>'
+                    )
             except Exception as e:
                 # Fejlen vises på siden, så demoen ikke bare hænger.
                 self.write(f'<h2 class="error">Error</h2><pre>{escape(repr(e))}</pre>')
@@ -186,10 +224,11 @@ def main():
     # 1: START: Her starter vi, når man kører "python -m Agent.api.web".
     # Agenten bygges én gang, så xlsx-filerne kun indlæses ved start. Fortsæt i Agent/api/build.py.
     agent = build_agent()
+    writer = build_writer()
 
     # 10: VENT: Serveren er klar og venter på, at nogen stiller et spørgsmål på siden.
     # Hvert spørgsmål lander i Handler.do_GET() herover.
-    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agent))
+    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agent, writer))
     print(f"Code Check is running on http://localhost:{PORT} (Ctrl+C to stop)")
     server.serve_forever()
 

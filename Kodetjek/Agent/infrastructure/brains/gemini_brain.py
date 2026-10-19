@@ -31,6 +31,7 @@ class GeminiBrain:
             contents=self._to_contents(question, history),
             config=types.GenerateContentConfig(
                 system_instruction=system,
+                # Uden værktøjer (når svaret skrives om til en rolle) sendes ingen.
                 tools=[types.Tool(function_declarations=[
                     types.FunctionDeclaration(
                         name=t.name,
@@ -38,7 +39,7 @@ class GeminiBrain:
                         parameters_json_schema=t.input_schema,
                     )
                     for t in tools
-                ])],
+                ])] if tools else None,
                 # Agent-laget kalder selv værktøjerne, så SDK'en må ikke gøre det.
                 automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
                 # Mindre tænkning pr. skridt gør agenten hurtigere.

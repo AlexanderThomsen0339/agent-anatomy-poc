@@ -8,8 +8,8 @@
 
 | Folder | Contents | Why |
 |---|---|---|
-| `domain/` | `Decision`, `Action`, `Observation`, `Step`, `AgentRun` and the `AgentBrain` port | Describes a step without knowing which model takes it. |
-| `application/` | `AgentService.run()`: think, act, observe, repeat | The loop is the same whatever the model or tools are. |
+| `domain/` | `Decision`, `Action`, `Observation`, `Step`, `AgentRun`, `Finding`, `Assessment` and the `AgentBrain` port | Describes a step without knowing which model takes it. |
+| `application/` | `AgentService.run()`: think, act, observe, repeat. `AnswerWriter`: turns the assessment into the answer for a role | The loop is the same whatever the model or tools are. The writer gets no tools, so the role can only change how the answer is written, not what was found. |
 | `infrastructure/` | `GeminiBrain`: the only file that knows the Gemini SDK | Changing model means replacing this file, nothing else. |
 | `api/` | `web.py` (the page) and `build.py` (wires all four layers together) | The only place that knows every layer, so the rest stay independent. |
 

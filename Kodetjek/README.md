@@ -31,7 +31,7 @@ Include the title, because the same US id exists in several sheets.
 - Does our code solve US-002 Ingen regninger tilgængelige?
 - Does our code solve US-002 Opdater telefonnummer?
 
-The page shows each step live, then a folded *Sources* box with the test documents, requirement files and code folder (and its git repo) the agent actually used, then the verdict: **Solved**, **Partly solved** or **Not solved**. A dropdown above the question says who is asking. *Product / communication* gets at most 8 lines of plain English: how many requirements are met, only what is missing, and at most two risks from how the code is built (`architecture-web`). *Developer* gets a technical answer with file:line, what can't be told from the code, architecture deviations and what to fix first.
+The page shows each step live, then a folded *Sources* box with the test documents, requirement files and code folder (and its git repo) the agent actually used, then a folded *Assessment* box with every requirement's status, then the answer. The agent assesses the code once per question, the same whoever asks: one line per requirement (met, not met, can't tell) plus risks. The verdict (**Solved**, **Partly solved** or **Not solved**, "X of Y requirements met") is counted from that list by the code, not written by the AI. A dropdown above the question says who is asking, and the answer is written from the assessment for that role; switching role on the same question reuses the assessment. *Product / communication* gets at most 8 lines of plain English: how many requirements are met, only what is missing, and at most two risks from how the code is built (`architecture-web`). *Developer* gets a technical answer with file:line, what can't be told from the code, architecture deviations and what to fix first.
 
 Only Regninger has a business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`, an example written for the demo). For Min Profil and Mit Overblik the answer says that no business requirement is documented.
 
@@ -72,7 +72,8 @@ Each step is marked in the code with a comment like `# 13: TÆNK`. Search for `#
 | 16e | `search_specification`: business requirements | `MCP/infrastructure/tools/specification_search_tool.py` | The test cases say what the test team checks; the kravspec says what the business ordered. Searching for a US id returns exactly the requirements that cover it, or says none are documented, so the agent can't invent one. |
 | 17 | Results go into the history | `agent_service.py` | The Agent layer keeps the history, so Gemini sees everything it has learned on the next step. |
 | 18 | Step shown on the page, back to 13 | `web.py` · `render_step()` | The Agent layer's page shows each step live, so the user sees what the agent is doing. |
-| 19 | Answer ready | `agent_service.py` | The Agent layer returns the answer together with all the steps it took. |
+| 19 | Assessment ready | `agent_service.py` | The Agent layer returns the assessment together with all the steps it took. `parse_assessment()` reads one line per requirement, and `Assessment.verdict` counts the verdict from it. |
+| 20b | Answer written for the role | `Agent/application/answer_writer.py` · `write()` | Gemini gets only the assessment and the `audience-<role>` skill, no tools, so it can rewrite but not re-judge. The assessment is kept per question, so both roles get the same verdict. |
 | 20 | OUTPUT: answer shown on the page | `web.py` · `render_markdown()` | The Agent layer's page turns the answer into HTML for the user. |
 
 Gemini decides which tools to call and in which order. The code only runs the loop.
