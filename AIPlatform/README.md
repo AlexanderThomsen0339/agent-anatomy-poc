@@ -1,6 +1,6 @@
 # AI Platform POC
 
-A developer asks: *"Does our code solve this user story?"* An AI agent looks up the user story, its acceptance criteria and the business requirements, reads the developer's code, and assesses each requirement with a `file:line` reference. The answer is then written for whoever asks: a product person or a developer.
+A developer asks: *"Does our code solve this user story?"* An AI agent looks up the user story, its acceptance criteria and the business requirements, reads the developer's code, and assesses each requirement with a `file:line` reference. The answer is then written for whoever asks: a product person or IT.
 
 The code has four layers, each with its own README: [Agent](Agent/README.md), [MCP](MCP/README.md), [RAG](RAG/README.md) and [Skills](Skills/README.md).
 
@@ -459,7 +459,7 @@ Everything is in `settings.py`:
 | `ROLES`, `DEFAULT_ROLE` | The roles in the dropdown. Each key needs an `audience-<key>` skill. |
 | `MAX_STEPS`, `SYSTEM_PROMPT` | The step limit and the agent's base instruction. |
 
-How the code is reviewed is in `Skills/data/skills/code-review/SKILL.md`, and the answer formats are in `audience-product/SKILL.md` and `audience-developer/SKILL.md`.
+How the code is reviewed is in `Skills/data/skills/code-review/SKILL.md`, and the answer formats are in `audience-product/SKILL.md` and `audience-it/SKILL.md`.
 
 ## Limitations
 

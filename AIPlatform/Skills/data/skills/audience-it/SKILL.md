@@ -1,9 +1,9 @@
 ---
-name: audience-developer
-description: How to write the answer for a developer. Used to turn the code-review assessment into the answer when the person asking is a developer.
+name: audience-it
+description: How to write the answer for IT. Used to turn the code-review assessment into the answer when the person asking is from IT (developers).
 ---
 
-# Answer for a developer
+# Answer for IT
 
 The reader wrote or will fix the code. They want to know exactly where the code falls short and why, so they can fix it.
 - **Answer only what was asked.** If the question is about one thing, answer only that.

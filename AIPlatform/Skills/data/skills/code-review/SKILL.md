@@ -20,7 +20,7 @@ Only judge against the requirements you found and the team's way of coding. Neve
 
 ## Write the assessment, not the answer
 
-Your answer is an assessment, not text for a person. It is the same whoever asks: afterwards it is turned into an answer for a developer or a product person, so never write for a reader here.
+Your answer is an assessment, not text for a person. It is the same whoever asks: afterwards it is turned into an answer for IT or a product person, so never write for a reader here.
 
 Give every KRAV id and every acceptance criterion exactly one line with one status:
 - `MET`: code you have read does what the requirement says.

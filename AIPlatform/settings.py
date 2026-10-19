@@ -64,7 +64,7 @@ TEAM = "web"
 # Nøglen er skillens navn, værdien er det, brugeren ser i dropdownen.
 ROLES = {
     "product": "Product / communication",
-    "developer": "Developer",
+    "it": "IT",
 }
 DEFAULT_ROLE = "product"
 
