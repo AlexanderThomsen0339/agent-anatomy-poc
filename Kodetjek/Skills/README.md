@@ -2,7 +2,7 @@
 
 **What it is:** instructions the agent can load when a task needs them. Each skill is a folder in `data/skills/` with a `SKILL.md`: a name, a one-line description and the full instructions.
 
-**What it does:** the names and descriptions go into the system prompt as a catalog (flow step 3). When Gemini sees a task that fits, it calls `load_skill` and gets the full instructions (step 16a). Kodetjek has one skill, `code-review`, which sets the answer format: **Solved**, **Partly solved** or **Not solved**, one line per business requirement (KRAV id) and one per acceptance criterion with `file:line`, at most 20 lines. It also forbids invented requirements: if none is found, the answer says so.
+**What it does:** the names and descriptions go into the system prompt as a catalog (flow step 3). When Gemini sees a task that fits, it calls `load_skill` and gets the full instructions (step 16a). Kodetjek has two skills. `code-review` which sets the answer format: **Solved**, **Partly solved** or **Not solved**, one line per business requirement (KRAV id) and one per acceptance criterion with `file:line`, at most 20 lines. It also forbids invented requirements: if none is found, the answer says so. `architecture-web` holds the Web team's coding rules (ARK-WEB-01 to 10). `TEAM` in `settings.py` tells the agent which team's rules to load, so FDAP could get its own `architecture-fdap` with different rules. The Web rules are a draft written from `BillingService.cs` and not yet approved by the team.
 
 **Why it's there:**
 - **The rules are text, not code.** Changing the answer format means editing `SKILL.md`, not Python.
@@ -17,4 +17,4 @@
 | `application/` | `SkillService`: list, catalog, load | One place to build the catalog and handle unknown names. |
 | `infrastructure/` | `FileSkillRepository`: reads `SKILL.md` files | Skills could come from a database instead by replacing this file. |
 | `api/` | `build.py` and `skill_tool.py` (`load_skill`) | Connects the skills to the agent as a tool. |
-| `data/skills/` | `code-review/SKILL.md` | The skills themselves. |
+| `data/skills/` | `code-review/SKILL.md`, `architecture-web/SKILL.md` | The skills themselves. |

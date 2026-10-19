@@ -33,7 +33,7 @@ pre { white-space: pre-wrap; background: #f4f4f4; padding: 1em; }
 
 # Hvad hvert værktøj hedder for en bruger, der ikke kender værktøjerne.
 FRIENDLY = {
-    "load_skill": lambda a: "📘 Loading the code review rules",
+    "load_skill": lambda a: f"📘 Loading the {a.get('name', '')} rules",
     "search_requirements": lambda a: f"🔎 Looking up the test cases: {a.get('query', '')}",
     "search_specification": lambda a: f"📋 Looking up the business requirements: {a.get('query', '')}",
     "list_code_files": lambda a: "📂 Listing the project's files",

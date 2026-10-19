@@ -20,8 +20,13 @@ def build_agent() -> AgentService:
     # 9: SAML: Værktøjerne fra MCP plus load_skill fra Skills lægges i én ToolService.
     tools = ToolService(list(mcp_tools.tools.values()) + [LoadSkillTool(skills)])
 
-    # Systemprompten: grundinstruktionen fra settings.py og kataloget over skills.
-    system = settings.SYSTEM_PROMPT + "\n\nSkills:\n" + skills.catalog()
+    # Systemprompten: grundinstruktionen fra settings.py, holdet og kataloget over skills.
+    # Holdet fortæller agenten, hvilke arkitekturregler koden skal tjekkes mod.
+    system = (
+        settings.SYSTEM_PROMPT
+        + f"\nThe code belongs to the {settings.TEAM} team. Check it against that team's rules in the skill architecture-{settings.TEAM}."
+        + "\n\nSkills:\n" + skills.catalog()
+    )
 
     # Hjernen, der taler med Gemini.
     brain = GeminiBrain(model=settings.GEMINI_MODEL, api_key=settings.GEMINI_API_KEY, thinking=settings.GEMINI_THINKING)

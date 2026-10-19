@@ -53,11 +53,16 @@ CODE_FOLDER = ROOT / "C:\\Users\\n1majt\\source\\repos\\FremsynNordDK"
 # Mappen med skills. Hver skill er en undermappe med en SKILL.md.
 SKILLS_FOLDER = ROOT / "Skills" / "data" / "skills"
 
+# Holdet, der ejer koden i CODE_FOLDER. Agenten tjekker koden mod holdets egne
+# arkitekturregler i skillen architecture-<TEAM>, fx architecture-web.
+# Hvorfor pr. hold? Web og FDAP koder ikke efter de samme retningslinjer, så hvert hold ejer sin egen skill.
+TEAM = "web"
+
 
 # 5. Agent
 # Grænsen for antal skridt. Beskytter mod en agent, der kører i ring.
-# Et kodetjek skal både søge krav, liste filer og læse flere filer, så den er sat højere end i originalen.
-MAX_STEPS = 15
+# Et kodetjek skal både søge krav og kravspec, hente to skills, liste filer og læse flere filer, så den er sat højere end i originalen.
+MAX_STEPS = 20
 
 # Grundinstruktionen. Kataloget over skills sættes på i Agent/api/build.py.
 SYSTEM_PROMPT = (

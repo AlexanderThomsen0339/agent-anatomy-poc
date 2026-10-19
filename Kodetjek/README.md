@@ -31,7 +31,7 @@ Include the title, because the same US id exists in several sheets.
 - Does our code solve US-002 Ingen regninger tilgængelige?
 - Does our code solve US-002 Opdater telefonnummer?
 
-The page shows each step live, then the verdict: **Solved**, **Partly solved** or **Not solved**, with one line per business requirement (KRAV id) and one per acceptance criterion.
+The page shows each step live, then the verdict: **Solved**, **Partly solved** or **Not solved**, with one line per business requirement (KRAV id), one per acceptance criterion, and the team's architecture rules the code breaks (ARK-WEB ids).
 
 Only Regninger has a business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`, an example written for the demo). For Min Profil and Mit Overblik the answer says that no business requirement is documented.
 
@@ -416,7 +416,7 @@ flowchart TD
 
 ## Configuration
 
-Everything is in `settings.py`: `GEMINI_MODEL`, `GEMINI_THINKING`, `CODE_FOLDER`, `SPEC_FOLDER`, `SYSTEM_PROMPT`, `MAX_STEPS`. The answer format is in `Skills/data/skills/code-review/SKILL.md`.
+Everything is in `settings.py`: `GEMINI_MODEL`, `GEMINI_THINKING`, `CODE_FOLDER`, `SPEC_FOLDER`, `TEAM`, `SYSTEM_PROMPT`, `MAX_STEPS`. The answer format is in `Skills/data/skills/code-review/SKILL.md`.
 
 ## Limitations
 
