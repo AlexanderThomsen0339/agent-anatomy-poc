@@ -21,10 +21,10 @@ def build_agent() -> AgentService:
     tools = ToolService(list(mcp_tools.tools.values()) + [LoadSkillTool(skills)])
 
     # Systemprompten: grundinstruktionen fra settings.py, holdet og kataloget over skills.
-    # Holdet fortæller agenten, hvilke arkitekturregler koden skal tjekkes mod.
+    # Holdet fortæller agenten, hvilken skill der beskriver, hvordan koden skal være bygget.
     system = (
         settings.SYSTEM_PROMPT
-        + f"\nThe code belongs to the {settings.TEAM} team. Check it against that team's rules in the skill architecture-{settings.TEAM}."
+        + f"\nThe code belongs to the {settings.TEAM} team. Check it against how that team codes, in the skill architecture-{settings.TEAM}."
         + "\n\nSkills:\n" + skills.catalog()
     )
 

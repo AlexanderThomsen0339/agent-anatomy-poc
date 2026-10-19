@@ -1,27 +1,30 @@
 ---
 name: architecture-web
-description: The Web team's coding and architecture rules for all its .NET web projects. Use together with code-review when the code belongs to the Web team.
+description: How the Web team builds its .NET web solutions. Use together with code-review when the code belongs to the Web team.
 ---
 
-# The Web team's architecture rules
+# How the Web team codes
 
-DRAFT for the demo. The Web team has not approved these rules yet.
-The rules apply to every project the Web team builds. They name no product, customer or system.
+This is how the Web team builds every solution. It is fixed in advance and does not depend on the project or on any requirements.
+Compare the code you have read with it, and point out where the code does it differently, with a file:line reference.
 
-Check the code you have read against each rule. Only report a rule that is broken, with a file:line reference. Never invent a rule that is not on this list.
+## Three-layer architecture
+The code is split into three layers, and each layer only talks to the layer below it:
+- **Presentation**: controllers, views and front-end scripts. A controller reads the request, calls a service and returns a view or result. No business logic here.
+- **Business**: services with the business logic, such as filtering, sorting and calculations.
+- **Data**: repositories and integrations that read from databases and external systems. Nothing above this layer talks to a database or an external system directly.
 
-## Layers
-- **ARK-WEB-01: Controllers stay thin.** A controller reads the request, calls a service and returns a view or result. Business logic, filtering and sorting belong in a service.
-- **ARK-WEB-02: External systems sit behind an interface.** Calls to external systems (APIs, web services, databases) go through a service or manager interface, never directly from a controller or view.
-- **ARK-WEB-03: Dependencies come through the constructor.** Services are registered in dependency injection and depend on interfaces, not on `new` of concrete classes.
+## Interfaces and dependency injection
+- Every service, repository and integration has an interface, and the other layers depend on the interface, not on the class.
+- Dependencies come in through the constructor and are registered in dependency injection. No `new` of services inside other classes.
 
-## Robustness
-- **ARK-WEB-04: Never return null for a list.** A method that returns a list returns an empty list, so callers don't have to null-check.
-- **ARK-WEB-05: Null-check data from outside.** Data from external systems, the session or the request may be missing. Handle it without a NullReferenceException and log it with `ILogger`.
-- **ARK-WEB-06: async means await.** An `async` method awaits its I/O. An `async` method with no `await` is a bug or should not be async.
-- **ARK-WEB-07: Parse with a culture.** Dates and numbers are parsed with `TryParse` and a `CultureInfo`, never `DateTime.Parse` or `decimal.Parse` alone.
+## Robust code
+- Async all the way: an `async` method awaits its I/O, and nothing blocks on `.Result` or `.Wait()`.
+- Lists are never returned as `null`; an empty list is returned instead.
+- Data from the outside (external systems, session, request) may be missing. It is checked, and errors are logged with `ILogger` instead of throwing at the user.
+- Dates and numbers are parsed with `TryParse` and a `CultureInfo`.
 
-## Readability
-- **ARK-WEB-08: No magic strings.** Session keys, configuration keys and status values are constants or enums, defined in one place.
-- **ARK-WEB-09: Types say what they are.** A yes/no value is a `bool` and a fixed set of values is an enum, not a string such as `"true"`.
-- **ARK-WEB-10: Names are correct English.** Classes, methods and properties are spelled correctly in English. No dead code, such as a variable assigned twice.
+## Clean code
+- No magic strings: keys and fixed values are constants or enums in one place.
+- Types say what they are: a yes/no value is a `bool`, not a string.
+- Names are correct English, and there is no dead or duplicated code.

@@ -53,9 +53,10 @@ CODE_FOLDER = ROOT / "C:\\Users\\n1majt\\source\\repos\\FremsynNordDK"
 # Mappen med skills. Hver skill er en undermappe med en SKILL.md.
 SKILLS_FOLDER = ROOT / "Skills" / "data" / "skills"
 
-# Holdet, der ejer koden i CODE_FOLDER. Agenten tjekker koden mod holdets egne
-# arkitekturregler i skillen architecture-<TEAM>, fx architecture-web.
-# Hvorfor pr. hold? Web og FDAP koder ikke efter de samme retningslinjer, så hvert hold ejer sin egen skill.
+# Holdet, der ejer koden i CODE_FOLDER. Agenten tjekker koden mod, hvordan holdet koder,
+# beskrevet i skillen architecture-<TEAM>, fx architecture-web.
+# Hvorfor pr. hold? Web og FDAP koder ikke efter de samme retningslinjer, så hvert hold har sin egen skill.
+# Skillen er fast og uafhængig af projektet og af kravene i RAG.
 TEAM = "web"
 
 
