@@ -2,6 +2,7 @@
 Kør fra Kodetjek-mappen:
     python -m Agent.api.web
 """
+import hashlib
 import re
 from html import escape
 from pathlib import Path
@@ -33,8 +34,7 @@ pre { white-space: pre-wrap; background: #f4f4f4; padding: 1em; }
 </style></head><body>
 <h1>Code Check</h1>
 <form method="get" action="/">
-<p><label>I am: <select name="role" onchange="if (this.form.q.value.trim()) { this.form.reuse.value = '1'; this.form.submit() }">{roles}</select></label></p>
-<input type="hidden" name="reuse" value="">
+<p><label>I am: <select name="role" onchange="if (this.form.q.value.trim()) this.form.submit()">{roles}</select></label></p>
 <textarea name="q" rows="3" placeholder="Does our code solve US-001?">{question}</textarea>
 <p><button>Check the code</button></p>
 </form>
@@ -118,6 +118,22 @@ def render_assessment(assessment: Assessment) -> str:
     return f'<details class="sources"><summary>Assessment</summary><table>{rows}</table></details>'
 
 
+def fingerprint(steps: list[Step]) -> str:
+    """Et fingeraftryk af den kode og de krav, vurderingen bygger på.
+
+    Hvorfor?
+    AI'en kan vurdere den samme kode forskelligt fra gang til gang. Er koden og kravene uændrede,
+    genbruges vurderingen, så den samme kode altid får det samme svar. Rettes en fil, tjekkes koden igen.
+    """
+    digest = hashlib.sha256()
+    files = sorted({Path(settings.CODE_FOLDER) / s.action.arguments.get("path", "") for s in steps if s.action.tool == "read_code_file"})
+    files += sorted(Path(settings.SPEC_FOLDER).glob("*.md")) + sorted(Path(settings.DATA_FOLDER).glob("*.xlsx"))
+    for file in files:
+        digest.update(str(file).encode())
+        digest.update(file.read_bytes() if file.is_file() else b"missing")
+    return digest.hexdigest()
+
+
 def render_markdown(text: str) -> str:
     """Den lille smule markdown, svaret bruger: fed, kode og punktlister."""
     def inline(line: str) -> str:
@@ -142,7 +158,7 @@ def render_markdown(text: str) -> str:
 def make_handler(agent, writer):
 
     # Hvorfor gemme vurderingen?
-    # Skifter man rolle på samme spørgsmål, skal svaret bygge på den samme vurdering.
+    # Skifter man rolle eller spørger igen om uændret kode, skal svaret bygge på den samme vurdering.
     # Ellers vurderer AI'en koden forfra og kan komme frem til noget andet.
     # Den ligger kun i hukommelsen, så en genstart af serveren laver en ny.
     checked: dict[str, tuple] = {}
@@ -179,12 +195,13 @@ def make_handler(agent, writer):
                 return
 
             try:
-                # Samme spørgsmål med andre store/små bogstaver, mellemrum eller tegnsætning genbruger vurderingen.
-                # Kun når man skifter rolle (reuse=1). Trykker man på knappen, tjekkes koden igen, for den kan være rettet.
+                # Samme spørgsmål med andre store/små bogstaver, mellemrum eller tegnsætning genbruger vurderingen,
+                # så længe koden og kravene er uændrede. Er en fil rettet, tjekkes koden igen.
                 key = " ".join(re.sub(r"[^\w\s-]", " ", question.lower()).split())
-                if query.get("reuse") == ["1"] and key in checked:
-                    run, assessment = checked[key]
-                    self.write('<p class="step">♻️ Using the check already made for this question</p>')
+                cached = checked.get(key)
+                if cached and cached[2] == fingerprint(cached[0].steps):
+                    run, assessment, _ = cached
+                    self.write('<p class="step">♻️ The code and requirements have not changed, so the earlier check is used</p>')
                 else:
                     self.write("<h2>What I am doing</h2>")
                     # 12: AGENTEN KØRER: Fortsæt i Agent/application/agent_service.py.
@@ -193,7 +210,7 @@ def make_handler(agent, writer):
                     run = agent.run(question, on_step=lambda d, s: self.write(render_step(d, s)))
                     assessment = parse_assessment(run.answer) if run.finished else None
                     if assessment:
-                        checked[key] = (run, assessment)
+                        checked[key] = (run, assessment, fingerprint(run.steps))
 
                 if not assessment:
                     # Agenten blev ikke færdig eller skrev ikke en vurdering. Vis det, den skrev.
