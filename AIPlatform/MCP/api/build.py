@@ -10,6 +10,7 @@ from RAG.application.ingest_service import IngestService
 from RAG.infrastructure.chunking.text_chunker import ParagraphChunker
 from RAG.infrastructure.index.keyword_index import KeywordIndex
 from RAG.infrastructure.loaders.markdown_loader import MarkdownLoader
+from RAG.infrastructure.loaders.pdf_loader import PdfLoader
 from RAG.infrastructure.loaders.xlsx_loader import XlsxLoader
 from RAG.infrastructure.loaders.xlsx_table_loader import XlsxTableLoader
 
@@ -41,7 +42,8 @@ def build_ot_service() -> ToolService:
     Ikke alle roller ser OT. Som to sæt kan Agent-laget give hver rolle præcis de værktøjer,
     dens hold har (ROLE_TEAMS), så Vedligehold ikke kan læse kode, og Product ikke kan søge i OT.
     """
-    # OT's dokumenter får deres eget indeks. Hver række i et ark bliver ét afsnit.
+    # OT's dokumenter får deres eget indeks. Hver række i et ark og hver side i en PDF bliver ét afsnit.
     ot_documents = KeywordIndex()
     IngestService(XlsxTableLoader(settings.OT_FOLDER), ParagraphChunker(), ot_documents).run()
+    IngestService(PdfLoader(settings.OT_FOLDER), ParagraphChunker(), ot_documents).run()
     return ToolService([OtDocumentSearchTool(ot_documents, k=settings.OT_SEARCH_K)])

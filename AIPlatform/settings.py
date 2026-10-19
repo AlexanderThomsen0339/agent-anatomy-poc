@@ -39,8 +39,8 @@ DATA_FOLDER = ROOT / "RAG" / "data"
 # Hvert krav har et id som KRAV-REG-03 og en linje "Dækker:" med de user stories og testcases, det hører til.
 SPEC_FOLDER = ROOT / "RAG" / "data" / "kravspec"
 
-# Mappen med OT-holdets dokumenter (.xlsx), som search_ot_documents søger i, fx signallisten for anlægget.
-# Hvert ark læses som en tabel, og hver række bliver ét afsnit.
+# Mappen med OT-holdets dokumenter (.xlsx og .pdf), som search_ot_documents søger i, fx signallisten for anlægget.
+# Hvert ark læses som en tabel, og hver række bliver ét afsnit. Hver side i en PDF bliver ét afsnit.
 # Filerne ignoreres af git, fordi de beskriver et rigtigt anlæg. Læg dem selv i mappen.
 OT_FOLDER = ROOT / "RAG" / "data" / "ot"
 
@@ -127,5 +127,7 @@ OT_PROMPT = (
     "Answer short: what was asked, then the signal or row it comes from with its name in both the old and the new system, "
     "its description, unit and range when they are there. End each point with the document and sheet in brackets.\n"
     "If several rows match, list at most 5 and say which detail would tell them apart.\n"
+    "If the user asks which document contains certain words, or puts words in quotes, search with exact set to true "
+    "and answer with every document and page that contains them, word for word.\n"
     "Never guess: if the documents don't say it, say it is not in OT's documents."
 )

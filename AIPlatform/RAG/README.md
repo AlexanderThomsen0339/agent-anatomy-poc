@@ -12,9 +12,9 @@ RAG doesn't know about the agent or MCP. It is reached only through the `SearchI
 |---|---|---|
 | `domain/` | `Document`, `Chunk`, `SearchResult` and the ports `DocumentLoader`, `Chunker`, `SearchIndex` | The rest of the code depends on these, not on Excel or keyword search. |
 | `application/` | `IngestService.run()`: load, split, index | The steps stay the same whatever the source or index. |
-| `infrastructure/` | `XlsxLoader`, `XlsxTableLoader`, `MarkdownLoader`, `ParagraphChunker`, `KeywordIndex` | Each can be replaced alone: another file format, or vector search instead of keywords. |
+| `infrastructure/` | `XlsxLoader`, `XlsxTableLoader`, `PdfLoader`, `MarkdownLoader`, `ParagraphChunker`, `KeywordIndex` | Each can be replaced alone: another file format, or vector search instead of keywords. |
 | `data/` | The xlsx files with user stories and test cases | What the test team checks. |
-| `data/ot/` | The OT team's documents as xlsx, such as the signal list. `XlsxTableLoader` reads each sheet as a table, one piece per row, into a third index. The files are kept out of git because they describe a real plant | What maintenance looks up. |
+| `data/ot/` | The OT team's documents as xlsx and PDF, such as the signal list. `XlsxTableLoader` reads each sheet as a table, one piece per row, and `PdfLoader` makes one piece per PDF page (`file.pdf › page 3`), into a third index. Scanned PDFs without text can't be read. The files are kept out of git because they describe a real plant | What maintenance looks up. |
 | `data/kravspec/` | One `.md` file per area with the business requirements: an id (KRAV-REG-03), the requirement, why, which user stories and test cases it covers (`Dækker:`), and who owns it | What the business ordered. Without it, the agent can only check the code against the tests, not against what was asked for. |
 
 The search matches whole words, and the requirements are in Danish, so the agent is told to search with ids and Danish words.

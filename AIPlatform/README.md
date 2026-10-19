@@ -37,11 +37,12 @@ Only Regninger has a business requirements spec (`RAG/data/kravspec/Kravspec_Reg
 
 ### OT's documents (Vedligehold and IT)
 
-Choose *Vedligehold* or *IT* in the dropdown to ask about the documents the OT team makes, such as the plant's signal list. Put the xlsx files in `RAG/data/ot/` first; they are kept out of git because they describe a real plant.
+Choose *Vedligehold* or *IT* in the dropdown to ask about the documents the OT team makes, such as the plant's signal list. Put the xlsx and PDF files in `RAG/data/ot/` first; they are kept out of git because they describe a real plant.
 
 - Which signal is Kedel Fyr Nødud in 800xA?
 - What is the range of MKF20AP001A?
 - Which signals are there for kølevandspumpe 2?
+- Which document says "BERAN backup"? (quoted words are matched word for word, and the answer names the file and page)
 
 Which teams a role sees is set in `ROLE_TEAMS` in `settings.py`, and the code gives each role an agent with only those teams' tools; the AI doesn't choose. *Product / communication* sees web (code check), *Vedligehold* sees OT (only `search_ot_documents`, no code), and *IT* sees both, because IT covers both teams. IT's agent decides from the question whether it is a code check or an OT lookup. An OT lookup answers straight away with the signal, its old and new name, description, unit and range, and the *Sources* box lists the sheets it used. There is no assessment and nothing is saved, because there is no code to judge.
 
@@ -463,7 +464,7 @@ Everything is in `settings.py`:
 | `GEMINI_MODEL`, `GEMINI_THINKING` | Which Gemini model thinks, and how much it thinks per step. |
 | `GEMINI_API_KEY` | Read from `local_secrets.py`, or from the `GEMINI_API_KEY` environment variable if that file doesn't exist. |
 | `DATA_FOLDER`, `SPEC_FOLDER` | The xlsx test cases and the kravspec `.md` files that RAG loads. |
-| `OT_FOLDER` | The OT team's xlsx documents. Each sheet is read as a table, one result per row. The files are kept out of git. |
+| `OT_FOLDER` | The OT team's xlsx and PDF documents. Each sheet is read as a table, one result per row, and each PDF page is one result. The files are kept out of git. |
 | `SEARCH_K`, `OT_SEARCH_K` | How many results a search returns. |
 | `CODE_FOLDER` | The code to check. The code tools can't see outside it. |
 | `SKILLS_FOLDER` | The skill folders. |
