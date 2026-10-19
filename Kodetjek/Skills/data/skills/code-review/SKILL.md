@@ -20,14 +20,24 @@ Only judge against the requirements you found and the team's way of coding. Neve
 
 ## Who is asking
 
-The question says who is asking: a developer or a product/communication person. Load the matching skill with `load_skill` before you write the answer, and write it exactly as that skill says:
+The question says who is asking: a developer or a product/communication person. Load the matching skill with `load_skill` after you have judged the requirements (below), and write it exactly as that skill says:
 - `audience-developer` for a developer.
 - `audience-product` for a product owner, communication or other business person.
 If the question does not say, use `audience-product`.
 
-Both answers use the same verdict:
-- **Solved**, **Partly solved** or **Not solved**, then: "X of Y requirements met." Count every KRAV id and acceptance criterion you checked.
-- **Solved** only if all are met. If there are only met and can't-tell, it is **Partly solved**.
+## Judge first, then write
+
+Who is asking only changes how the answer is written, never what you find. A developer and a product person asking about the same code must get the same verdict, the same count and the same missing requirements.
+
+So before you load the audience skill, give every KRAV id and acceptance criterion exactly one status:
+- **Met**: code you have read does what the requirement says.
+- **Not met**: code you have read does it differently, or nothing in the code does it. A format, a sort order, an error message or a log call can be seen in the code, so it is never "can't tell". Formatting is done where the value is shown (the view), so read the view before you decide.
+- **Can't tell**: only when it depends on something outside the code, such as speed, another system or real data.
+
+Then the verdict follows from the statuses, whoever is asking:
+- **Solved**, **Partly solved** or **Not solved**, then: "X of Y requirements met." X is the number of Met, Y is the number of all statuses.
+- **Solved** only if all are Met. **Not solved** if none are Met. Otherwise **Partly solved**.
+- Every Not met id is named under Missing in the answer, so Met + Not met + Can't tell adds up to Y. If there are more than the audience skill allows lines, put several ids on one line; never drop one.
 - If no business requirement was found, add: "The business has not written down requirements for this."
 
 Always answer in English, even though the requirements are in Danish.
