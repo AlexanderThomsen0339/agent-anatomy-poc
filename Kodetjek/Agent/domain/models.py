@@ -106,6 +106,11 @@ class Finding:
     code: str
     where: str
 
+    # Hvorfor et rettelsesforslag i vurderingen?
+    # Udvikleren vil vide, hvad der skal ændres. Står det i vurderingen, kan svaret ikke finde på et andet.
+    # Svaret til produkt bruger det ikke.
+    fix: str = ""
+
 
 @dataclass(frozen=True)
 class Assessment:

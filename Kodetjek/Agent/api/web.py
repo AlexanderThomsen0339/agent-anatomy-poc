@@ -111,7 +111,7 @@ def render_assessment(assessment: Assessment) -> str:
     icons = {"MET": "✅", "NOT_MET": "❌", "CANT_TELL": "❓", "RISK": "⚠️"}
     rows = "".join(
         f"<tr><td>{icons[f.status]}</td><td>{escape(f.ids)}</td><td>{escape(f.requirement)}</td>"
-        f"<td>{escape(f.code)}</td><td><code>{escape(f.where)}</code></td></tr>"
+        f"<td>{escape(f.code)}</td><td><code>{escape(f.where)}</code></td><td>{escape(f.fix)}</td></tr>"
         for f in assessment.findings
     )
     return f'<details class="sources"><summary>Assessment</summary><table>{rows}</table></details>'

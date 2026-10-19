@@ -16,10 +16,10 @@ def parse_assessment(text: str) -> Assessment | None:
     """
     findings = []
     for line in text.splitlines():
-        parts = [p.strip(" `*") for p in line.strip(" -*").split("|")]
+        parts = [p.strip() for p in line.lstrip(" -*`").split("|")]
         if parts and parts[0].upper() in STATUSES:
-            parts += [""] * (5 - len(parts))
-            findings.append(Finding(parts[0].upper(), *parts[1:5]))
+            parts += [""] * (6 - len(parts))
+            findings.append(Finding(parts[0].upper(), *parts[1:6]))
     if not any(f.status != "RISK" for f in findings):
         return None
     return Assessment(findings, no_spec=bool(re.search(r"^\s*NO_SPEC\b", text, re.MULTILINE)))
@@ -36,12 +36,12 @@ class AnswerWriter:
         # 20b: SKRIV SVARET: Gemini får kun vurderingen og rollens skill, ingen værktøjer.
         # Den kan derfor ikke vurdere koden igen, kun skrive om. Dommen sættes på af koden.
         findings = "\n".join(
-            f"{f.status} | {f.ids} | {f.requirement} | {f.code} | {f.where}" for f in assessment.findings
+            f"{f.status} | {f.ids} | {f.requirement} | {f.code} | {f.where} | {f.fix}" for f in assessment.findings
         )
         prompt = (
             f"The question was: {question}\n\n"
             f"The verdict, already written above your text: {assessment.verdict}\n\n"
-            f"The assessment (status | ids | requirement | what the code does | where):\n{findings}"
+            f"The assessment (status | ids | requirement | what the code does | where | how to fix):\n{findings}"
         )
         system = (
             self.instructions_for(role)
