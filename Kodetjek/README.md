@@ -31,7 +31,7 @@ Include the title, because the same US id exists in several sheets.
 - Does our code solve US-002 Ingen regninger tilgængelige?
 - Does our code solve US-002 Opdater telefonnummer?
 
-The page shows each step live, then the verdict: **Solved**, **Partly solved** or **Not solved**, in at most 8 lines of plain English for a non-technical reader: how many requirements are met, only what is missing, and at most two risks from how the code is built (`architecture-web`).
+The page shows each step live, then a folded *Sources* box with the test documents, requirement files and code folder (and its git repo) the agent actually used, then the verdict: **Solved**, **Partly solved** or **Not solved**, in at most 8 lines of plain English for a non-technical reader: how many requirements are met, only what is missing, and at most two risks from how the code is built (`architecture-web`).
 
 Only Regninger has a business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`, an example written for the demo). For Min Profil and Mit Overblik the answer says that no business requirement is documented.
 
@@ -310,7 +310,7 @@ flowchart LR
   A -. "only in build.py" .-> S
 ```
 
-File by file. Only the three `api/build.py` files read `settings.py`; everything else gets its values passed in. `Agent/api/build.py` is the one place where all four layers meet.
+File by file. Only the three `api/build.py` files and `web.py` (for the folder paths in the *Sources* box) read `settings.py`; everything else gets its values passed in. `Agent/api/build.py` is the one place where all four layers meet.
 
 ```mermaid
 flowchart TD
@@ -357,6 +357,7 @@ flowchart TD
 
   web --> abuild
   web --> amodels
+  web --> settings
 
   abuild --> settings
   abuild --> asvc

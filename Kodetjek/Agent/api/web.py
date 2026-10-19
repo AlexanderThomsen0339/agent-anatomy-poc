@@ -4,9 +4,11 @@ Kør fra Kodetjek-mappen:
 """
 import re
 from html import escape
+from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
+import settings
 from Agent.api.build import build_agent
 from Agent.domain.models import Decision, Step
 
@@ -21,6 +23,9 @@ textarea { width: 100%; font: inherit; }
 .error { color: #b00; }
 .answer { border: 1px solid #ddd; border-radius: 8px; padding: .5em 1.2em; margin-top: 1.5em; }
 .answer li { margin: .3em 0; }
+.sources { color: #888; font-size: .8em; margin-top: 1.5em; }
+.sources summary { cursor: pointer; }
+.sources code { word-break: break-all; }
 pre { white-space: pre-wrap; background: #f4f4f4; padding: 1em; }
 </style></head><body>
 <h1>Code Check</h1>
@@ -50,6 +55,51 @@ def render_step(decision: Decision, steps: list[Step]) -> str:
         css = "step error" if o.is_error else "step"
         html += f'<div class="{css}">{escape(label)}{" (failed)" if o.is_error else ""}</div>'
     return html
+
+
+def code_repo(folder: Path) -> str:
+    """Repoets adresse fra .git/config i kodemappen, hvis der er en."""
+    config = folder / ".git" / "config"
+    if config.exists():
+        match = re.search(r"url\s*=\s*(\S+)", config.read_text(encoding="utf-8", errors="ignore"))
+        if match:
+            return match.group(1)
+    return ""
+
+
+def render_sources(steps: list[Step]) -> str:
+    """En lille, lukket boks med de dokumenter og den kode, agenten faktisk har brugt."""
+    # Hvorfor ud fra skridtene og ikke fra svaret?
+    # Skridtene er det, værktøjerne faktisk returnerede. Svaret er skrevet af AI'en og kan tage fejl.
+    test_files, spec_files, code_files = set(), set(), []
+    for step in steps:
+        a, o = step.action, step.observation
+        if o.is_error:
+            continue
+        # Hvert søgeresultat starter med [fil › ark] eller [fil].
+        sources = {s.split(" › ")[0] for s in re.findall(r"^\[(.+?)\]", o.content, re.MULTILINE)}
+        if a.tool == "search_requirements":
+            test_files |= sources
+        elif a.tool == "search_specification":
+            spec_files |= sources
+        elif a.tool == "read_code_file" and a.arguments.get("path") not in code_files:
+            code_files.append(a.arguments.get("path", ""))
+
+    def rows(label: str, folder: Path, files) -> str:
+        items = "".join(f"<li><code>{escape(str(folder / f))}</code></li>" for f in sorted(files))
+        return f"<p>{label}</p><ul>{items}</ul>" if items else ""
+
+    repo = code_repo(Path(settings.CODE_FOLDER))
+    code = f"<p>Code: <code>{escape(str(settings.CODE_FOLDER))}</code>"
+    code += f" (repo <code>{escape(repo)}</code>)</p>" if repo else "</p>"
+    return (
+        '<details class="sources"><summary>Sources</summary>'
+        + rows("Test cases:", Path(settings.DATA_FOLDER), test_files)
+        + rows("Business requirements:", Path(settings.SPEC_FOLDER), spec_files)
+        + code
+        + "".join(f"<li><code>{escape(f)}</code></li>" for f in code_files).join(("<ul>", "</ul>"))
+        + "</details>"
+    )
 
 
 def render_markdown(text: str) -> str:
@@ -104,8 +154,9 @@ def make_handler(agent):
                 run = agent.run(question, on_step=lambda d, s: self.write(render_step(d, s)))
 
                 # 20: OUTPUT: Svaret laves om fra markdown til HTML og sendes. Siden er færdig. SLUT.
+                # Kilderne står øverst i en lukket boks, så de ikke fylder, men kan foldes ud.
                 title = "" if run.finished else "<h2>Not finished</h2>"
-                self.write(f'{title}<div class="answer">{render_markdown(run.answer)}</div>')
+                self.write(f'{title}{render_sources(run.steps)}<div class="answer">{render_markdown(run.answer)}</div>')
             except Exception as e:
                 # Fejlen vises på siden, så demoen ikke bare hænger.
                 self.write(f'<h2 class="error">Error</h2><pre>{escape(repr(e))}</pre>')
