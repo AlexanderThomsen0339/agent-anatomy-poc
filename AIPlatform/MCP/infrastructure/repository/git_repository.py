@@ -7,7 +7,6 @@ virker de uændret, og git ls-files ved stadig, hvad der er kode.
 import base64
 import os
 import subprocess
-import threading
 from pathlib import Path
 
 
@@ -18,21 +17,22 @@ class GitRepository:
         self.url = url
         self.folder = Path(folder)
         self.token = token
-        # Kun én git-kommando ad gangen i kopien, også ved start.
-        self.lock = threading.Lock()
 
     def sync(self, branch: str = "") -> str:
-        """Gør kopien lig med branchen (tom betyder repoets standardbranch). Returnerer den commit, koden står på."""
-        with self.lock:
-            if not (self.folder / ".git").is_dir():
-                self.folder.parent.mkdir(parents=True, exist_ok=True)
-                self._git("clone", self.url, str(self.folder), cwd=None)
-            # Hvorfor fetch og reset i stedet for checkout og pull?
-            # Mappen er kun en kopi. Reset gør den altid lig med branchen i repoet, også hvis nogen har force-pushet,
-            # og der skal ikke holdes styr på lokale branches.
-            self._git("fetch", "origin", branch or "HEAD")
-            self._git("reset", "--hard", "FETCH_HEAD")
-            return self._git("rev-parse", "--short", "HEAD").strip()
+        """Gør kopien lig med branchen (tom betyder repoets standardbranch). Returnerer den commit, koden står på.
+
+        Kaldes ved start, før siden tager imod spørgsmål, og derefter kun med CheckoutService' lås,
+        så to spørgsmål ikke ændrer kopien på samme tid.
+        """
+        if not (self.folder / ".git").is_dir():
+            self.folder.parent.mkdir(parents=True, exist_ok=True)
+            self._git("clone", self.url, str(self.folder), cwd=None)
+        # Hvorfor fetch og reset i stedet for checkout og pull?
+        # Mappen er kun en kopi. Reset gør den altid lig med branchen i repoet, også hvis nogen har force-pushet,
+        # og der skal ikke holdes styr på lokale branches.
+        self._git("fetch", "origin", branch or "HEAD")
+        self._git("reset", "--hard", "FETCH_HEAD")
+        return self._git("rev-parse", "--short", "HEAD").strip()
 
     def _git(self, *args: str, cwd: Path | None | str = "") -> str:
         env = dict(os.environ, GIT_TERMINAL_PROMPT="0")

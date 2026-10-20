@@ -33,10 +33,6 @@ class Chunk:
     source: str
     text: str
 
-    # Hvorfor position?
-    # Så man kan se, hvor i dokumentet afsnittet stod, og senere hente naboafsnit.
-    position: int
-
 
 @dataclass(frozen=True)
 class SearchResult:

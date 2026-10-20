@@ -12,7 +12,7 @@ from urllib.parse import parse_qs, urlparse
 import settings
 from Agent.api.build import build_agents, build_writer
 from Agent.application.answer_writer import parse_assessment
-from Agent.domain.models import Assessment, Decision, Step
+from Agent.domain.models import Assessment, Step
 from MCP.api.build import build_checkout_service
 from MCP.domain.models import Checkout
 
@@ -104,7 +104,7 @@ def page_text(teams: list[str]) -> tuple[str, str, str]:
     return heading, placeholder, button
 
 
-def render_step(decision: Decision, steps: list[Step]) -> str:
+def render_step(steps: list[Step]) -> str:
     """Ét skridt som én kort linje pr. handling, i et sprog brugeren forstår."""
     html = ""
     for step in steps:
@@ -317,7 +317,7 @@ def make_handler(agents, writer, checkouts):
                     # 12: AGENTEN KØRER: Fortsæt i Agent/application/agent_service.py.
                     # 18: VIS SKRIDT: on_step kaldes efter hvert skridt, og render_step() sender det til browseren med det samme.
                     # Agenten får ikke rollen. Vurderingen skal være den samme, uanset hvem der spørger.
-                    run = agent.run(question, on_step=lambda d, s: self.write(render_step(d, s)))
+                    run = agent.run(question, on_step=lambda s: self.write(render_step(s)))
                     assessment = parse_assessment(run.answer) if run.finished and checks_code else None
                     if assessment:
                         checked[key] = (run, assessment, fingerprint(run.steps))

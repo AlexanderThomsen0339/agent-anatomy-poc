@@ -14,5 +14,5 @@ class ParagraphChunker:
             if not text or text.startswith("#"):
                 continue
 
-            chunks.append(Chunk(source=document.source, text=text, position=len(chunks)))
+            chunks.append(Chunk(source=document.source, text=text))
         return chunks

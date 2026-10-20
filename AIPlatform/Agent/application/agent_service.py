@@ -1,7 +1,7 @@
 """AgentService: løkken, der lader hjernen tænke og hænderne handle."""
 from typing import Callable
 
-from Agent.domain.models import AgentRun, Decision, History, Observation, Step
+from Agent.domain.models import AgentRun, History, Observation, Step
 from Agent.domain.ports import AgentBrain
 from MCP.application.tool_service import ToolService
 from MCP.domain.models import ToolCall
@@ -16,7 +16,7 @@ class AgentService:
         self.system = system
         self.max_steps = max_steps
 
-    def run(self, question: str, on_step: Callable[[Decision, list[Step]], None] | None = None) -> AgentRun:
+    def run(self, question: str, on_step: Callable[[list[Step]], None] | None = None) -> AgentRun:
         """Løs opgaven. on_step kaldes efter hvert skridt, så man kan følge med."""
         # 12: AGENTEN KØRER: En løkke, der gentages, indtil Gemini har et svar (højst MAX_STEPS gange).
         history: History = []
@@ -47,7 +47,7 @@ class AgentService:
             steps.extend(new_steps)
             # 18: VIS SKRIDT: Fortæl web-siden, hvad der lige skete. Derefter tilbage til trin 13.
             if on_step:
-                on_step(decision, new_steps)
+                on_step(new_steps)
 
         # Grænsen for antal skridt beskytter mod en agent, der kører i ring.
         return AgentRun("I did not finish within the step limit.", steps, finished=False)
