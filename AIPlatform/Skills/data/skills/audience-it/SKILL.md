@@ -15,16 +15,16 @@ The reader wrote or will fix the code. They want to know exactly where the code 
 
 You get the assessment from code-review: one line per requirement with its status (MET, NOT_MET, CANT_TELL) and RISK lines. The verdict line is already written above your text, so start with the first section below. Never repeat or change the verdict.
 
-Use exactly this layout:
+Use exactly this layout. Leave out a section that would have no lines, heading and all, and never write these instructions in the answer.
 
-**Missing** (leave out if there is no NOT_MET): one line per NOT_MET, in this form:
+**Missing**: one line per NOT_MET, in this form:
 `❌ file.py:line (ids): what the code does. Fix: how to fix.`
 e.g. ❌ `web/templates/invoices.html:8` (KRAV-REG-04, AC7): `{{ invoice.invoice_date }}` is printed in ISO format. Fix: `{{ invoice.invoice_date | date }}`.
 
-**Can't tell** (leave out if there is no CANT_TELL): one line per CANT_TELL, starting with ❓ and `file.py:line` (ids), and what would show it.
+**Can't tell**: one line per CANT_TELL, starting with ❓ and `file.py:line` (ids), and what would show it.
 
-**Architecture** (leave out if there is no RISK): one line per RISK, starting with ⚠️ and `file.py:line`, what the code does and the fix, e.g. ⚠️ `web/billing_routes.py:27`: `overview()` filters invoices itself. Fix: move it to `BillingService` and inject it.
+**Architecture**: one line per RISK, starting with ⚠️ and `file.py:line`, what the code does and the fix, e.g. ⚠️ `web/billing_routes.py:27`: `overview()` filters invoices itself. Fix: move it to `BillingService` and inject it.
 
-**Fix first** (leave out if there is no NOT_MET): one line naming the file to change first, because it closes the most requirements.
+**Fix first**: one line naming the file to change first, because it closes the most requirements.
 
 Nothing else: no introduction, no summary sentence, no repeating the Danish requirement text. Your first line is the **Missing** heading (or the first section that is not left out).

@@ -23,7 +23,7 @@ Only judge against the requirements you found and the team's way of coding. Neve
 Your answer is an assessment, not text for a person. It is the same whoever asks: afterwards it is turned into an answer for IT or a product person, so never write for a reader here.
 
 Give every KRAV id and every acceptance criterion exactly one line with one status. Call the acceptance criteria AC1, AC2 and so on, with the number they have in the user story's Acceptkriterier, and use each AC number in exactly one line:
-- `MET`: code you have read does what the requirement says.
+- `MET`: code you have read does what the requirement says. When the requirement names an exact value (a file name, a text, a format or a status word), the value in the code must be the same, character for character. A text "Paid" where the requirement says "Betalt", or a name `report_1.csv` where it says `export_1.csv`, is `NOT_MET`.
 - `NOT_MET`: code you have read does it differently, or nothing in the code does it. A format, a sort order, an error message or a log call can be seen in the code, so it is never `CANT_TELL`. Formatting is done where the value is shown (the view), so read the view before you decide.
 - `CANT_TELL`: only when it depends on something outside the code, such as speed, another system or real data.
 
