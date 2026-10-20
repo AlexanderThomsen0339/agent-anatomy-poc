@@ -53,9 +53,28 @@ SEARCH_K = 3
 # fordi et spørgsmål som "kølevandspumpe 2" ofte rammer flere signaler på samme pumpe.
 OT_SEARCH_K = 5
 
-# Mappen med udviklerens kode, som list_code_files og read_code_file må læse i.
-# Peg den på den kode, der skal tjekkes. Værktøjerne kan ikke se uden for mappen.
-CODE_FOLDER = ROOT / "C:\\Users\\n1majt\\source\\repos\\FremsynNordDK"
+# Repoet med udviklerens kode, som list_code_files og read_code_file læser i.
+# POC'en kloner det ved start og henter det nyeste før hvert kodetjek, så en udvikler kan pushe og straks spørge.
+# Sæt CODE_REPO til "" for i stedet at læse en mappe på computeren direkte (CODE_FOLDER herunder).
+CODE_REPO = "https://dev.azure.com/AF-IT/_git/AI%20platform%20POC"
+
+# Branchen, der tjekkes, når ingen åben PR passer til spørgsmålet.
+# IT's regel for git: feature-branch → PR ind i dev → dev ind i main. Har spørgsmålets user story (fx US-005)
+# en åben PR ind i CODE_BRANCH, tjekkes PR'ens branch i stedet. PR'en passer, hvis id'et står i titlen eller branch-navnet.
+CODE_BRANCH = "dev"
+
+# Repoet er privat, så git skal have en Personal Access Token fra Azure DevOps med læseadgang til Code.
+# Skriv den i local_secrets.py ligesom Gemini-nøglen:
+#     AZURE_DEVOPS_PAT = "your-token"
+# Findes den ikke dér, læses den fra miljøvariablen AZURE_DEVOPS_PAT.
+try:
+    from local_secrets import AZURE_DEVOPS_PAT
+except ImportError:
+    AZURE_DEVOPS_PAT = os.environ.get("AZURE_DEVOPS_PAT", "")
+
+# Mappen, værktøjerne læser koden fra. De kan ikke se uden for den.
+# Med CODE_REPO er det POC'ens egen kopi af repoet (ignoreres af git). Uden er det din egen mappe med koden.
+CODE_FOLDER = ROOT / "repos" / "code"
 
 
 # 4. Skills
@@ -65,7 +84,7 @@ SKILLS_FOLDER = ROOT / "Skills" / "data" / "skills"
 # IT's hold, og hvad hvert hold laver. Agenterne får beskrivelsen, så de ved, hvis kode eller dokumenter de ser på.
 # Hvorfor her? IT har flere hold, og hver rolle ser ét eller flere af dem (ROLE_TEAMS herunder).
 TEAMS = {
-    "web": "builds Mit Aalborg Forsyning (Umbraco). Its code is checked against the user stories, test cases and kravspec.",
+    "web": "builds Mit Aalborg Forsyning in Python (Flask). Its code is checked against the user stories, test cases and kravspec.",
     "ot": "runs the plant's control systems (OT) and makes their documents, such as the signal list.",
 }
 

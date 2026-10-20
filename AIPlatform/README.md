@@ -12,10 +12,11 @@ Python 3.10+. Run everything from the `AIPlatform/` folder.
 pip install -r requirements.txt
 ```
 
-1. Set `CODE_FOLDER` in `settings.py` to the code to check.
-2. Put a Gemini key from Google AI Studio in `local_secrets.py` (ignored by git):
+1. The code to check comes from the Azure DevOps repo in `CODE_REPO` in `settings.py`. The page clones it into `repos/code` when it starts. Before every code check it picks the branch and fetches the latest, so a developer can push and ask straight away: if an open pull request into `dev` has the question's user story id (e.g. US-005) in its title or branch name, its branch is checked, otherwise `dev`. The first step on the page says which branch and pull request it checks. You need git installed. Set `CODE_REPO = ""` to read a folder on your computer instead (`CODE_FOLDER`).
+2. Put a Gemini key from Google AI Studio and an Azure DevOps Personal Access Token with read access to Code in `local_secrets.py` (ignored by git):
    ```python
    GEMINI_API_KEY = "your-key"
+   AZURE_DEVOPS_PAT = "your-token"
    ```
 3. Start the page:
    ```bash
@@ -25,15 +26,16 @@ pip install -r requirements.txt
 
 ## Questions to ask
 
-Include the title, because the same US id exists in several sheets.
+The code is the demo project *Mit Aalborg Forsyning – Regninger* (Python, Flask) in the Azure DevOps repo. It has deliberate gaps, so not every answer is green.
 
 - Does our code solve US-005 Download faktura?
-- Does our code solve US-002 Ingen regninger tilgængelige?
-- Does our code solve US-002 Opdater telefonnummer?
+- Does our code solve US-004 Vis betalingsstatus?
+- Does our code solve US-003 Regninger er ikke længere tilgængelige?
+- Does our code solve US-001 Vis regningsoversigt?
 
 The page shows each step live, then a folded *Sources* box with the test documents, requirement files and code folder (and its git repo) the agent actually used, then a folded *Assessment* box with every requirement's status, then the answer. The agent assesses the code once per question, the same whoever asks: one line per requirement (met, not met, can't tell) plus risks. The verdict (**Solved**, **Partly solved** or **Not solved**, "X of Y requirements met") is counted from that list by the code, not written by the AI. A dropdown above the question says who is asking, and the answer is written from the assessment for that role; switching role on the same question reuses the assessment. *Product / communication* gets at most 8 lines of plain English: how many requirements are met, only what is missing, and at most two risks from how the code is built (`architecture-web`). *IT* gets a technical answer with file:line, what can't be told from the code, architecture deviations and what to fix first.
 
-Only Regninger has a business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`, an example written for the demo). For Min Profil and Mit Overblik the answer says that no business requirement is documented.
+The test cases (`RAG/data/Mit Aalborg Forsyning_Regninger_Testcases.xlsx`) and the business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`) are examples written for the demo project.
 
 ### OT's documents (Vedligehold and IT)
 
@@ -64,13 +66,13 @@ Each step is marked in the code with a comment like `# 13: TÆNK`. Search for `#
 | 7 | Split into user stories and test cases | `RAG/infrastructure/chunking/text_chunker.py` · `split()` | RAG splits the text so a search returns one user story, not a whole workbook. |
 | 8 | Store in the search index | `RAG/infrastructure/index/keyword_index.py` · `add()` | RAG keeps the index. The rest of the code only knows the `SearchIndex` port, so keyword search could become vector search. |
 | 9 | Assemble tools, system prompt and Gemini | `Agent/api/build.py` · `build_agent()` inside `build_agents()` | For a role that sees web, the Agent layer joins the MCP code-check tools, the skill tool and the brain; the system prompt names the team (`TEAM`) and lists the skills, except the `audience-` skills: the role must not affect the assessment. For a role that sees OT, it adds `search_ot_documents` and `OT_PROMPT`. A role that sees both gets both, and is told to decide from the question which one it is. |
-| 10 | Wait for a question | `Agent/api/web.py` · `main()` | The Agent layer serves the page, so the agent is built once and reused for every question. |
+| 10 | Wait for a question | `Agent/api/web.py` · `main()` | The Agent layer serves the page, so the agent is built once and reused for every question. Before that, `build_checkout_service()` in `MCP/api/build.py` clones `CODE_REPO` into `CODE_FOLDER` (or fetches the latest), because the code tools read a folder. |
 
 **For each question**
 
 | # | Step | Where | Why |
 |---|---|---|---|
-| 11 | Question arrives | `Agent/api/web.py` · `do_GET()` | The question and the role from the dropdown go to the Agent layer, because only the agent decides what to do. If the same question was checked before and `fingerprint()` shows that the code files read and the requirement files are unchanged, the saved assessment is reused and steps 12–19 are skipped. |
+| 11 | Question arrives | `Agent/api/web.py` · `do_GET()` | The question and the role from the dropdown go to the Agent layer, because only the agent decides what to do. For a code check, `CheckoutService.checkout()` in `MCP/application/checkout_service.py` first picks the branch (an open pull request into `dev` whose title or branch has the question's user story id, otherwise `dev`) and fetches it, so a push is checked straight away. One code check runs at a time, because there is one copy of the repo. If the same question was checked before and `fingerprint()` shows that the code files read and the requirement files are unchanged, the saved assessment is reused and steps 12–19 are skipped. |
 | 12 | Agent loop starts | `Agent/application/agent_service.py` · `run()` | The Agent layer runs the loop. It knows the steps (think, act, observe) but not which model or tools. The agent is not told the role, so the assessment is the same whoever asks. |
 | 13 | Gemini thinks | `Agent/infrastructure/brains/gemini_brain.py` · `decide()` | The Agent layer's brain adapter talks to Gemini. Only this file knows the Gemini SDK. |
 | 14 | Done? If yes, go to 19 | `agent_service.py` | The Agent layer checks for an answer, since Gemini signals "done" by asking for no tools. |
@@ -466,7 +468,9 @@ Everything is in `settings.py`:
 | `DATA_FOLDER`, `SPEC_FOLDER` | The xlsx test cases and the kravspec `.md` files that RAG loads. |
 | `OT_FOLDER` | The OT team's xlsx and PDF documents. Each sheet is read as a table, one result per row, and each PDF page is one result. The files are kept out of git. |
 | `SEARCH_K`, `OT_SEARCH_K` | How many results a search returns. |
-| `CODE_FOLDER` | The code to check. The code tools can't see outside it. |
+| `CODE_REPO`, `CODE_BRANCH` | The git repo with the code to check, and the branch to check when no open pull request into it matches the question (`dev`, following IT's feature branch → `dev` → `main` rule). It is cloned at start and fetched again before every code check. Empty `CODE_REPO` reads `CODE_FOLDER` as it is. |
+| `AZURE_DEVOPS_PAT` | The token git and the pull request search use to read `CODE_REPO`. Read from `local_secrets.py`, or from the `AZURE_DEVOPS_PAT` environment variable. It is sent as a header to git and never stored in the clone. |
+| `CODE_FOLDER` | Where the code tools read the code: the clone of `CODE_REPO` (`repos/code`, ignored by git), or your own folder. The code tools can't see outside it. |
 | `SKILLS_FOLDER` | The skill folders. |
 | `TEAMS` | IT's teams and what each one does: web builds Mit Aalborg Forsyning, OT runs the plant's control systems and makes their documents. The agents get the description. |
 | `TEAM` | The team whose code is checked, and so which `architecture-<team>` skill it is checked against. |

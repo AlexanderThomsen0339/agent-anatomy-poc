@@ -13,6 +13,8 @@ import settings
 from Agent.api.build import build_agents, build_writer
 from Agent.application.answer_writer import parse_assessment
 from Agent.domain.models import Assessment, Decision, Step
+from MCP.api.build import build_checkout_service
+from MCP.domain.models import Checkout
 
 PORT = 8000
 
@@ -55,6 +57,7 @@ button:hover { background: var(--accent-dark); }
 h2 { color: var(--heading); font-size: 1.15em; margin: 1.6em 0 .6em; }
 .step { color: var(--muted); margin: .25em 0; padding: .2em .7em; border-left: 3px solid var(--secondary); background: var(--highlight); border-radius: 0 4px 4px 0; }
 .error { color: var(--error); border-left-color: var(--error); }
+.step a, .sources a { color: var(--heading); }
 .answer { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--edge); border-radius: 8px; padding: .6em 1.4em; }
 .answer li { margin: .35em 0; }
 .answer code, .sources code { background: var(--code-bg); border-radius: 4px; padding: .05em .35em; font-size: .9em; }
@@ -122,7 +125,19 @@ def code_repo(folder: Path) -> str:
     return ""
 
 
-def render_sources(steps: list[Step]) -> str:
+def render_checkout(checkout: Checkout) -> str:
+    """Skridtet, der siger, hvilken branch agenten ser, og hvorfor."""
+    html = f'<p class="step error">🔀 {escape(checkout.note)}</p>' if checkout.note else ""
+    pr = checkout.pull_request
+    if pr:
+        return html + (
+            f'<p class="step">🔀 Checking pull request <a href="{escape(pr.url)}">{pr.id} "{escape(pr.title)}"</a> '
+            f'(<code>{escape(pr.branch)}</code> → {escape(settings.CODE_BRANCH)}), commit {escape(checkout.commit)}</p>'
+        )
+    return html + f'<p class="step">🔀 No open pull request matches the question, so checking <code>{escape(checkout.branch)}</code> (commit {escape(checkout.commit)})</p>'
+
+
+def render_sources(steps: list[Step], checkout: Checkout | None = None) -> str:
     """En lille, lukket boks med de dokumenter og den kode, agenten faktisk har brugt."""
     # Hvorfor ud fra skridtene og ikke fra svaret?
     # Skridtene er det, værktøjerne faktisk returnerede. Svaret er skrevet af AI'en og kan tage fejl.
@@ -146,7 +161,13 @@ def render_sources(steps: list[Step]) -> str:
 
     repo = code_repo(Path(settings.CODE_FOLDER))
     code = f"<p>Code: <code>{escape(str(settings.CODE_FOLDER))}</code>"
-    code += f" (repo <code>{escape(repo)}</code>)</p>" if repo else "</p>"
+    code += f" (repo <code>{escape(repo)}</code>)" if repo else ""
+    if checkout:
+        # Hvilken branch og commit koden kom fra, og PR'en, hvis det var en PR's branch.
+        code += f", branch <code>{escape(checkout.branch)}</code> at commit <code>{escape(checkout.commit)}</code>"
+        if checkout.pull_request:
+            code += f', from <a href="{escape(checkout.pull_request.url)}">pull request {checkout.pull_request.id}</a>'
+    code += "</p>"
     return (
         '<details class="sources"><summary>Sources</summary>'
         + rows("Test cases:", Path(settings.DATA_FOLDER), test_files)
@@ -218,7 +239,7 @@ def render_markdown(text: str) -> str:
     return html + ("</ul>" if in_list else "")
 
 
-def make_handler(agents, writer):
+def make_handler(agents, writer, checkouts):
 
     # Hvorfor gemme vurderingen?
     # Skifter man rolle eller spørger igen om uændret kode, skal svaret bygge på den samme vurdering.
@@ -267,7 +288,22 @@ def make_handler(agents, writer):
                 self.write("</main></body></html>")
                 return
 
+            # Et kodetjek holder låsen, til svaret er skrevet, så et andet spørgsmål ikke skifter branch imens.
+            holds_code = checks_code and checkouts is not None
+            if holds_code:
+                checkouts.lock.acquire()
+            checkout = None
             try:
+                if holds_code:
+                    # Vælg branch (en PR, der passer til spørgsmålet, ellers dev) og hent det nyeste, så en udvikler kan pushe og straks spørge.
+                    # Det sker før fingeraftrykket herunder, så en anden branch eller en ændret fil giver et nyt tjek.
+                    # Fortsæt i MCP/application/checkout_service.py.
+                    try:
+                        checkout = checkouts.checkout(question)
+                        self.write(render_checkout(checkout))
+                    except RuntimeError as e:
+                        self.write(f'<p class="step error">🔀 Could not fetch the code, so the last copy is used: {escape(str(e))}</p>')
+
                 # Samme spørgsmål med andre store/små bogstaver, mellemrum eller tegnsætning genbruger vurderingen,
                 # så længe koden og kravene er uændrede. Er en fil rettet, tjekkes koden igen.
                 key = " ".join(re.sub(r"[^\w\s-]", " ", question.lower()).split())
@@ -296,7 +332,7 @@ def make_handler(agents, writer):
                     )
                 elif not assessment:
                     # Agenten blev ikke færdig eller skrev ikke en vurdering. Vis det, den skrev.
-                    self.write(f'<h2>Not finished</h2>{render_sources(run.steps)}<div class="answer">{render_markdown(run.answer)}</div>')
+                    self.write(f'<h2>Not finished</h2>{render_sources(run.steps, checkout)}<div class="answer">{render_markdown(run.answer)}</div>')
                 else:
                     # 20: OUTPUT: Vurderingen skrives om til et svar til rollen, laves om fra markdown til HTML og sendes. SLUT.
                     # Kilderne og vurderingen står øverst i lukkede bokse, så de ikke fylder, men kan foldes ud.
@@ -305,13 +341,16 @@ def make_handler(agents, writer):
                     # Overskriften siger, hvem svaret er til. Skifter man rolle i dropdownen, hentes svaret til den anden rolle
                     # med det samme, og vurderingen genbruges.
                     self.write(
-                        render_sources(run.steps) + render_assessment(assessment)
+                        render_sources(run.steps, checkout) + render_assessment(assessment)
                         + f'<h2>Answer for {escape(settings.ROLES[role])}</h2>'
                         + f'<div class="answer">{render_markdown(answer)}</div>'
                     )
             except Exception as e:
                 # Fejlen vises på siden, så demoen ikke bare hænger.
                 self.write(f'<h2 class="error">Error</h2><pre>{escape(repr(e))}</pre>')
+            finally:
+                if holds_code:
+                    checkouts.lock.release()
             self.write("</main></body></html>")
 
         def write(self, html: str) -> None:
@@ -326,10 +365,12 @@ def main():
     # Agenten bygges én gang, så xlsx-filerne kun indlæses ved start. Fortsæt i Agent/api/build.py.
     agents = build_agents()
     writer = build_writer()
+    # Branch-valget og repoet med koden, hvis den hentes fra et repo (CODE_REPO). Fortsæt i MCP/api/build.py.
+    checkouts = build_checkout_service()
 
     # 10: VENT: Serveren er klar og venter på, at nogen stiller et spørgsmål på siden.
     # Hvert spørgsmål lander i Handler.do_GET() herover.
-    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agents, writer))
+    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agents, writer, checkouts))
     print(f"AI Platform POC is running on http://localhost:{PORT} (Ctrl+C to stop)")
     server.serve_forever()
 

@@ -1,2 +1,5 @@
 # Nøglen til Gemini. Må aldrig committes.
 local_secrets.py
+
+# Kopien af kodens repo (CODE_REPO). POC'en kloner den selv.
+repos/

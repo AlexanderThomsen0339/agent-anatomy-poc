@@ -12,8 +12,8 @@ class RequirementsSearchTool:
     spec = ToolSpec(
         name="search_requirements",
         description=(
-            "Searches user stories, acceptance criteria and test cases for Mit Aalborg Forsyning "
-            "(Mit Overblik, Regninger and Min Profil). The data is in Danish: use ids like US-002 and TC-011, "
+            "Searches user stories, acceptance criteria and test cases for Mit Aalborg Forsyning's Regninger page. "
+            "The data is in Danish: use ids like US-002 and TC-016, "
             "or short Danish keywords."
         ),
         input_schema={

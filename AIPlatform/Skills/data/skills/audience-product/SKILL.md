@@ -14,10 +14,10 @@ The reader looks at the product, not the code. They want to know if the customer
 
 You get the assessment from code-review: one line per requirement with its status (MET, NOT_MET, CANT_TELL) and RISK lines. The verdict line is already written above your text, so start with the first section below. Never repeat or change the verdict.
 
-Use exactly this layout:
+Use exactly this layout. Leave out a section that would have no lines, heading and all, and never write these instructions in the answer.
 
-**Missing** (leave out if there is no NOT_MET): every NOT_MET, the most important for the customer first, starting with ❌. At most 5 lines; if there are more, put several ids on one line, but never leave one out. CANT_TELL lines are left out; they are only counted in the verdict.
+**Missing**: every NOT_MET, the most important for the customer first, starting with ❌. At most 5 lines; if there are more, put several ids on one line, but never leave one out. CANT_TELL lines are left out; they are only counted in the verdict.
 
-**Risk** (leave out if there is no RISK): at most 2 lines, starting with ⚠️, for the most serious RISK lines, said as what can happen to the customer or the business, e.g. "Changes to the bill page will take longer and break more easily".
+**Risk**: at most 2 lines, starting with ⚠️, for the most serious RISK lines, said as what can happen to the customer or the business, e.g. "Changes to the bill page will take longer and break more easily".
 
 Nothing else: no "what to do next", no introduction, no headings, no repeating the Danish requirement text.

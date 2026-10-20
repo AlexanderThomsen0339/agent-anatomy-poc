@@ -1,6 +1,9 @@
 """Samler MCP-laget: vælger hvilke værktøjer der sættes i."""
 import settings
+from MCP.application.checkout_service import CheckoutService
 from MCP.application.tool_service import ToolService
+from MCP.infrastructure.repository.azure_pull_requests import AzurePullRequestFinder
+from MCP.infrastructure.repository.git_repository import GitRepository
 from MCP.infrastructure.tools.code_list_tool import CodeListTool
 from MCP.infrastructure.tools.code_read_tool import CodeReadTool
 from MCP.infrastructure.tools.ot_document_search_tool import OtDocumentSearchTool
@@ -33,6 +36,23 @@ def build_service() -> ToolService:
         CodeReadTool(settings.CODE_FOLDER),
     ]
     return ToolService(tools)
+
+
+def build_checkout_service() -> CheckoutService | None:
+    """Vælger branch pr. spørgsmål, eller None, hvis CODE_FOLDER er en mappe på computeren (CODE_REPO er tom)."""
+    if not settings.CODE_REPO:
+        return None
+    repository = GitRepository(settings.CODE_REPO, settings.CODE_FOLDER, settings.AZURE_DEVOPS_PAT)
+    # PR'er findes kun i Azure DevOps' API. Et andet repo tjekker altid CODE_BRANCH.
+    finder = None
+    if "dev.azure.com" in settings.CODE_REPO:
+        finder = AzurePullRequestFinder(settings.CODE_REPO, settings.AZURE_DEVOPS_PAT, settings.CODE_BRANCH)
+    # Klon eller hent det nyeste ved start. Går det galt, starter siden alligevel, og fejlen vises igen ved første kodetjek.
+    try:
+        print(f"Code: {settings.CODE_REPO}, {settings.CODE_BRANCH} at commit {repository.sync(settings.CODE_BRANCH)} in {settings.CODE_FOLDER}")
+    except RuntimeError as e:
+        print(f"Code: could not fetch {settings.CODE_REPO}: {e}")
+    return CheckoutService(repository, finder, settings.CODE_BRANCH)
 
 
 def build_ot_service() -> ToolService:
