@@ -251,7 +251,6 @@ namespace RAG {
   class Chunk {
     +source: str
     +text: str
-    +position: int
   }
   class SearchResult {
     +chunk: Chunk

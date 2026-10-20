@@ -38,7 +38,6 @@ class SpecificationSearchTool:
     def run(self, arguments: dict) -> str:
         # 16e: SØG I KRAVSPEC: Søger i kravspec-indekset fra trin 8.
         query = arguments["query"]
-        results = self.index.search(query, self.k)
 
         # Hvorfor et filter på user story-id?
         # Ordsøgning finder "US" i alle krav, så US-099 ville give krav, der intet har med den at gøre.
@@ -46,6 +45,8 @@ class SpecificationSearchTool:
         story_ids = {s.upper() for s in re.findall(r"\bUS-\d+\b", query, re.IGNORECASE)}
         if story_ids:
             results = [r for r in self.index.search(query, k=1000) if story_ids & covered_stories(r.chunk.text)]
+        else:
+            results = self.index.search(query, self.k)
 
         if not results:
             return "No requirement found in the specification. Report it as not documented; do not guess."
