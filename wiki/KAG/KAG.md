@@ -8,7 +8,7 @@
 
 KAG løser det ved at gøre viden til en struktur:
 
-| Begreb | Betyder | Eksempel fra Kodetjek-data |
+| Begreb | Betyder | Eksempel fra AI Platform POC-data |
 |---|---|---|
 | **Entitet** (node) | En ting | En user story, testcasen `TC-011`, siden *Min profil* |
 | **Relation** (kant) | Hvordan to ting hænger sammen | `TC-011` *tester* en user story |
@@ -47,9 +47,9 @@ flowchart LR
 | **Forarbejde** | Lille: chunk og indeksér | Mindst: læg det i prompten | Størst: modellér og byg grafen |
 | **Forklarlighed** | Kilde-stykker | Lav | Høj: stien gennem grafen |
 
-## KAG og Kodetjek
+## KAG og AI Platform POC'en
 
-Testcase-dataene i Kodetjek er allerede struktureret: user stories har ID'er og acceptkriterier, og testcases peger på user stories og har resultater pr. testdato. Det er tæt på en graf i forvejen. Et forenklet eksempel:
+Testcase-dataene i AI Platform POC'en er allerede struktureret: user stories har ID'er og acceptkriterier, og testcases peger på user stories og har resultater pr. testdato. Det er tæt på en graf i forvejen. Et forenklet eksempel:
 
 ```mermaid
 flowchart LR

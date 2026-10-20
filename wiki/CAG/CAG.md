@@ -46,9 +46,9 @@ flowchart LR
 | **Ændringer i data** | Indekset opdateres løbende | Cachen skal bygges igen |
 | **Arkitektur** | Indlæser, chunker, indeks og søgning | Kun en prompt og en cache |
 
-## CAG og Kodetjek
+## CAG og AI Platform POC'en
 
-Kodetjek bruger i dag RAG med ordsøgning over xlsx-filerne i `Kodetjek/RAG/data/`. De tre regneark med user stories og testcases er så små, at de sagtens kunne ligge i konteksten på én gang. Med CAG ville agenten:
+AI Platform POC'en bruger i dag RAG med ordsøgning over xlsx-filerne i `AIPlatform/RAG/data/`. De tre regneark med user stories og testcases er så små, at de sagtens kunne ligge i konteksten på én gang. Med CAG ville agenten:
 
 - altid se alle acceptkriterier og testcases og ikke risikere, at ordsøgningen overser et krav med andre ord,
 - slippe for søgeværktøjet, så agenten bruger færre skridt.

@@ -20,9 +20,9 @@ Man kunne træne (fine-tune) modellen på sin egen viden, men det er dyrt, tager
 | **Billig pr. spørgsmål** | Prompten er kort, fordi kun top-k stykker kommer med. |
 | **Modenhed** | RAG er det mest udbredte mønster. Der findes masser af værktøjer, databaser og erfaring. |
 
-## Hvorfor RAG i Kodetjek
+## Hvorfor RAG i AI Platform POC'en
 
-Kodetjek skal vurdere, om en udviklers kode løser en opgave. Kravene ligger i regneark med user stories og testcases, som opdateres løbende, og løsningen skal kunne udvides med flere projekter. RAG lader agenten hente præcis de krav, der hører til opgaven, og henvise til det konkrete `US-…` eller `TC-…`, den vurderer ud fra.
+AI Platform POC'en skal vurdere, om en udviklers kode løser en opgave. Kravene ligger i regneark med user stories og testcases, som opdateres løbende, og løsningen skal kunne udvides med flere projekter. RAG lader agenten hente præcis de krav, der hører til opgaven, og henvise til det konkrete `US-…` eller `TC-…`, den vurderer ud fra.
 
 ## Hvornår RAG *ikke* er svaret
 
