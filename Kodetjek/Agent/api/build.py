@@ -1,6 +1,7 @@
 """Samler Agent-laget: hjernen, alle værktøjer og skills."""
 import settings
 from Agent.application.agent_service import AgentService
+from Agent.application.answer_writer import AnswerWriter
 from Agent.infrastructure.brains.gemini_brain import GeminiBrain
 from MCP.api.build import build_service as build_tools
 from MCP.application.tool_service import ToolService
@@ -25,7 +26,8 @@ def build_agent() -> AgentService:
     system = (
         settings.SYSTEM_PROMPT
         + f"\nThe code belongs to the {settings.TEAM} team. Check it against how that team codes, in the skill architecture-{settings.TEAM}."
-        + "\n\nSkills:\n" + skills.catalog()
+        # audience-skills skjules: rollen bruges først, når svaret skrives (AnswerWriter), aldrig i vurderingen.
+        + "\n\nSkills:\n" + skills.catalog(hide="audience-")
     )
 
     # Hjernen, der taler med Gemini.
@@ -33,3 +35,11 @@ def build_agent() -> AgentService:
 
     # Agenten er klar. Tilbage til main() i Agent/api/web.py (trin 10).
     return AgentService(brain, tools, system, max_steps=settings.MAX_STEPS)
+
+
+def build_writer() -> AnswerWriter:
+    # Skribenten, der laver vurderingen om til et svar til den valgte rolle (trin 20b).
+    # Den får rollens skill (audience-<rolle>) fra Skills-laget, men ingen værktøjer.
+    skills = build_skills()
+    brain = GeminiBrain(model=settings.GEMINI_MODEL, api_key=settings.GEMINI_API_KEY, thinking=settings.GEMINI_THINKING)
+    return AnswerWriter(brain, lambda role: skills.load(f"audience-{role}").instructions)

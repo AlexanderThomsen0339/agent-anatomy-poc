@@ -2,6 +2,7 @@
 Kør fra Kodetjek-mappen:
     python -m Agent.api.web
 """
+import hashlib
 import re
 from html import escape
 from pathlib import Path
@@ -9,8 +10,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import settings
-from Agent.api.build import build_agent
-from Agent.domain.models import Decision, Step
+from Agent.api.build import build_agent, build_writer
+from Agent.application.answer_writer import parse_assessment
+from Agent.domain.models import Assessment, Decision, Step
 
 PORT = 8000
 
@@ -19,6 +21,7 @@ HEAD = """<!doctype html>
 <style>
 body { font-family: system-ui, sans-serif; max-width: 860px; margin: 2em auto; padding: 0 1em; }
 textarea { width: 100%; font: inherit; }
+select { font: inherit; }
 .step { color: #666; margin: .3em 0; }
 .error { color: #b00; }
 .answer { border: 1px solid #ddd; border-radius: 8px; padding: .5em 1.2em; margin-top: 1.5em; }
@@ -26,10 +29,12 @@ textarea { width: 100%; font: inherit; }
 .sources { color: #888; font-size: .8em; margin-top: 1.5em; }
 .sources summary { cursor: pointer; }
 .sources code { word-break: break-all; }
+.sources td { padding: .2em .5em; vertical-align: top; }
 pre { white-space: pre-wrap; background: #f4f4f4; padding: 1em; }
 </style></head><body>
 <h1>Code Check</h1>
 <form method="get" action="/">
+<p><label>I am: <select name="role" onchange="if (this.form.q.value.trim()) this.form.submit()">{roles}</select></label></p>
 <textarea name="q" rows="3" placeholder="Does our code solve US-001?">{question}</textarea>
 <p><button>Check the code</button></p>
 </form>
@@ -102,6 +107,33 @@ def render_sources(steps: list[Step]) -> str:
     )
 
 
+def render_assessment(assessment: Assessment) -> str:
+    """Vurderingen, som begge roller bygger på, i en lukket boks under kilderne."""
+    icons = {"MET": "✅", "NOT_MET": "❌", "CANT_TELL": "❓", "RISK": "⚠️"}
+    rows = "".join(
+        f"<tr><td>{icons[f.status]}</td><td>{escape(f.ids)}</td><td>{escape(f.requirement)}</td>"
+        f"<td>{escape(f.code)}</td><td><code>{escape(f.where)}</code></td><td>{escape(f.fix)}</td></tr>"
+        for f in assessment.findings
+    )
+    return f'<details class="sources"><summary>Assessment</summary><table>{rows}</table></details>'
+
+
+def fingerprint(steps: list[Step]) -> str:
+    """Et fingeraftryk af den kode og de krav, vurderingen bygger på.
+
+    Hvorfor?
+    AI'en kan vurdere den samme kode forskelligt fra gang til gang. Er koden og kravene uændrede,
+    genbruges vurderingen, så den samme kode altid får det samme svar. Rettes en fil, tjekkes koden igen.
+    """
+    digest = hashlib.sha256()
+    files = sorted({Path(settings.CODE_FOLDER) / s.action.arguments.get("path", "") for s in steps if s.action.tool == "read_code_file"})
+    files += sorted(Path(settings.SPEC_FOLDER).glob("*.md")) + sorted(Path(settings.DATA_FOLDER).glob("*.xlsx"))
+    for file in files:
+        digest.update(str(file).encode())
+        digest.update(file.read_bytes() if file.is_file() else b"missing")
+    return digest.hexdigest()
+
+
 def render_markdown(text: str) -> str:
     """Den lille smule markdown, svaret bruger: fed, kode og punktlister."""
     def inline(line: str) -> str:
@@ -123,7 +155,13 @@ def render_markdown(text: str) -> str:
     return html + ("</ul>" if in_list else "")
 
 
-def make_handler(agent):
+def make_handler(agent, writer):
+
+    # Hvorfor gemme vurderingen?
+    # Skifter man rolle eller spørger igen om uændret kode, skal svaret bygge på den samme vurdering.
+    # Ellers vurderer AI'en koden forfra og kan komme frem til noget andet.
+    # Den ligger kun i hukommelsen, så en genstart af serveren laver en ny.
+    checked: dict[str, tuple] = {}
 
     class Handler(BaseHTTPRequestHandler):
 
@@ -133,7 +171,12 @@ def make_handler(agent):
             if url.path != "/":
                 self.send_error(404)
                 return
-            question = parse_qs(url.query).get("q", [""])[0].strip()
+            query = parse_qs(url.query)
+            question = query.get("q", [""])[0].strip()
+            # Rollen kommer fra dropdownen. Den står i adressen, så den er valgt igen ved næste spørgsmål.
+            role = query.get("role", [settings.DEFAULT_ROLE])[0]
+            if role not in settings.ROLES:
+                role = settings.DEFAULT_ROLE
 
             # Hvorfor ingen Content-Length?
             # Siden er ikke færdig, når vi begynder at sende den. Browseren læser,
@@ -141,22 +184,49 @@ def make_handler(agent):
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
-            self.write(HEAD.replace("{question}", escape(question)))
+            roles = "".join(
+                f'<option value="{key}"{" selected" if key == role else ""}>{escape(label)}</option>'
+                for key, label in settings.ROLES.items()
+            )
+            self.write(HEAD.replace("{roles}", roles).replace("{question}", escape(question)))
 
             if not question:
                 self.write("</body></html>")
                 return
 
-            self.write("<h2>What I am doing</h2>")
             try:
-                # 12: AGENTEN KØRER: Fortsæt i Agent/application/agent_service.py.
-                # 18: VIS SKRIDT: on_step kaldes efter hvert skridt, og render_step() sender det til browseren med det samme.
-                run = agent.run(question, on_step=lambda d, s: self.write(render_step(d, s)))
+                # Samme spørgsmål med andre store/små bogstaver, mellemrum eller tegnsætning genbruger vurderingen,
+                # så længe koden og kravene er uændrede. Er en fil rettet, tjekkes koden igen.
+                key = " ".join(re.sub(r"[^\w\s-]", " ", question.lower()).split())
+                cached = checked.get(key)
+                if cached and cached[2] == fingerprint(cached[0].steps):
+                    run, assessment, _ = cached
+                    self.write('<p class="step">♻️ The code and requirements have not changed, so the earlier check is used</p>')
+                else:
+                    self.write("<h2>What I am doing</h2>")
+                    # 12: AGENTEN KØRER: Fortsæt i Agent/application/agent_service.py.
+                    # 18: VIS SKRIDT: on_step kaldes efter hvert skridt, og render_step() sender det til browseren med det samme.
+                    # Agenten får ikke rollen. Vurderingen skal være den samme, uanset hvem der spørger.
+                    run = agent.run(question, on_step=lambda d, s: self.write(render_step(d, s)))
+                    assessment = parse_assessment(run.answer) if run.finished else None
+                    if assessment:
+                        checked[key] = (run, assessment, fingerprint(run.steps))
 
-                # 20: OUTPUT: Svaret laves om fra markdown til HTML og sendes. Siden er færdig. SLUT.
-                # Kilderne står øverst i en lukket boks, så de ikke fylder, men kan foldes ud.
-                title = "" if run.finished else "<h2>Not finished</h2>"
-                self.write(f'{title}{render_sources(run.steps)}<div class="answer">{render_markdown(run.answer)}</div>')
+                if not assessment:
+                    # Agenten blev ikke færdig eller skrev ikke en vurdering. Vis det, den skrev.
+                    self.write(f'<h2>Not finished</h2>{render_sources(run.steps)}<div class="answer">{render_markdown(run.answer)}</div>')
+                else:
+                    # 20: OUTPUT: Vurderingen skrives om til et svar til rollen, laves om fra markdown til HTML og sendes. SLUT.
+                    # Kilderne og vurderingen står øverst i lukkede bokse, så de ikke fylder, men kan foldes ud.
+                    self.write('<p class="step">✍️ Writing the answer</p>')
+                    answer = writer.write(question, assessment, role)
+                    # Overskriften siger, hvem svaret er til. Skifter man rolle i dropdownen, hentes svaret til den anden rolle
+                    # med det samme, og vurderingen genbruges.
+                    self.write(
+                        render_sources(run.steps) + render_assessment(assessment)
+                        + f'<h2>Answer for {escape(settings.ROLES[role])}</h2>'
+                        + f'<div class="answer">{render_markdown(answer)}</div>'
+                    )
             except Exception as e:
                 # Fejlen vises på siden, så demoen ikke bare hænger.
                 self.write(f'<h2 class="error">Error</h2><pre>{escape(repr(e))}</pre>')
@@ -173,10 +243,11 @@ def main():
     # 1: START: Her starter vi, når man kører "python -m Agent.api.web".
     # Agenten bygges én gang, så xlsx-filerne kun indlæses ved start. Fortsæt i Agent/api/build.py.
     agent = build_agent()
+    writer = build_writer()
 
     # 10: VENT: Serveren er klar og venter på, at nogen stiller et spørgsmål på siden.
     # Hvert spørgsmål lander i Handler.do_GET() herover.
-    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agent))
+    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agent, writer))
     print(f"Code Check is running on http://localhost:{PORT} (Ctrl+C to stop)")
     server.serve_forever()
 

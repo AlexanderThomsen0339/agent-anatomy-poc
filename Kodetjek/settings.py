@@ -59,6 +59,15 @@ SKILLS_FOLDER = ROOT / "Skills" / "data" / "skills"
 # Skillen er fast og uafhængig af projektet og af kravene i RAG.
 TEAM = "web"
 
+# Rollerne, man kan vælge på siden. Rollen bestemmer, hvordan svaret skrives, beskrevet i skillen audience-<rolle>.
+# Hvorfor? En udvikler vil have kode og file:line, mens en fra kommunikation vil vide, hvad kunden oplever.
+# Nøglen er skillens navn, værdien er det, brugeren ser i dropdownen.
+ROLES = {
+    "product": "Product / communication",
+    "developer": "Developer",
+}
+DEFAULT_ROLE = "product"
+
 
 # 5. Agent
 # Grænsen for antal skridt. Beskytter mod en agent, der kører i ring.

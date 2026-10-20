@@ -89,3 +89,49 @@ class AgentRun:
 # Historikken er skiftevis hjernens beslutninger og det, den så bagefter.
 # Det er præcis den samtale, hjernen skal have med i næste skridt.
 History = list[Decision | list[Observation]]
+
+
+# Hvorfor en vurdering for sig?
+# Hvem der spørger, må kun ændre, hvordan svaret skrives, ikke hvad der er fundet.
+# Derfor laver agenten først en vurdering pr. krav, som deles af alle roller,
+# og svaret til hver rolle skrives bagefter ud fra den samme vurdering.
+@dataclass(frozen=True)
+class Finding:
+    """Ét krav og hvordan koden klarer det, eller én risiko i måden koden er bygget på."""
+
+    # MET, NOT_MET, CANT_TELL eller RISK.
+    status: str
+    ids: str
+    requirement: str
+    code: str
+    where: str
+
+    # Hvorfor et rettelsesforslag i vurderingen?
+    # Udvikleren vil vide, hvad der skal ændres. Står det i vurderingen, kan svaret ikke finde på et andet.
+    # Svaret til produkt bruger det ikke.
+    fix: str = ""
+
+
+@dataclass(frozen=True)
+class Assessment:
+    """Agentens vurdering af koden. Den samme, uanset hvem der spørger."""
+
+    findings: list[Finding]
+
+    # Hvorfor et flag?
+    # Har forretningen ikke skrevet krav ned, skal svaret sige det i stedet for at gætte.
+    no_spec: bool = False
+
+    def count(self, status: str) -> int:
+        return sum(1 for f in self.findings if f.status == status)
+
+    @property
+    def verdict(self) -> str:
+        """Dommen regnes ud her og ikke af AI'en, så tallet altid passer med listen."""
+        met = self.count("MET")
+        total = met + self.count("NOT_MET") + self.count("CANT_TELL")
+        word = "Solved" if met == total else "Not solved" if met == 0 else "Partly solved"
+        line = f"**{word}**. {met} of {total} requirements met."
+        if self.no_spec:
+            line += " The business has not written down requirements for this."
+        return line

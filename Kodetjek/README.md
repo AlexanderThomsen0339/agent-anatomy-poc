@@ -1,6 +1,6 @@
 # Kodetjek demo
 
-A developer asks: *"Does our code solve this user story?"* An AI agent looks up the user story and its acceptance criteria, reads the developer's code, and answers with a verdict per criterion and a `file:line` reference.
+A developer asks: *"Does our code solve this user story?"* An AI agent looks up the user story, its acceptance criteria and the business requirements, reads the developer's code, and assesses each requirement with a `file:line` reference. The answer is then written for whoever asks: a product person or a developer.
 
 The code has four layers, each with its own README: [Agent](Agent/README.md), [MCP](MCP/README.md), [RAG](RAG/README.md) and [Skills](Skills/README.md).
 
@@ -31,7 +31,7 @@ Include the title, because the same US id exists in several sheets.
 - Does our code solve US-002 Ingen regninger tilgængelige?
 - Does our code solve US-002 Opdater telefonnummer?
 
-The page shows each step live, then a folded *Sources* box with the test documents, requirement files and code folder (and its git repo) the agent actually used, then the verdict: **Solved**, **Partly solved** or **Not solved**, in at most 8 lines of plain English for a non-technical reader: how many requirements are met, only what is missing, and at most two risks from how the code is built (`architecture-web`).
+The page shows each step live, then a folded *Sources* box with the test documents, requirement files and code folder (and its git repo) the agent actually used, then a folded *Assessment* box with every requirement's status, then the answer. The agent assesses the code once per question, the same whoever asks: one line per requirement (met, not met, can't tell) plus risks. The verdict (**Solved**, **Partly solved** or **Not solved**, "X of Y requirements met") is counted from that list by the code, not written by the AI. A dropdown above the question says who is asking, and the answer is written from the assessment for that role; switching role on the same question reuses the assessment. *Product / communication* gets at most 8 lines of plain English: how many requirements are met, only what is missing, and at most two risks from how the code is built (`architecture-web`). *Developer* gets a technical answer with file:line, what can't be told from the code, architecture deviations and what to fix first.
 
 Only Regninger has a business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`, an example written for the demo). For Min Profil and Mit Overblik the answer says that no business requirement is documented.
 
@@ -44,7 +44,7 @@ Each step is marked in the code with a comment like `# 13: TÆNK`. Search for `#
 | # | Step | Where | Why |
 |---|---|---|---|
 | 1 | START | `Agent/api/web.py` · `main()` | The Agent layer owns the entry point, because the agent is what the user talks to. |
-| 2 | Build the agent | `Agent/api/build.py` · `build_agent()` | The Agent layer is the only place that knows all the other layers, so it wires them together. |
+| 2 | Build the agent | `Agent/api/build.py` · `build_agent()` | The Agent layer is the only place that knows all the other layers, so it wires them together. `main()` also calls `build_writer()`, which builds the `AnswerWriter` used in step 20b. |
 | 3 | Skills | `Skills/api/build.py` · `build_service()` | Skills holds the answer format as plain text, so the review rules can change without touching code. |
 | 4 | Tools | `MCP/api/build.py` · `build_service()` | MCP is the list of things the agent can do. Gemini only sees tool names and descriptions, never the code behind them. |
 | 5 | Load the requirements | `RAG/application/ingest_service.py` · `run()` | RAG owns the requirements. It loads them once at start, so each question only searches. |
@@ -52,15 +52,15 @@ Each step is marked in the code with a comment like `# 13: TÆNK`. Search for `#
 | 6b | Read the business requirements (kravspec) | `RAG/infrastructure/loaders/markdown_loader.py` · `load()` | Steps 5–8 run a second time for `RAG/data/kravspec/*.md`, into their own index, so a requirement isn't crowded out by test cases. |
 | 7 | Split into user stories and test cases | `RAG/infrastructure/chunking/text_chunker.py` · `split()` | RAG splits the text so a search returns one user story, not a whole workbook. |
 | 8 | Store in the search index | `RAG/infrastructure/index/keyword_index.py` · `add()` | RAG keeps the index. The rest of the code only knows the `SearchIndex` port, so keyword search could become vector search. |
-| 9 | Assemble tools, system prompt and Gemini | `Agent/api/build.py` · `build_agent()` | The Agent layer joins the MCP tools, the skill tool and the brain into one agent. |
+| 9 | Assemble tools, system prompt and Gemini | `Agent/api/build.py` · `build_agent()` | The Agent layer joins the MCP tools, the skill tool and the brain into one agent. The system prompt names the team (`TEAM`) and lists the skills, except the `audience-` skills: the role must not affect the assessment. |
 | 10 | Wait for a question | `Agent/api/web.py` · `main()` | The Agent layer serves the page, so the agent is built once and reused for every question. |
 
 **For each question**
 
 | # | Step | Where | Why |
 |---|---|---|---|
-| 11 | Question arrives | `Agent/api/web.py` · `do_GET()` | The question goes to the Agent layer, because only the agent decides what to do. |
-| 12 | Agent loop starts | `Agent/application/agent_service.py` · `run()` | The Agent layer runs the loop. It knows the steps (think, act, observe) but not which model or tools. |
+| 11 | Question arrives | `Agent/api/web.py` · `do_GET()` | The question and the role from the dropdown go to the Agent layer, because only the agent decides what to do. If the same question was checked before and `fingerprint()` shows that the code files read and the requirement files are unchanged, the saved assessment is reused and steps 12–19 are skipped. |
+| 12 | Agent loop starts | `Agent/application/agent_service.py` · `run()` | The Agent layer runs the loop. It knows the steps (think, act, observe) but not which model or tools. The agent is not told the role, so the assessment is the same whoever asks. |
 | 13 | Gemini thinks | `Agent/infrastructure/brains/gemini_brain.py` · `decide()` | The Agent layer's brain adapter talks to Gemini. Only this file knows the Gemini SDK. |
 | 14 | Done? If yes, go to 19 | `agent_service.py` | The Agent layer checks for an answer, since Gemini signals "done" by asking for no tools. |
 | 15 | Call the tools Gemini asked for | `agent_service.py` | The Agent layer hands the calls to MCP. It never runs a tool itself. |
@@ -72,8 +72,9 @@ Each step is marked in the code with a comment like `# 13: TÆNK`. Search for `#
 | 16e | `search_specification`: business requirements | `MCP/infrastructure/tools/specification_search_tool.py` | The test cases say what the test team checks; the kravspec says what the business ordered. Searching for a US id returns exactly the requirements that cover it, or says none are documented, so the agent can't invent one. |
 | 17 | Results go into the history | `agent_service.py` | The Agent layer keeps the history, so Gemini sees everything it has learned on the next step. |
 | 18 | Step shown on the page, back to 13 | `web.py` · `render_step()` | The Agent layer's page shows each step live, so the user sees what the agent is doing. |
-| 19 | Answer ready | `agent_service.py` | The Agent layer returns the answer together with all the steps it took. |
-| 20 | OUTPUT: answer shown on the page | `web.py` · `render_markdown()` | The Agent layer's page turns the answer into HTML for the user. |
+| 19 | Assessment ready | `agent_service.py` | The Agent layer returns Gemini's assessment text together with all the steps it took. Back in `web.py`, `parse_assessment()` (`answer_writer.py`) reads one line per requirement, and `Assessment.verdict` counts the verdict from it. If the agent didn't finish or wrote no assessment lines, the page shows what it wrote under *Not finished*. |
+| 20b | Answer written for the role | `Agent/application/answer_writer.py` · `write()` | Gemini gets only the assessment and the `audience-<role>` skill, no tools, so it can rewrite but not re-judge. The assessment is kept per question, so both roles get the same verdict. |
+| 20 | OUTPUT: answer shown on the page | `web.py` · `render_sources()`, `render_assessment()`, `render_markdown()` | The Agent layer's page shows the *Sources* and *Assessment* boxes and turns the answer into HTML for the user. |
 
 Gemini decides which tools to call and in which order. The code only runs the loop.
 
@@ -127,6 +128,25 @@ namespace Agent {
     +answer: str
     +steps: list~Step~
     +finished: bool
+  }
+  class AnswerWriter {
+    +brain: AgentBrain
+    +instructions_for: Callable
+    +write(question, assessment, role) str
+  }
+  class Finding {
+    +status: str
+    +ids: str
+    +requirement: str
+    +code: str
+    +where: str
+    +fix: str
+  }
+  class Assessment {
+    +findings: list~Finding~
+    +no_spec: bool
+    +count(status) int
+    +verdict() str
   }
 }
 
@@ -229,7 +249,7 @@ namespace Skills {
   class SkillService {
     +repository: SkillRepository
     +list_skills() list~SkillSummary~
-    +catalog() str
+    +catalog(hide) str
     +load(name) Skill
   }
   class SkillRepository {
@@ -266,6 +286,9 @@ Decision *-- Action
 Step *-- Action
 Step *-- Observation
 AgentRun *-- Step
+AnswerWriter --> AgentBrain : brain
+AnswerWriter ..> Assessment : reads
+Assessment *-- Finding
 
 ToolService o-- Tool : tools
 Tool --> ToolSpec : spec
@@ -295,7 +318,7 @@ SkillService ..> Skill
 SkillService ..> SkillSummary
 ```
 
-`LoadSkillTool` lives in Skills but behaves like an MCP tool, so the agent sees it next to the other four. `History` is not a class but a list of `Decision`s and lists of `Observation`s.
+`LoadSkillTool` lives in Skills but behaves like an MCP tool, so the agent sees it next to the other four. `History` is not a class but a list of `Decision`s and lists of `Observation`s. `AnswerWriter` uses the same `AgentBrain` port as the agent, but with no tools, and gets the `audience-<role>` instructions through a function that `build_writer()` passes in, so it never imports the Skills layer.
 
 ## Dependencies
 
@@ -320,6 +343,7 @@ flowchart TD
   subgraph AGENT["Agent"]
     abuild["api/build.py"]
     asvc["application/agent_service.py"]
+    awriter["application/answer_writer.py"]
     agem["infrastructure/brains/gemini_brain.py"]
     aports["domain/ports.py"]
     amodels["domain/models.py"]
@@ -356,11 +380,13 @@ flowchart TD
   end
 
   web --> abuild
+  web --> awriter
   web --> amodels
   web --> settings
 
   abuild --> settings
   abuild --> asvc
+  abuild --> awriter
   abuild --> agem
   abuild --> mbuild
   abuild --> msvc
@@ -371,6 +397,8 @@ flowchart TD
   asvc --> aports
   asvc --> msvc
   asvc --> mmodels
+  awriter --> amodels
+  awriter --> aports
   agem --> amodels
   agem --> mmodels
   aports --> amodels
@@ -417,10 +445,25 @@ flowchart TD
 
 ## Configuration
 
-Everything is in `settings.py`: `GEMINI_MODEL`, `GEMINI_THINKING`, `CODE_FOLDER`, `SPEC_FOLDER`, `TEAM`, `SYSTEM_PROMPT`, `MAX_STEPS`. The answer format is in `Skills/data/skills/code-review/SKILL.md`.
+Everything is in `settings.py`:
+
+| Setting | What it does |
+|---|---|
+| `GEMINI_MODEL`, `GEMINI_THINKING` | Which Gemini model thinks, and how much it thinks per step. |
+| `GEMINI_API_KEY` | Read from `local_secrets.py`, or from the `GEMINI_API_KEY` environment variable if that file doesn't exist. |
+| `DATA_FOLDER`, `SPEC_FOLDER` | The xlsx test cases and the kravspec `.md` files that RAG loads. |
+| `SEARCH_K` | How many results a search returns. |
+| `CODE_FOLDER` | The code to check. The code tools can't see outside it. |
+| `SKILLS_FOLDER` | The skill folders. |
+| `TEAM` | Which `architecture-<team>` skill the code is checked against. |
+| `ROLES`, `DEFAULT_ROLE` | The roles in the dropdown. Each key needs an `audience-<key>` skill. |
+| `MAX_STEPS`, `SYSTEM_PROMPT` | The step limit and the agent's base instruction. |
+
+How the code is reviewed is in `Skills/data/skills/code-review/SKILL.md`, and the answer formats are in `audience-product/SKILL.md` and `audience-developer/SKILL.md`.
 
 ## Limitations
 
 - **Keyword search.** It only matches whole words, and the requirements are in Danish, so the agent searches with ids and Danish words.
 - **Every file name on every step.** `list_code_files` returns all files, which is slow on a large solution.
 - **Free Gemini tier.** It is slow, and Google may use what is sent, including the code being checked.
+- **Saved assessments live in memory.** Restarting the server forgets them, so the next question is checked from scratch. A new file the agent didn't read last time doesn't change the fingerprint.

@@ -18,23 +18,29 @@ First find the requirements and the code. Never guess:
 
 Only judge against the requirements you found and the team's way of coding. Never invent a requirement, a criterion or a file:line. If `search_specification` finds no requirement for the user story, say so.
 
-## Write a short answer for someone who is not a developer
+## Write the assessment, not the answer
 
-The reader may be a product owner or a business person. They only want the answer to their question, not a report.
-- **Answer only what was asked.** If the question is about one thing (e.g. "Is the date format right?"), answer only that, in one or two lines.
-- **Show only what is wrong.** Never list what works. What works is covered by the count on the first line.
-- Plain English, short sentences. Describe what the customer or the business experiences, e.g. "The newest bill is not shown first". No code words such as null, session, parse, exception, class or method names.
-- Each line ends with a reference in brackets for the developer: ids and file:line, e.g. `(KRAV-REG-04, AC3 · BillingView.cshtml:12)`. Only the file name, not the whole path.
-- At most 8 lines in total.
+Your answer is an assessment, not text for a person. It is the same whoever asks: afterwards it is turned into an answer for a developer or a product person, so never write for a reader here.
 
-Use exactly this layout:
+Give every KRAV id and every acceptance criterion exactly one line with one status:
+- `MET`: code you have read does what the requirement says.
+- `NOT_MET`: code you have read does it differently, or nothing in the code does it. A format, a sort order, an error message or a log call can be seen in the code, so it is never `CANT_TELL`. Formatting is done where the value is shown (the view), so read the view before you decide.
+- `CANT_TELL`: only when it depends on something outside the code, such as speed, another system or real data.
 
-**Solved**, **Partly solved** or **Not solved**, then: "X of Y requirements met." Count every KRAV id and acceptance criterion you checked.
-- **Solved** only if all are met. If there are only met and can't-tell, it is **Partly solved**.
-- If no business requirement was found, add: "The business has not written down requirements for this."
+Add a `RISK` line for each serious way the code differs from how the team builds (the architecture skill), at most 3.
+If `search_specification` found no business requirement for the user story, add a line with only `NO_SPEC`.
 
-**Missing** (leave out if nothing is missing): at most 5 lines, the most important for the customer first, starting with ❌. If a KRAV and an acceptance criterion say the same thing, write one line with both ids. Things the code can't show (speed, another system) are left out here and only counted.
+Each line has six parts separated by `|`, in English:
+`STATUS | ids | what the requirement asks | what the code does | File.cs:line | how to fix`
 
-**Risk** (leave out if there is none): at most 2 lines, starting with ⚠️, for the most serious ways the code differs from how the team builds, said as what can happen to the customer, e.g. "The page can crash for old contracts".
+- **What the code does** is technical and exact: the method, the expression or the value, in backticks, e.g. ``@bill.Amount`` is printed without a format.
+- **How to fix** is the concrete code change, e.g. use ``bill.Amount.ToString("N2", new CultureInfo("da-DK"))``. Leave it empty for `MET`. For `CANT_TELL`, say what would show it (a test, a log, another repo).
 
-Nothing else: no "what to do next", no introduction, no headings, no repeating the Danish requirement text. Always answer in English, even though the requirements are in Danish.
+For example:
+```
+NOT_MET | KRAV-REG-04, AC3 | Dates are shown as dd-mm-yyyy | `@bill.InvoiceDate` is printed with the default culture format | BillingTableBody.cshtml:8 | Use `bill.InvoiceDate.ToString("dd-MM-yyyy")`
+CANT_TELL | KRAV-REG-07 | The page loads within 2 seconds | `GetBills()` calls the billing system synchronously | BillingService.cs:30 | Measure with a load test against the test environment
+RISK | - | Business logic belongs in a service | `Index()` reads `Session["Contracts"]` and filters bills itself | RegningsoversigtSurfaceController.cs:27 | Move the filtering to `IBillingService` in Core/Billing/Services and inject it
+```
+
+If a KRAV and an acceptance criterion say the same thing, write one line with both ids. Only use a file:line you have read. Never put a `|` inside a part. Write nothing else: no verdict, no introduction, no headings.
