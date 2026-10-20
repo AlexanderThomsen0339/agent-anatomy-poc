@@ -58,8 +58,10 @@ OT_SEARCH_K = 5
 # Sæt CODE_REPO til "" for i stedet at læse en mappe på computeren direkte (CODE_FOLDER herunder).
 CODE_REPO = "https://dev.azure.com/AF-IT/_git/AI%20platform%20POC"
 
-# Grenen, der tjekkes. Tom betyder repoets standardgren.
-CODE_BRANCH = ""
+# Branchen, der tjekkes, når ingen åben PR passer til spørgsmålet.
+# IT's regel for git: feature-branch → PR ind i dev → dev ind i main. Har spørgsmålets user story (fx US-005)
+# en åben PR ind i CODE_BRANCH, tjekkes PR'ens branch i stedet. PR'en passer, hvis id'et står i titlen eller branch-navnet.
+CODE_BRANCH = "dev"
 
 # Repoet er privat, så git skal have en Personal Access Token fra Azure DevOps med læseadgang til Code.
 # Skriv den i local_secrets.py ligesom Gemini-nøglen:

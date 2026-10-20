@@ -1,9 +1,9 @@
 """Porte for MCP-laget.
 
-Hvorfor kun én port?
-Det eneste, laget har brug for udefra, er værktøjer. Alt andet (at holde styr
-på dem, kalde det rigtige og fange fejl) er lagets eget arbejde og ligger i
-application/.
+Hvorfor tre porte?
+Laget har brug for værktøjer, et repo med koden og en måde at finde åbne pull requests på.
+Alt andet (at holde styr på værktøjerne, vælge branch og fange fejl) er lagets eget arbejde
+og ligger i application/.
 """
 
 # Hvorfor Protocol?
@@ -11,7 +11,7 @@ application/.
 # egenskaber, det behøver ikke arve fra noget.
 from typing import Protocol
 
-from .models import ToolSpec
+from .models import PullRequest, ToolSpec
 
 
 # Hvorfor er Tool en port?
@@ -30,4 +30,20 @@ class Tool(Protocol):
     # Alle værktøjer får dem i samme form, så de kan kaldes ens.
     def run(self, arguments: dict) -> str:
         """Udfører værktøjet og returnerer resultatet som tekst."""
+        ...
+
+
+# Hvorfor er repoet en port?
+# Branch-valget skal ikke vide, om koden kommer fra Azure DevOps, GitHub eller en mappe.
+class CodeRepository(Protocol):
+
+    def sync(self, branch: str) -> str:
+        """Gør kopien lig med branchen og returnerer den commit, koden står på."""
+        ...
+
+
+class PullRequestFinder(Protocol):
+
+    def find(self, question: str) -> PullRequest | None:
+        """Den nyeste åbne PR, der passer til spørgsmålet, eller None."""
         ...

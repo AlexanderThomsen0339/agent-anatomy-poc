@@ -50,3 +50,25 @@ class ToolResult:
     # i stedet kunne læse fejlen og prøve noget andet, ligesom en sikring,
     # der slår fra i ét rum uden at slukke strømmen i hele huset.
     is_error: bool = False
+
+
+# Hvorfor en PullRequest?
+# Kodetjekket skal kunne se den kode, en udvikler arbejder på, før den er merget ind i dev.
+# Kun det, siden og branch-valget har brug for, kommer med: ikke Azure DevOps' eget format.
+@dataclass(frozen=True)
+class PullRequest:
+    id: int
+    title: str
+    branch: str
+    url: str
+
+
+# Hvorfor en Checkout?
+# Den fortæller siden, hvilken kode agenten ser: branch, commit og den PR, branchen kom fra.
+# note er en advarsel, fx at PR'erne ikke kunne hentes, så dev blev brugt.
+@dataclass(frozen=True)
+class Checkout:
+    branch: str
+    commit: str
+    pull_request: PullRequest | None = None
+    note: str = ""

@@ -13,30 +13,26 @@ from pathlib import Path
 
 class GitRepository:
 
-    def __init__(self, url: str, folder: str | Path, branch: str = "", token: str = ""):
-        # Adresse, gren og nøgle kommer fra settings.py. Mappen er kun en kopi, som POC'en selv styrer.
+    def __init__(self, url: str, folder: str | Path, token: str = ""):
+        # Adresse og nøgle kommer fra settings.py. Mappen er kun en kopi, som POC'en selv styrer.
         self.url = url
         self.folder = Path(folder)
-        self.branch = branch
         self.token = token
-        # Siden kan tjekke to spørgsmål på én gang. Kun ét af dem må hente kode ad gangen.
+        # Kun én git-kommando ad gangen i kopien, også ved start.
         self.lock = threading.Lock()
 
-    def sync(self) -> str:
-        """Kloner repoet første gang, og henter derefter det nyeste. Returnerer den commit, koden står på."""
+    def sync(self, branch: str = "") -> str:
+        """Gør kopien lig med branchen (tom betyder repoets standardbranch). Returnerer den commit, koden står på."""
         with self.lock:
-            return self._sync()
-
-    def _sync(self) -> str:
-        if not (self.folder / ".git").is_dir():
-            self.folder.parent.mkdir(parents=True, exist_ok=True)
-            self._git("clone", *(["--branch", self.branch] if self.branch else []), self.url, str(self.folder), cwd=None)
-        else:
-            # Hvorfor fetch og reset i stedet for pull?
-            # Mappen er kun en kopi. Reset gør den altid lig med repoet, også hvis nogen har force-pushet.
-            self._git("fetch", "origin", *([self.branch] if self.branch else []))
+            if not (self.folder / ".git").is_dir():
+                self.folder.parent.mkdir(parents=True, exist_ok=True)
+                self._git("clone", self.url, str(self.folder), cwd=None)
+            # Hvorfor fetch og reset i stedet for checkout og pull?
+            # Mappen er kun en kopi. Reset gør den altid lig med branchen i repoet, også hvis nogen har force-pushet,
+            # og der skal ikke holdes styr på lokale branches.
+            self._git("fetch", "origin", branch or "HEAD")
             self._git("reset", "--hard", "FETCH_HEAD")
-        return self._git("rev-parse", "--short", "HEAD").strip()
+            return self._git("rev-parse", "--short", "HEAD").strip()
 
     def _git(self, *args: str, cwd: Path | None | str = "") -> str:
         env = dict(os.environ, GIT_TERMINAL_PROMPT="0")
