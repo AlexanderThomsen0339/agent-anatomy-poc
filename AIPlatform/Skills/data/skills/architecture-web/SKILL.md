@@ -1,6 +1,6 @@
 ---
 name: architecture-web
-description: How the Web team builds its Umbraco/.NET web solutions. Use together with code-review when the code belongs to the Web team.
+description: How the Web team builds its Python (Flask) web solutions. Use together with code-review when the code belongs to the Web team.
 ---
 
 # How the Web team codes
@@ -9,29 +9,28 @@ This is how the Web team builds its solutions. It is fixed in advance and does n
 Compare the code you have read with it, and point out where the code does it differently, with a file:line reference.
 
 ## Solution structure
-The solution is an Umbraco site on ASP.NET Core, split into these parts:
-- **Controllers/Surface/**: Umbraco Surface controllers, one per page or feature (`<Feature>SurfaceController`). They read the request, call a service and return a view or partial. No business logic here.
-- **Views/**: Razor views (`.cshtml`) that only display a view model.
-- **wwwroot/scripts/<Area>/**: one JavaScript file per page for behaviour in the browser. No business rules that the server does not also check.
-- **Core/<Feature>/**: the business layer, one folder per feature, with `Services/` for the logic and `Models/` for the feature's own models.
-- **Models/ViewModels/**: the models the views get.
-- **Shared/Managers/**: managers that talk to external systems and web services. Only services call them.
+The solution is a Flask site, split into these parts:
+- **web/**: Flask routes, one `<feature>_routes.py` per page or feature, made by a `create_<feature>_routes(...)` function that gets its services. A route reads the request, calls a service and renders a template. No business logic here.
+- **web/templates/**: Jinja templates that only display what the route gives them.
+- **core/<feature>/**: the business layer, one folder per feature, with `services/` for the logic and `models/` for the feature's own models.
+- **core/authentication/services/**: the session service, which knows the logged-in customer and their current choices.
+- **shared/managers/**: managers that talk to external systems and web services. Only services call them.
+- **shared/**: constants and formatting used by several features.
+- **app.py**: the composition root. It creates every service and manager and passes them in.
 
-So the flow is always: Surface controller → service in `Core/<Feature>/Services` → manager in `Shared/Managers` → external system.
+So the flow is always: route → service in `core/<feature>/services` → manager in `shared/managers` → external system.
 
 ## Services
-- Each service has an interface `I<Name>Service` declared at the top of the same file, followed by the class `<Name>Service : I<Name>Service`.
-- The namespace matches the folder (`<Solution>.Core.<Feature>.Services`) and is file-scoped (`namespace ...;`).
-- Dependencies come in through the constructor as interfaces and are stored in `private readonly` fields named `_camelCase`.
-- The logged-in customer and their current choices (such as the selected contract) are read through the state manager service from `Core/Authentication/Services` and the session, never passed in from the browser.
-- Data from an external system is mapped to the feature's own model in `Core/<Feature>/Models` (e.g. with `Select(x => new ...Model { ... })`) before it leaves the service. Views and controllers never see the external system's types.
-- Public service methods return `Task<...>`.
+- Each service has an interface, a `typing.Protocol` named `<Name>Service`, at the top of the same file, followed by the class that implements it.
+- Dependencies come in through the constructor typed as their `Protocol` and are stored in private attributes (`self._name`). Nothing creates its own dependencies, except `app.py`.
+- The logged-in customer and their current choices (such as the selected contract) are read through the session service, never taken from the request. A value from the request (such as a chosen contract or an invoice number) is checked against what the customer has access to, on the server.
+- Data from an external system is mapped to the feature's own model (a `dataclass`) in `core/<feature>/models` before it leaves the service. Routes and templates never see the external system's records.
+- Public service methods have type hints on every argument and return value.
 
 ## Quality the team expects
-- Async all the way: an `async` method awaits its I/O, and nothing blocks on `.Result` or `.Wait()`.
-- Lists are never returned as `null`; an empty list is returned instead.
-- Data from the outside (external systems, session, state) may be missing. It is checked, and errors are logged with `ILogger` instead of throwing at the user.
-- Dates and numbers are parsed with `TryParse` and a `CultureInfo`.
-- No magic strings: session keys and fixed values are constants or enums in one place.
+- Lists are never returned as `None`; an empty list is returned instead.
+- Data from the outside (external systems, session, request) may be missing. It is checked, and errors are logged with `logging` instead of being shown to the user as a technical error.
+- Dates are parsed with `datetime.strptime` and a fixed format, and money is a `Decimal`, never a `float`.
+- No magic strings: session keys and fixed values are constants in `shared/constants.py`, and fixed choices are an `Enum`.
 - Types say what they are: a yes/no value becomes a `bool` once, in the mapping, and is never passed around as the string `"true"`.
 - Names are correct English, and there is no dead or duplicated code.

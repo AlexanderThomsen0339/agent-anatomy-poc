@@ -18,12 +18,12 @@ You get the assessment from code-review: one line per requirement with its statu
 Use exactly this layout:
 
 **Missing** (leave out if there is no NOT_MET): one line per NOT_MET, in this form:
-`❌ File.cs:line (ids): what the code does. Fix: how to fix.`
-e.g. ❌ `BillingTableBody.cshtml:8` (KRAV-REG-04, AC3): `@bill.InvoiceDate` uses the default culture. Fix: `bill.InvoiceDate.ToString("dd-MM-yyyy")`.
+`❌ file.py:line (ids): what the code does. Fix: how to fix.`
+e.g. ❌ `web/templates/invoices.html:8` (KRAV-REG-04, AC7): `{{ invoice.invoice_date }}` is printed in ISO format. Fix: `{{ invoice.invoice_date | date }}`.
 
-**Can't tell** (leave out if there is no CANT_TELL): one line per CANT_TELL, starting with ❓ and `File.cs:line` (ids), and what would show it.
+**Can't tell** (leave out if there is no CANT_TELL): one line per CANT_TELL, starting with ❓ and `file.py:line` (ids), and what would show it.
 
-**Architecture** (leave out if there is no RISK): one line per RISK, starting with ⚠️ and `File.cs:line`, what the code does and the fix, e.g. ⚠️ `RegningsoversigtSurfaceController.cs:27`: `Index()` filters bills itself. Fix: move it to `IBillingService` and inject it.
+**Architecture** (leave out if there is no RISK): one line per RISK, starting with ⚠️ and `file.py:line`, what the code does and the fix, e.g. ⚠️ `web/billing_routes.py:27`: `overview()` filters invoices itself. Fix: move it to `BillingService` and inject it.
 
 **Fix first** (leave out if there is no NOT_MET): one line naming the file to change first, because it closes the most requirements.
 

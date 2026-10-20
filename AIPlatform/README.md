@@ -26,15 +26,16 @@ pip install -r requirements.txt
 
 ## Questions to ask
 
-Include the title, because the same US id exists in several sheets.
+The code is the demo project *Mit Aalborg Forsyning – Regninger* (Python, Flask) in the Azure DevOps repo. It has deliberate gaps, so not every answer is green.
 
 - Does our code solve US-005 Download faktura?
-- Does our code solve US-002 Ingen regninger tilgængelige?
-- Does our code solve US-002 Opdater telefonnummer?
+- Does our code solve US-004 Vis betalingsstatus?
+- Does our code solve US-003 Regninger er ikke længere tilgængelige?
+- Does our code solve US-001 Vis regningsoversigt?
 
 The page shows each step live, then a folded *Sources* box with the test documents, requirement files and code folder (and its git repo) the agent actually used, then a folded *Assessment* box with every requirement's status, then the answer. The agent assesses the code once per question, the same whoever asks: one line per requirement (met, not met, can't tell) plus risks. The verdict (**Solved**, **Partly solved** or **Not solved**, "X of Y requirements met") is counted from that list by the code, not written by the AI. A dropdown above the question says who is asking, and the answer is written from the assessment for that role; switching role on the same question reuses the assessment. *Product / communication* gets at most 8 lines of plain English: how many requirements are met, only what is missing, and at most two risks from how the code is built (`architecture-web`). *IT* gets a technical answer with file:line, what can't be told from the code, architecture deviations and what to fix first.
 
-Only Regninger has a business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`, an example written for the demo). For Min Profil and Mit Overblik the answer says that no business requirement is documented.
+The test cases (`RAG/data/Mit Aalborg Forsyning_Regninger_Testcases.xlsx`) and the business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`) are examples written for the demo project.
 
 ### OT's documents (Vedligehold and IT)
 
