@@ -1,6 +1,7 @@
 """Samler MCP-laget: vælger hvilke værktøjer der sættes i."""
 import settings
 from MCP.application.tool_service import ToolService
+from MCP.infrastructure.repository.git_repository import GitRepository
 from MCP.infrastructure.tools.code_list_tool import CodeListTool
 from MCP.infrastructure.tools.code_read_tool import CodeReadTool
 from MCP.infrastructure.tools.ot_document_search_tool import OtDocumentSearchTool
@@ -33,6 +34,19 @@ def build_service() -> ToolService:
         CodeReadTool(settings.CODE_FOLDER),
     ]
     return ToolService(tools)
+
+
+def build_code_repository() -> GitRepository | None:
+    """Repoet med koden, eller None, hvis CODE_FOLDER er en mappe på computeren (CODE_REPO er tom)."""
+    if not settings.CODE_REPO:
+        return None
+    repo = GitRepository(settings.CODE_REPO, settings.CODE_FOLDER, settings.CODE_BRANCH, settings.AZURE_DEVOPS_PAT)
+    # Klon eller hent det nyeste ved start. Går det galt, starter siden alligevel, og fejlen vises igen ved første kodetjek.
+    try:
+        print(f"Code: {settings.CODE_REPO} at commit {repo.sync()} in {settings.CODE_FOLDER}")
+    except RuntimeError as e:
+        print(f"Code: could not fetch {settings.CODE_REPO}: {e}")
+    return repo
 
 
 def build_ot_service() -> ToolService:

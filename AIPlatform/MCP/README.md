@@ -31,5 +31,5 @@ So MCP is the wall socket and RAG is one of the appliances plugged into it. The 
 |---|---|---|
 | `domain/` | `ToolSpec`, `ToolCall`, `ToolResult` and the `Tool` port | One shape for every tool, so the agent treats them all the same. |
 | `application/` | `ToolService`: find a tool by name and run it | One place for lookup and error handling. |
-| `infrastructure/` | The five tools above | Each tool is one file. Adding a tool means adding a file. |
-| `api/` | `build.py`: `build_service()` loads the requirements into RAG and creates the code-check tools; `build_ot_service()` loads OT's documents and creates `search_ot_documents` | Settings (`CODE_FOLDER`, `SEARCH_K`, `OT_FOLDER`, `OT_SEARCH_K`) are read here and passed in. |
+| `infrastructure/` | The five tools above, and `GitRepository`, which clones `CODE_REPO` into `CODE_FOLDER` and fetches the latest | Each tool is one file. Adding a tool means adding a file. The code tools only read a folder, so they don't need to know the code comes from a repo. |
+| `api/` | `build.py`: `build_service()` loads the requirements into RAG and creates the code-check tools; `build_ot_service()` loads OT's documents and creates `search_ot_documents`; `build_code_repository()` creates the repo and fetches the code at start | Settings (`CODE_REPO`, `CODE_FOLDER`, `SEARCH_K`, `OT_FOLDER`, `OT_SEARCH_K`) are read here and passed in. |

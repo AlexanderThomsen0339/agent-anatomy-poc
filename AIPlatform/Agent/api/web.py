@@ -13,6 +13,7 @@ import settings
 from Agent.api.build import build_agents, build_writer
 from Agent.application.answer_writer import parse_assessment
 from Agent.domain.models import Assessment, Decision, Step
+from MCP.api.build import build_code_repository
 
 PORT = 8000
 
@@ -218,7 +219,7 @@ def render_markdown(text: str) -> str:
     return html + ("</ul>" if in_list else "")
 
 
-def make_handler(agents, writer):
+def make_handler(agents, writer, repo):
 
     # Hvorfor gemme vurderingen?
     # Skifter man rolle eller spørger igen om uændret kode, skal svaret bygge på den samme vurdering.
@@ -268,6 +269,14 @@ def make_handler(agents, writer):
                 return
 
             try:
+                if checks_code and repo:
+                    # Hent det nyeste fra repoet før tjekket, så en udvikler kan pushe og straks spørge.
+                    # Det sker før fingeraftrykket herunder, så en ændret fil giver et nyt tjek.
+                    try:
+                        self.write(f'<p class="step">📥 Fetched the latest code from the repo (commit {escape(repo.sync())})</p>')
+                    except RuntimeError as e:
+                        self.write(f'<p class="step error">📥 Could not fetch the latest code, so the last copy is used: {escape(str(e))}</p>')
+
                 # Samme spørgsmål med andre store/små bogstaver, mellemrum eller tegnsætning genbruger vurderingen,
                 # så længe koden og kravene er uændrede. Er en fil rettet, tjekkes koden igen.
                 key = " ".join(re.sub(r"[^\w\s-]", " ", question.lower()).split())
@@ -326,10 +335,12 @@ def main():
     # Agenten bygges én gang, så xlsx-filerne kun indlæses ved start. Fortsæt i Agent/api/build.py.
     agents = build_agents()
     writer = build_writer()
+    # Repoet med koden, hvis den hentes fra et repo (CODE_REPO). Fortsæt i MCP/api/build.py.
+    repo = build_code_repository()
 
     # 10: VENT: Serveren er klar og venter på, at nogen stiller et spørgsmål på siden.
     # Hvert spørgsmål lander i Handler.do_GET() herover.
-    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agents, writer))
+    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agents, writer, repo))
     print(f"AI Platform POC is running on http://localhost:{PORT} (Ctrl+C to stop)")
     server.serve_forever()
 
