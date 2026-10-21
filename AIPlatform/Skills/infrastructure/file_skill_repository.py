@@ -25,7 +25,12 @@ class FileSkillRepository:
     def list(self) -> list[SkillSummary]:
         summaries = []
         for file in sorted(self.folder.glob("*/SKILL.md")):
-            skill = self._read(file)
+            # En skill uden overskrift (name og description mellem "---") springes over, så siden stadig starter.
+            try:
+                skill = self._read(file)
+            except ValueError:
+                print(f"Skills: skipped {file}, it needs a header with name and description between --- lines")
+                continue
             summaries.append(SkillSummary(skill.name, skill.description))
         return summaries
 
