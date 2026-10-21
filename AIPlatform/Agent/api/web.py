@@ -12,7 +12,7 @@ from urllib.parse import parse_qs, urlparse
 import settings
 from Agent.api.build import build_agents, build_writer
 from Agent.application.answer_writer import parse_assessment
-from Agent.domain.models import Assessment, Step
+from Agent.domain.models import AgentRun, Assessment, Step
 from MCP.api.build import build_checkout_service
 from MCP.domain.models import Checkout
 
@@ -209,13 +209,38 @@ def fingerprint(steps: list[Step]) -> str:
     AI'en kan vurdere den samme kode forskelligt fra gang til gang. Er koden og kravene uændrede,
     genbruges vurderingen, så den samme kode altid får det samme svar. Rettes en fil, tjekkes koden igen.
     """
-    digest = hashlib.sha256()
     files = sorted({Path(settings.CODE_FOLDER) / s.action.arguments.get("path", "") for s in steps if s.action.tool == "read_code_file"})
-    files += sorted(Path(settings.SPEC_FOLDER).glob("*.md")) + sorted(Path(settings.DATA_FOLDER).glob("*.xlsx"))
+    return hash_files(files) + requirements_fingerprint()
+
+
+def requirements_fingerprint() -> str:
+    """Fingeraftrykket af kravene alene. Er de ændret, tjekkes al koden igen, ikke kun de seneste ændringer."""
+    return hash_files(sorted(Path(settings.SPEC_FOLDER).glob("*.md")) + sorted(Path(settings.DATA_FOLDER).glob("*.xlsx")))
+
+
+def hash_files(files: list[Path]) -> str:
+    digest = hashlib.sha256()
     for file in files:
         digest.update(str(file).encode())
         digest.update(file.read_bytes() if file.is_file() else b"missing")
     return digest.hexdigest()
+
+
+# Er flere filer ændret end det, er det nærmest et nyt projekt, og al koden tjekkes igen.
+MAX_CHANGED_FILES = 20
+
+
+def changes_question(question: str, earlier: str, commit: str, changed: list[str]) -> str:
+    """Spørgsmålet til agenten, når kun de seneste ændringer skal tjekkes."""
+    files = "\n".join(f"- {f}" for f in changed)
+    return (
+        f"{question}\n\n"
+        f"You checked this before, on commit {commit}, and wrote this assessment:\n\n{earlier}\n\n"
+        f"Since then only these files changed:\n{files}\n\n"
+        "Look up the user story, test cases and requirements as usual, but only read the changed files "
+        "(and another file only if a change cannot be understood without it). Then write the complete assessment again "
+        "in the same format: keep the findings the changes do not touch, and update the ones they do."
+    )
 
 
 def render_markdown(text: str) -> str:
@@ -310,17 +335,36 @@ def make_handler(agents, writer, checkouts):
                 # Kun roller, der tjekker kode, kan genbruge en vurdering. Vedligehold har ingen.
                 cached = checked.get(key) if checks_code else None
                 if cached and cached[2] == fingerprint(cached[0].steps):
-                    run, assessment, _ = cached
+                    run, assessment = cached[0], cached[1]
                     self.write('<p class="step">♻️ The code and requirements have not changed, so the earlier check is used</p>')
                 else:
+                    # Hvorfor kun de seneste ændringer?
+                    # Er koden tjekket før på samme branch, og er kravene uændrede, er det kun de nye commits, der kan ændre svaret.
+                    # Agenten får den tidligere vurdering og listen over ændrede filer og læser kun dem.
+                    changed, earlier = None, None
+                    if cached and checkout and cached[3] == checkout.branch and cached[5] == requirements_fingerprint():
+                        changed = checkouts.changed_since(cached[4])
+                        if changed and len(changed) <= MAX_CHANGED_FILES:
+                            earlier = cached[0]
                     self.write("<h2>What I am doing</h2>")
+                    task = question
+                    if earlier:
+                        self.write(
+                            f'<p class="step">🔁 Checked before on commit {escape(cached[4])}, so only what changed since then is read ({len(changed)} {"file" if len(changed) == 1 else "files"}): '
+                            + ", ".join(f"<code>{escape(f)}</code>" for f in changed) + "</p>"
+                        )
+                        task = changes_question(question, earlier.answer, cached[4], changed)
                     # 12: AGENTEN KØRER: Fortsæt i Agent/application/agent_service.py.
                     # 18: VIS SKRIDT: on_step kaldes efter hvert skridt, og render_step() sender det til browseren med det samme.
                     # Agenten får ikke rollen. Vurderingen skal være den samme, uanset hvem der spørger.
-                    run = agent.run(question, on_step=lambda s: self.write(render_step(s)))
+                    run = agent.run(task, on_step=lambda s: self.write(render_step(s)))
+                    if earlier:
+                        # Kilderne og fingeraftrykket skal dække al den kode, vurderingen bygger på, også den fra det tidligere tjek.
+                        run = AgentRun(run.answer, earlier.steps + run.steps, run.finished)
                     assessment = parse_assessment(run.answer) if run.finished and checks_code else None
                     if assessment:
-                        checked[key] = (run, assessment, fingerprint(run.steps))
+                        commit = (checkout.branch, checkout.commit) if checkout else ("", "")
+                        checked[key] = (run, assessment, fingerprint(run.steps), *commit, requirements_fingerprint())
 
                 looked_up_ot = any(s.action.tool == "search_ot_documents" for s in run.steps)
                 if not assessment and run.finished and looked_up_ot:

@@ -12,7 +12,7 @@ Python 3.10+. Run everything from the `AIPlatform/` folder.
 pip install -r requirements.txt
 ```
 
-1. The code to check comes from the Azure DevOps repo in `CODE_REPO` in `settings.py`. The page clones it into `repos/code` when it starts. Before every code check it picks the branch and fetches the latest, so a developer can push and ask straight away: if an open pull request into `dev` has the question's user story id (e.g. US-005) in its title or branch name, its branch is checked, otherwise `dev`. The first step on the page says which branch and pull request it checks. You need git installed. Set `CODE_REPO = ""` to read a folder on your computer instead (`CODE_FOLDER`).
+1. The code to check comes from the Azure DevOps repo in `CODE_REPO` in `settings.py`. The page clones it into `repos/code` when it starts. Before every code check it picks the branch and fetches the latest, so a developer can push and ask straight away: if an open pull request into `dev` has the question's user story id (e.g. US-005) in its title or branch name, its branch is checked, otherwise `dev`. The first step on the page says which branch and pull request it checks. If the same question was checked before on the same branch and the requirements are unchanged, only the files changed since that commit are read, and the earlier assessment is updated (at most 20 changed files, otherwise all the code is checked again). You need git installed. Set `CODE_REPO = ""` to read a folder on your computer instead (`CODE_FOLDER`).
 2. Put a Gemini key from Google AI Studio and an Azure DevOps Personal Access Token with read access to Code in `local_secrets.py` (ignored by git):
    ```python
    GEMINI_API_KEY = "your-key"

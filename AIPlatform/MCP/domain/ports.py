@@ -41,6 +41,10 @@ class CodeRepository(Protocol):
         """Gør kopien lig med branchen og returnerer den commit, koden står på."""
         ...
 
+    def changed_files(self, since: str) -> list[str]:
+        """Filerne, der er ændret fra commit since til den commit, kopien står på nu."""
+        ...
+
 
 class PullRequestFinder(Protocol):
 
