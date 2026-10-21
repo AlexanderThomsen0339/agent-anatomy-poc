@@ -27,6 +27,8 @@ class GitRepository:
         if not (self.folder / ".git").is_dir():
             self.folder.parent.mkdir(parents=True, exist_ok=True)
             self._git("clone", self.url, str(self.folder), cwd=None)
+        # Kopien følger altid CODE_REPO, også når adressen er skiftet, efter kopien blev lavet.
+        self._git("remote", "set-url", "origin", self.url)
         # Hvorfor fetch og reset i stedet for checkout og pull?
         # Mappen er kun en kopi. Reset gør den altid lig med branchen i repoet, også hvis nogen har force-pushet,
         # og der skal ikke holdes styr på lokale branches.
