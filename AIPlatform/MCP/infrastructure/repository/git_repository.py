@@ -34,7 +34,14 @@ class GitRepository:
         # og der skal ikke holdes styr på lokale branches.
         self._git("fetch", "origin", branch or "HEAD")
         self._git("reset", "--hard", "FETCH_HEAD")
+        # Reset fjerner ikke filer, git ikke kender. Uden clean bliver filer fra en anden branch eller et gammelt repo
+        # liggende, og list_code_files viser dem stadig.
+        self._git("clean", "-ffdx")
         return self._git("rev-parse", "--short", "HEAD").strip()
+
+    def changed_files(self, since: str) -> list[str]:
+        # Fejler, hvis commit'en ikke findes længere, fx efter en force-push. Så tjekkes al koden igen.
+        return self._git("diff", "--name-only", since, "HEAD").splitlines()
 
     def _git(self, *args: str, cwd: Path | None | str = "") -> str:
         env = dict(os.environ, GIT_TERMINAL_PROMPT="0")

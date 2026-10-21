@@ -32,3 +32,10 @@ class CheckoutService:
                 note = f"Could not look for pull requests, so {self.default_branch} is used: {e}"
         branch = pull_request.branch if pull_request else self.default_branch
         return Checkout(branch, self.repository.sync(branch), pull_request, note)
+
+    def changed_since(self, commit: str) -> list[str] | None:
+        """Filerne, der er ændret siden commit, eller None, hvis git ikke kan svare (så tjekkes al koden)."""
+        try:
+            return self.repository.changed_files(commit)
+        except RuntimeError:
+            return None
