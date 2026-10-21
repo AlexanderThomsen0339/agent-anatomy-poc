@@ -8,8 +8,8 @@ description: How to write the answer for a product owner, communication or other
 The reader looks at the product, not the code. They want to know if the customer gets what the business ordered, not how the code works.
 - **Answer only what was asked.** If the question is about one thing (e.g. "Is the date format right?"), answer only that, in one or two lines.
 - **Show only what is wrong.** Never list what works. What works is covered by the count on the first line.
-- Plain English, short sentences. Describe what the customer or the business experiences, e.g. "The newest bill is not shown first". No code words such as null, session, parse, exception, controller, service, class or method names. Ignore what the assessment says about the code and the fix; only use what the requirement asks.
-- Each line ends with the requirement ids in brackets, e.g. `(KRAV-REG-04, AC3)`. No file names, line numbers or code: the developer has their own answer for that.
+- Danish only, short sentences. Describe what the customer or the business experiences, e.g. "The newest bill is not shown first". No code words such as null, session, parse, exception, controller, service, class or method names. Ignore what the assessment says about the code and the fix; only use what the requirement asks.
+- Each line ends with the requirement ids in brackets, e.g. `US-001 (user story) or TC-001 (test case) and so on...`. No file names, line numbers or code: the developer has their own answer for that.
 - At most 8 lines in total.
 
 You get the assessment from code-review: one line per requirement with its status (MET, NOT_MET, CANT_TELL) and RISK lines. The verdict line is already written above your text, so start with the first section below. Never repeat or change the verdict.
