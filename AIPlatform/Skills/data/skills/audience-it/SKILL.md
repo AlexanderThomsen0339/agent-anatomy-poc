@@ -18,12 +18,12 @@ You get the assessment from code-review: one line per requirement with its statu
 Use exactly this layout. Leave out a section that would have no lines, heading and all, and never write these instructions in the answer.
 
 **Missing**: one line per NOT_MET, in this form:
-`❌ file.py:line (ids): what the code does. Fix: how to fix.`
-e.g. ❌ `web/templates/invoices.html:8` (KRAV-REG-04, AC7): `{{ invoice.invoice_date }}` is printed in ISO format. Fix: `{{ invoice.invoice_date | date }}`.
+`❌ file.cs:line (ids): what the code does. Fix: how to fix.`
+e.g. ❌ `Views/Partials/BillingTableBody.cshtml:8` (KRAV-REG-04, AC7): `@row.InvoiceDate` is printed in ISO format. Fix: `date.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)` in the mapping.
 
-**Can't tell**: one line per CANT_TELL, starting with ❓ and `file.py:line` (ids), and what would show it.
+**Can't tell**: one line per CANT_TELL, starting with ❓ and `file.cs:line` (ids), and what would show it.
 
-**Architecture**: one line per RISK, starting with ⚠️ and `file.py:line`, what the code does and the fix, e.g. ⚠️ `web/billing_routes.py:27`: `overview()` filters invoices itself. Fix: move it to `BillingService` and inject it.
+**Architecture**: one line per RISK, starting with ⚠️ and `file.cs:line`, what the code does and the fix, e.g. ⚠️ `Controllers/BillingController.cs:27`: `Index()` filters invoices itself. Fix: move it to `IBillingService` and inject it.
 
 **Fix first**: one line naming the file to change first, because it closes the most requirements.
 

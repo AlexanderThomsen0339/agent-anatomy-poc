@@ -85,7 +85,7 @@ SKILLS_FOLDER = ROOT / "Skills" / "data" / "skills"
 # IT's hold, og hvad hvert hold laver. Agenterne får beskrivelsen, så de ved, hvis kode eller dokumenter de ser på.
 # Hvorfor her? IT har flere hold, og hver rolle ser ét eller flere af dem (ROLE_TEAMS herunder).
 TEAMS = {
-    "web": "builds Mit Aalborg Forsyning in Python (Flask). Its code is checked against the user stories, test cases and kravspec.",
+    "web": "builds Mit Aalborg Forsyning in .NET (C#, ASP.NET Core). Its code is checked against the user stories, test cases and kravspec.",
     "ot": "runs the plant's control systems (OT) and makes their documents, such as the signal list.",
 }
 
