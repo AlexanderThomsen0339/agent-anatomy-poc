@@ -72,3 +72,5 @@ class Checkout:
     commit: str
     pull_request: PullRequest | None = None
     note: str = ""
+    # De nyeste commits på branchen med de ændrede linjer. Agenten får dem altid som udgangspunkt.
+    changes: str = ""
