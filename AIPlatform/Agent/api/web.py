@@ -85,6 +85,7 @@ FRIENDLY = {
     "search_specification": lambda a: f"📋 Looking up the business requirements: {a.get('query', '')}",
     "list_code_files": lambda a: "📂 Listing the project's files",
     "read_code_file": lambda a: f"📄 Reading {a.get('path', '').replace(chr(92), '/').split('/')[-1]}",
+    "list_recent_changes": lambda a: "🕓 Looking at the latest changes on the branch",
     "search_ot_documents": lambda a: f"🔎 Searching OT's documents: {a.get('query', '')}",
 }
 
