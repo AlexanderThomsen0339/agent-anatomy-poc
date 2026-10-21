@@ -4,6 +4,7 @@ from MCP.application.checkout_service import CheckoutService
 from MCP.application.tool_service import ToolService
 from MCP.infrastructure.repository.azure_pull_requests import AzurePullRequestFinder
 from MCP.infrastructure.repository.git_repository import GitRepository
+from MCP.infrastructure.tools.code_changes_tool import CodeChangesTool
 from MCP.infrastructure.tools.code_list_tool import CodeListTool
 from MCP.infrastructure.tools.code_read_tool import CodeReadTool
 from MCP.infrastructure.tools.ot_document_search_tool import OtDocumentSearchTool
@@ -28,12 +29,13 @@ def build_service() -> ToolService:
     specification = KeywordIndex()
     IngestService(MarkdownLoader(settings.SPEC_FOLDER), ParagraphChunker(), specification).run()
 
-    # De fire værktøjer, AI'en kan kalde. Tilbage til build_agents() (trin 9).
+    # De fem værktøjer, AI'en kan kalde. Tilbage til build_agents() (trin 9).
     tools = [
         RequirementsSearchTool(requirements, k=settings.SEARCH_K),
         SpecificationSearchTool(specification, k=settings.SEARCH_K),
         CodeListTool(settings.CODE_FOLDER),
         CodeReadTool(settings.CODE_FOLDER),
+        CodeChangesTool(settings.CODE_FOLDER),
     ]
     return ToolService(tools)
 
