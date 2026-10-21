@@ -54,7 +54,7 @@ def build_checkout_service() -> CheckoutService | None:
         print(f"Code: {settings.CODE_REPO}, {settings.CODE_BRANCH} at commit {repository.sync(settings.CODE_BRANCH)} in {settings.CODE_FOLDER}")
     except RuntimeError as e:
         print(f"Code: could not fetch {settings.CODE_REPO}: {e}")
-    return CheckoutService(repository, finder, settings.CODE_BRANCH)
+    return CheckoutService(repository, finder, settings.CODE_BRANCH, CodeChangesTool(settings.CODE_FOLDER))
 
 
 def build_ot_service() -> ToolService:

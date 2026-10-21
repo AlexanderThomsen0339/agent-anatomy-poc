@@ -138,6 +138,27 @@ def render_checkout(checkout: Checkout) -> str:
     return html + f'<p class="step">🔀 No open pull request matches the question, so checking <code>{escape(checkout.branch)}</code> (commit {escape(checkout.commit)})</p>'
 
 
+def render_changes(checkout: Checkout) -> str:
+    """Skridtet, der viser de seneste commits, agenten starter fra: kun besked og filer, ikke hele diff'en."""
+    commits = re.findall(r"^commit (\S+)\s+(\S+)\s+(.*)\n(.*)$", checkout.changes, re.MULTILINE)
+    if not commits:
+        return ""
+    items = "".join(f"<li><code>{escape(h)}</code> {escape(d)}, {escape(a)}: {escape(s)}</li>" for h, d, a, s in commits)
+    return f'<p class="step">🕓 Starting from the latest changes on <code>{escape(checkout.branch)}</code>:</p><ul class="step">{items}</ul>'
+
+
+def changes_first(question: str, checkout: Checkout) -> str:
+    """Spørgsmålet med de seneste commits foran, så agenten altid starter fra det, der er ændret."""
+    return (
+        f"{question}\n\n"
+        f"These are the newest commits on {checkout.branch}, the latest changes, with the changed lines:\n\n{checkout.changes}\n\n"
+        "Start from these changes. Find out which page or feature the changed code belongs to (follow who calls it), "
+        "look up that feature's user stories and test cases, read the changed files and the code that uses them, "
+        "and judge whether the requirements are still met after the changes. "
+        "If the question names a user story, check that one, but still take the changes into account."
+    )
+
+
 def render_sources(steps: list[Step], checkout: Checkout | None = None) -> str:
     """En lille, lukket boks med de dokumenter og den kode, agenten faktisk har brugt."""
     # Hvorfor ud fra skridtene og ikke fra svaret?
@@ -326,7 +347,7 @@ def make_handler(agents, writer, checkouts):
                     # Fortsæt i MCP/application/checkout_service.py.
                     try:
                         checkout = checkouts.checkout(question)
-                        self.write(render_checkout(checkout))
+                        self.write(render_checkout(checkout) + render_changes(checkout))
                     except RuntimeError as e:
                         self.write(f'<p class="step error">🔀 Could not fetch the code, so the last copy is used: {escape(str(e))}</p>')
 
@@ -335,7 +356,9 @@ def make_handler(agents, writer, checkouts):
                 key = " ".join(re.sub(r"[^\w\s-]", " ", question.lower()).split())
                 # Kun roller, der tjekker kode, kan genbruge en vurdering. Vedligehold har ingen.
                 cached = checked.get(key) if checks_code else None
-                if cached and cached[2] == fingerprint(cached[0].steps):
+                # En ny commit giver altid et nyt tjek, også hvis den ændrer en fil, agenten ikke læste sidst.
+                same_commit = not checkout or cached and cached[4] == checkout.commit
+                if cached and same_commit and cached[2] == fingerprint(cached[0].steps):
                     run, assessment = cached[0], cached[1]
                     self.write('<p class="step">♻️ The code and requirements have not changed, so the earlier check is used</p>')
                 else:
@@ -348,7 +371,7 @@ def make_handler(agents, writer, checkouts):
                         if changed and len(changed) <= MAX_CHANGED_FILES:
                             earlier = cached[0]
                     self.write("<h2>What I am doing</h2>")
-                    task = question
+                    task = changes_first(question, checkout) if checkout and checkout.changes.startswith("commit ") else question
                     if earlier:
                         self.write(
                             f'<p class="step">🔁 Checked before on commit {escape(cached[4])}, so only what changed since then is read ({len(changed)} {"file" if len(changed) == 1 else "files"}): '
