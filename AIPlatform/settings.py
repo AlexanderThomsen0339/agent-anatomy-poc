@@ -56,12 +56,13 @@ OT_SEARCH_K = 5
 # Repoet med udviklerens kode, som list_code_files og read_code_file læser i.
 # POC'en kloner det ved start og henter det nyeste før hvert kodetjek, så en udvikler kan pushe og straks spørge.
 # Sæt CODE_REPO til "" for i stedet at læse en mappe på computeren direkte (CODE_FOLDER herunder).
+
 CODE_REPO = "https://dev.azure.com/AF-IT/AI%20platform%20POC/_git/AF%20web"
 
 # Branchen, der tjekkes, når ingen åben PR passer til spørgsmålet.
 # IT's regel for git: feature-branch → PR ind i dev → dev ind i main. Har spørgsmålets user story (fx US-005)
 # en åben PR ind i CODE_BRANCH, tjekkes PR'ens branch i stedet. PR'en passer, hvis id'et står i titlen eller branch-navnet.
-CODE_BRANCH = "dev"
+CODE_BRANCH = "Dev"
 
 # Repoet er privat, så git skal have en Personal Access Token fra Azure DevOps med læseadgang til Code.
 # Skriv den i local_secrets.py ligesom Gemini-nøglen:
