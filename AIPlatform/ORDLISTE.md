@@ -1,6 +1,6 @@
 # AI Platform POC – ordliste
 
-Ordene, man ser på siden og hører under demoen, forklaret kort. Siden og svarene er på engelsk, så de engelske ord står, som de står på skærmen. Se [DEMO.md](DEMO.md) for hele forløbet.
+Ordene, man ser på siden og hører under demoen, forklaret kort. Siden er på engelsk, mens svarene og vurderingen er på dansk. Ordene står, som de står på skærmen. Se [DEMO.md](DEMO.md) for hele forløbet.
 
 ---
 
@@ -8,13 +8,13 @@ Ordene, man ser på siden og hører under demoen, forklaret kort. Siden og svare
 
 | Ord | Betyder |
 |---|---|
-| **Dommen** (*verdict*) | Første linje i svaret, fx **"Partly solved. 4 of 5 requirements met."** Den tælles af koden ud fra vurderingens linjer, ikke af AI'en, så tallet altid passer. (`Assessment.verdict` i `Agent/domain/models.py`) |
-| **Solved** | Alle krav er opfyldt (MET). |
-| **Partly solved** | Nogle krav er opfyldt, men ikke alle. |
-| **Not solved** | Ingen krav er opfyldt. |
-| **"X of Y requirements met"** | X = antal MET. Y = MET + NOT_MET + CANT_TELL. RISK tæller ikke med. |
-| **Nothing is missing.** | Står under dommen, når alt er MET og der ingen risici er. Så skrives der ikke mere. |
-| **"The business has not written down requirements for this."** | Tilføjes dommen, når kravspec ikke har krav til den user story (agenten skrev `NO_SPEC`). Agenten må ikke finde på krav. |
+| **Dommen** (*verdict*) | Første linje i svaret, fx **"Delvist løst. 4 af 5 krav er opfyldt."** Den tælles af koden ud fra vurderingens linjer, ikke af AI'en, så tallet altid passer. (`Assessment.verdict` i `Agent/domain/models.py`) |
+| **Løst** | Alle krav er opfyldt (MET). |
+| **Delvist løst** | Nogle krav er opfyldt, men ikke alle. |
+| **Ikke løst** | Ingen krav er opfyldt. |
+| **"X af Y krav er opfyldt"** | X = antal MET. Y = MET + NOT_MET + CANT_TELL. RISK tæller ikke med. |
+| **Intet mangler.** | Står under dommen, når alt er MET og der ingen risici er. Så skrives der ikke mere. |
+| **"Forretningen har ikke skrevet krav ned for dette."** | Tilføjes dommen, når kravspec ikke har krav til den user story (agenten skrev `NO_SPEC`). Agenten må ikke finde på krav. |
 | **Not finished** | Overskrift, når agenten ikke nåede frem til en vurdering: enten ramte den **step-grænsen** (svaret er så "I did not finish within the step limit."), eller den skrev ikke en vurdering, koden kunne læse. Siden viser så det, agenten nåede at skrive. Det er ikke en dom. |
 | **Answer for …** | Overskriften over selve svaret, fx *Answer for IT*. Siger, hvilken rolle svaret er skrevet til. |
 | **Error** | Noget gik galt (fx Gemini svarede ikke). Fejlen vises på siden, så demoen ikke bare hænger. |

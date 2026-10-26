@@ -53,7 +53,7 @@ class AnswerWriter:
         # Er alt opfyldt, og er der ingen risici, er der intet at skrive ud over dommen. Så spares et kald til Gemini,
         # og svaret kan ikke komme til at indeholde skillens overskrifter uden indhold.
         if all(f.status == "MET" for f in assessment.findings):
-            return assessment.verdict + "\n\nNothing is missing."
+            return assessment.verdict + "\n\nIntet mangler."
         # 20b: SKRIV SVARET: Gemini får kun vurderingen og rollens skill, ingen værktøjer.
         # Den kan derfor ikke vurdere koden igen, kun skrive om. Dommen sættes på af koden.
         findings = "\n".join(

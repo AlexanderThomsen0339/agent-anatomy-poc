@@ -57,7 +57,7 @@ OT_SEARCH_K = 5
 # POC'en kloner det ved start og henter det nyeste før hvert kodetjek, så en udvikler kan pushe og straks spørge.
 # Sæt CODE_REPO til "" for i stedet at læse en mappe på computeren direkte (CODE_FOLDER herunder).
 
-CODE_REPO = "https://dev.azure.com/AF-IT/AI%20platform%20POC/_git/AI%20platform%20POC"
+CODE_REPO = "https://dev.azure.com/AF-IT/AI%20platform%20POC/_git/AF%20web"
 
 # Branchen, der tjekkes, når ingen åben PR passer til spørgsmålet.
 # IT's regel for git: feature-branch → PR ind i dev → dev ind i main. Har spørgsmålets user story (fx US-005)
@@ -85,7 +85,7 @@ SKILLS_FOLDER = ROOT / "Skills" / "data" / "skills"
 # IT's hold, og hvad hvert hold laver. Agenterne får beskrivelsen, så de ved, hvis kode eller dokumenter de ser på.
 # Hvorfor her? IT har flere hold, og hver rolle ser ét eller flere af dem (ROLE_TEAMS herunder).
 TEAMS = {
-    "web": "builds Mit Aalborg Forsyning in Python (Flask). Its code is checked against the user stories, test cases and kravspec.",
+    "web": "builds Mit Aalborg Forsyning in .NET (C#, ASP.NET Core). Its code is checked against the user stories, test cases and kravspec.",
     "ot": "runs the plant's control systems (OT) and makes their documents, such as the signal list.",
 }
 
@@ -127,7 +127,7 @@ MAX_STEPS = 20
 # Instruktionen til kodetjek, for roller der ser TEAM. Kataloget over skills sættes på i Agent/api/build.py.
 SYSTEM_PROMPT = (
     "You help people check whether the code solves the task. The reader may not be a developer, "
-    "so answer in plain English and keep technical details in references. Always answer in English.\n"
+    "so answer in plain Danish and keep technical details in references. Always answer in Danish.\n"
     "The tasks are user stories and test cases for Mit Aalborg Forsyning, found with search_requirements. "
     "They are written in Danish, so search with ids and Danish words.\n"
     "The business requirements (kravspec) are found with search_specification. They say what the business ordered, "
