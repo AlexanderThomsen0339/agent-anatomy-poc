@@ -85,7 +85,7 @@ Ordene, man ser på siden og hører under demoen, forklaret kort. Siden er på e
 | Ord | Betyder |
 |---|---|
 | **Lag** | Løsningen har fire: **Agent** (hjernen), **MCP** (hænderne), **RAG** (hukommelsen), **Skills** (arbejdsinstrukserne). |
-| **MCP-værktøj** (*tool*) | Noget, agenten kan kalde: `search_requirements`, `search_specification`, `list_code_files`, `read_code_file`, `search_ot_documents` og `load_skill`. Agenten kan kun læse, aldrig ændre koden. |
+| **MCP-værktøj** (*tool*) | Noget, agenten kan kalde: `search_requirements`, `search_specification`, `list_code_files`, `read_code_file`, `search_ot_documents` og `load_skill` (kun når der er skills, agenten selv kan vælge). Agenten kan kun læse, aldrig ændre koden. |
 | **RAG** | *Retrieval-Augmented Generation*: AI'en slår op i dokumenter, før den svarer, i stedet for at svare ud fra hukommelsen. |
 | **Afsnit** (*chunk*) | Et stykke af et dokument, som søgningen finder: én testcase, ét krav, én række i signallisten eller én side i en PDF. |
 | **Nøgleordssøgning** (`KeywordIndex`) | Søgningen i POC'en: et afsnit får ét point pr. ord, det deler med søgningen. Finder ord, ikke betydning, så spørg med id og titel. |

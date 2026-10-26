@@ -42,7 +42,7 @@ flowchart LR
     RC[("📁 POC'ens kopi<br/>af repoet")]
 
     AS --> T1 & T2 & T3 & T4
-    AS -->|load_skill| S1 & S2
+    AS -->|i systemprompten| S1 & S2
     AW --> S3
     T1 --> X
     T2 --> K
@@ -302,7 +302,7 @@ Hver kilde har sit eget indeks, så fx de 20.000 signaler ikke skubber kravene u
 | `audience-product` | Svar til produkt/kommunikation: højst 8 linjer, almindeligt sprog, kun det, der mangler. |
 | `audience-it` | Svar til IT: fil:linje, koden, rettelsen, arkitektur og hvad der skal rettes først. |
 
-En skill er en mappe med en `SKILL.md`. Agenten ser kun navn og beskrivelse og henter selve teksten, når den har brug for den. Et nyt hold (fx FDAP) får sin egen `architecture-fdap` uden at ændre kode.
+En skill er en mappe med en `SKILL.md`. `code-review` og holdets `architecture-<hold>` skal bruges i hvert kodetjek, så koden sætter dem ind i systemprompten. Skills, agenten selv kan vælge, vises kun med navn og beskrivelse og hentes med `load_skill`, når der er brug for dem. Et nyt hold (fx FDAP) får sin egen `architecture-fdap` uden at ændre kode.
 
 ---
 
