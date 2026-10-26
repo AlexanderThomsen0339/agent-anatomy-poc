@@ -6,6 +6,7 @@ from Agent.domain.models import Assessment, Finding
 from Agent.domain.ports import AgentBrain
 
 STATUSES = ("MET", "NOT_MET", "CANT_TELL", "RISK")
+LOCATION = re.compile(r"^`?[\w./\\-]+\.\w+(:\d+)?`?$")
 
 
 def parse_assessment(text: str) -> Assessment | None:
@@ -18,8 +19,14 @@ def parse_assessment(text: str) -> Assessment | None:
     for line in text.splitlines():
         parts = [p.strip() for p in line.lstrip(" -*`").split("|")]
         if parts and parts[0].upper() in STATUSES:
+            # Syv dele: status | ids | krav | hvorfor (uden kode) | koden | hvor | ret.
+            # Er den sidste af seks dele et sted (fil:linje), har agenten udeladt den tomme rettelse på en MET-linje.
+            # Ellers mangler forklaringen uden kode, og resten læses som før.
+            if len(parts) == 6 and LOCATION.search(parts[5]):
+                parts.append("")
+            why = parts.pop(3) if len(parts) >= 7 else ""
             parts += [""] * (6 - len(parts))
-            findings.append(Finding(parts[0].upper(), *parts[1:6]))
+            findings.append(Finding(parts[0].upper(), *parts[1:6], why=why))
     findings = drop_contradictions(findings)
     if not any(f.status != "RISK" for f in findings):
         return None
@@ -57,12 +64,12 @@ class AnswerWriter:
         # 20b: SKRIV SVARET: Gemini får kun vurderingen og rollens skill, ingen værktøjer.
         # Den kan derfor ikke vurdere koden igen, kun skrive om. Dommen sættes på af koden.
         findings = "\n".join(
-            f"{f.status} | {f.ids} | {f.requirement} | {f.code} | {f.where} | {f.fix}" for f in assessment.findings
+            f"{f.status} | {f.ids} | {f.requirement} | {f.why} | {f.code} | {f.where} | {f.fix}" for f in assessment.findings
         )
         prompt = (
             f"The question was: {question}\n\n"
             f"The verdict, already written above your text: {assessment.verdict}\n\n"
-            f"The assessment (status | ids | requirement | what the code does | where | how to fix):\n{findings}"
+            f"The assessment (status | ids | requirement | why, in plain words | what the code does | where | how to fix):\n{findings}"
         )
         system = (
             self.instructions_for(role)

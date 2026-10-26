@@ -261,15 +261,30 @@ def render_document_sources(steps: list[Step]) -> str:
     )
 
 
-def render_assessment(assessment: Assessment) -> str:
-    """Vurderingen, som begge roller bygger på, i en lukket boks under kilderne."""
+def render_assessment(assessment: Assessment, role: str) -> str:
+    """Vurderingen, som begge roller bygger på, i en lukket boks under kilderne.
+
+    IT ser hvorfor i koden, hvor og hvad der skal rettes. Produkt / kommunikation ser kun hvorfor, uden kode.
+    """
     icons = {"MET": "✅", "NOT_MET": "❌", "CANT_TELL": "❓", "RISK": "⚠️"}
-    rows = "".join(
-        f"<tr><td>{icons[f.status]}</td><td>{escape(f.ids)}</td><td>{escape(f.requirement)}</td>"
-        f"<td>{escape(f.code)}</td><td><code>{escape(f.where)}</code></td><td>{escape(f.fix)}</td></tr>"
-        for f in assessment.findings
-    )
-    head = "<tr><th></th><th>Id</th><th>Kravet</th><th>Koden</th><th>Hvor</th><th>Ret</th></tr>"
+    technical = role == "it"
+
+    def why(f) -> str:
+        if technical:
+            return f.code
+        if f.status == "MET":
+            return "Virker"
+        return f.why or "Se svaret til IT"
+
+    def row(f) -> str:
+        cells = f"<td>{icons[f.status]}</td><td>{escape(f.ids)}</td><td>{escape(f.requirement)}</td><td>{escape(why(f))}</td>"
+        if technical:
+            cells += f"<td><code>{escape(f.where)}</code></td><td>{escape(f.fix)}</td>"
+        return f"<tr>{cells}</tr>"
+
+    head = "<tr><th></th><th>Id</th><th>Kravet</th><th>Hvorfor det fejler</th>"
+    head += "<th>Hvor</th><th>Ret</th></tr>" if technical else "</tr>"
+    rows = "".join(row(f) for f in assessment.findings)
     return f'<details class="sources"><summary>Vurdering pr. krav</summary><div class="table"><table>{head}{rows}</table></div></details>'
 
 
@@ -566,7 +581,7 @@ def make_handler(agents, writer, checkouts):
                     reply = writer.write(asked, assessment, role)
                     close_work()
                     self.write(render_agent(
-                        render_verdict(assessment, reply) + render_sources(run.steps, checkout) + render_assessment(assessment), who
+                        render_verdict(assessment, reply) + render_sources(run.steps, checkout) + render_assessment(assessment, role), who
                     ))
                 turns = conversation + [(question, reply)]
                 self.write(render_composer(turns, role, "Svar her" if asks_back else "Spørg videre", "Svar" if asks_back else "Spørg"))

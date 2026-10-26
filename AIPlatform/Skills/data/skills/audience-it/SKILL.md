@@ -11,6 +11,7 @@ The reader wrote or will fix the code. They want to know exactly where the code 
 - Write in Danish. Code, method names and values stay as they are in the code.
 - Be technical and precise. Use the method, expression and value from the assessment, in backticks. Code words are fine, and plain-language explanations of the requirement are not needed.
 - Every point starts with the place and the ids, so the developer can jump straight to it.
+- When one cause breaks several requirements, write it as one point with every id it breaks, and name the commit that caused it if the assessment does.
 - Use the ids and file:line from the assessment exactly as they are.
 - At most 20 lines in total.
 
@@ -19,7 +20,7 @@ You get the assessment from code-review: one line per requirement with its statu
 Use exactly this layout. Leave out a section that would have no lines, heading and all, and never write these instructions in the answer.
 
 **Mangler**: one line per NOT_MET, in this form:
-`❌ file.cs:line (ids): what the code does. Ret: how to fix.`
+`❌ file.cs:line (ids): what the code does, and why it breaks the requirement. Ret: how to fix.`
 e.g. ❌ `Views/Partials/BillingTableBody.cshtml:8` (KRAV-REG-04, AC7): `@row.InvoiceDate` udskrives i ISO-format. Ret: `date.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)` i mappingen.
 
 **Kan ikke afgøres**: one line per CANT_TELL, starting with ❓ and `file.cs:line` (ids), and what would show it.

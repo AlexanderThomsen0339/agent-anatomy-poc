@@ -111,6 +111,11 @@ class Finding:
     # Svaret til produkt bruger det ikke.
     fix: str = ""
 
+    # Hvorfor en forklaring uden kode?
+    # Kommunikation skal kunne forstå, hvorfor et krav fejler, uden at læse koden.
+    # Den skrives af agenten, der har læst koden, så svaret til produkt ikke skal gætte årsagen.
+    why: str = ""
+
 
 @dataclass(frozen=True)
 class Assessment:
