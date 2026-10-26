@@ -37,17 +37,21 @@ Before you write, check:
 - [ ] Every business requirement you kept has exactly one line. If it says the same as an AC, both ids share one line.
 - [ ] Every file:line is in a file you have read.
 
-Your text is an assessment, not an answer: it is the same whoever asks, and another step writes the answer for the reader. ALWAYS use exactly this format, one line per requirement, six parts separated by `|`. The status word stays in English; the rest is in Danish:
-`STATUS | ids | what the requirement asks | what the code does | file.cs:line | how to fix`
+Your text is an assessment, not an answer: it is the same whoever asks, and another step writes the answer for the reader. ALWAYS use exactly this format, one line per requirement, seven parts separated by `|`. The status word stays in English; the rest is in Danish:
+`STATUS | ids | what the requirement asks | why, in plain words | what the code does | file.cs:line | how to fix`
 
+- **Why, in plain words** is for a reader who never sees code, such as the communication team. Say what the customer sees or can't do, and the cause in everyday words. If a recent commit caused it, name its author and what they changed, in plain words. No code words: no file, class, method, variable, value in backticks, null, session, exception or parse. One sentence. For `MET`, write what the customer gets.
 - **What the code does** is technical and exact: the method, the expression or the value, in backticks.
 - **How to fix** is the concrete code change. Leave it empty for `MET`. For `CANT_TELL`, say what would show it (a test, a log, another repo).
 
+When one cause breaks several requirements (e.g. the page fails to load), every line still gets its own status, but they share the same why.
+
 For example:
 ```
-NOT_MET | KRAV-REG-04, AC7 | Datoer vises som dd-mm-åååå | `@row.InvoiceDate` udskriver den rå værdi i ISO-format | Views/Partials/BillingTableBody.cshtml:8 | Formatér i mappingen med `date.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)`
-CANT_TELL | AC9 | Siden indlæses på under 2 sekunder | `GetBillingOverview()` kalder regningssystemet én gang pr. kontrakt | Core/Billing/Services/BillingService.cs:30 | Mål det med en belastningstest mod testmiljøet
-RISK | - | Forretningslogik hører til i en service | `Index()` læser sessionen og filtrerer selv fakturaerne | Controllers/BillingController.cs:27 | Flyt filtreringen til `IBillingService` i Core/Billing/Services og injicér den
+NOT_MET | KRAV-REG-04, AC7 | Datoer vises som dd-mm-åååå | Kunden ser datoen som 2026-03-01 i stedet for 01-03-2026, fordi datoen vises, som den kommer fra regningssystemet | `@row.InvoiceDate` udskriver den rå værdi i ISO-format | Views/Partials/BillingTableBody.cshtml:8 | Formatér i mappingen med `date.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)`
+NOT_MET | AC1 | Kunden kan se sine regninger | Siden med regninger kan ikke åbne, fordi Katjas ændring af forbindelsen til regningssystemet i går fjernede den del, siden henter regningerne med | `GetInvoices()` findes ikke længere i `XellentManager`, så `BillingService` fejler | Core/Billing/Services/BillingService.cs:30 | Genindfør `GetInvoices()` i `XellentManager` eller kald den nye metode
+CANT_TELL | AC9 | Siden indlæses på under 2 sekunder | Det afhænger af, hvor hurtigt regningssystemet svarer, og det kan ikke ses i koden | `GetBillingOverview()` kalder regningssystemet én gang pr. kontrakt | Core/Billing/Services/BillingService.cs:30 | Mål det med en belastningstest mod testmiljøet
+RISK | - | Forretningslogik hører til i en service | Ændringer på regningssiden tager længere tid og går lettere i stykker | `Index()` læser sessionen og filtrerer selv fakturaerne | Controllers/BillingController.cs:27 | Flyt filtreringen til `IBillingService` i Core/Billing/Services og injicér den
 ```
 
 Never put a `|` inside a part. Write nothing else: no verdict, no introduction, no headings.
