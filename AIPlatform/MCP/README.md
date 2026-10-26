@@ -13,7 +13,7 @@
 | `read_code_file` | Returns one file with line numbers | Line numbers let the answer point to `file:line`. Paths outside `CODE_FOLDER` are refused. |
 | `list_recent_changes` | Shows the newest commits on the branch with their changed lines | A fresh change in a file further down (e.g. a manager) can break a task. Without the history the agent only reads the files whose names match the task. |
 
-The code-check agent's sixth tool, `load_skill`, comes from the Skills layer but uses the same `ToolSpec`, so it sees six tools of the same kind.
+`load_skill` comes from the Skills layer but uses the same `ToolSpec`, so the agent would see it as just another tool. It is only given when there are skills the agent can choose itself; `code-review` and `architecture-<TEAM>` are put in the system prompt.
 
 **Why it's there:** without tools, Gemini can only guess. MCP lets it look things up and read the code, while keeping the access small and read-only. `ToolService.call()` turns any error into a result Gemini can read, so a failing tool never crashes the agent.
 

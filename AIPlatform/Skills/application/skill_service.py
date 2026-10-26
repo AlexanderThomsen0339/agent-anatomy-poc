@@ -13,10 +13,10 @@ class SkillService:
         """Alle skills med navn og beskrivelse."""
         return self.repository.list()
 
-    def catalog(self, hide: str = "") -> str:
+    def catalog(self, hide: str | tuple[str, ...] = "") -> str:
         """Indholdsfortegnelsen som tekst. Det er det, LLM'en altid får at se.
 
-        hide skjuler skills, hvis navn starter med det, fx de skills, agenten ikke selv skal hente.
+        hide skjuler skills, hvis navn starter med det (eller et af dem), fx de skills, agenten ikke selv skal hente.
         """
         lines = [f"- {s.name}: {s.description}" for s in self.list_skills() if not (hide and s.name.startswith(hide))]
         return "\n".join(lines) or "(no skills)"
