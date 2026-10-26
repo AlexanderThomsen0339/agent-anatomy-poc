@@ -26,7 +26,7 @@ pip install -r requirements.txt
 
 ## Questions to ask
 
-The code is the demo project *Mit Aalborg Forsyning – Regninger* (.NET, C#) on the Dev branch of the Azure DevOps repo AF web.
+The code is the demo project *Mit Aalborg Forsyning – Regninger* (.NET, C#) on the Dev branch of the Azure DevOps repo AI platform POC.
 
 - Does our code solve US-005 Download faktura?
 - Does our code solve US-004 Vis betalingsstatus?
