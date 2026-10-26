@@ -28,16 +28,23 @@ def build_agents() -> dict[str, AgentService]:
         # 9: SAML: Værktøjerne til rollens hold lægges i én ToolService, og systemprompten skrives til de samme hold.
         tools, prompts = [], []
         if settings.TEAM in teams:
-            # Kodetjek: krav, kravspec, kode og load_skill. Holdet fortæller agenten, hvilken skill
-            # der beskriver, hvordan koden skal være bygget. audience-skills skjules: rollen bruges først,
-            # når svaret skrives (AnswerWriter), aldrig i vurderingen.
-            tools += list(code_tools.tools.values()) + [LoadSkillTool(skills)]
-            prompts.append(
+            # Kodetjek: krav, kravspec og kode. code-review og holdets architecture-skill skal bruges i hvert
+            # kodetjek, så koden sætter dem ind i systemprompten i stedet for at lade agenten vælge at hente dem.
+            # audience-skills skjules: rollen bruges først, når svaret skrives (AnswerWriter), aldrig i vurderingen.
+            # load_skill gives kun, hvis der er andre skills, agenten selv kan vælge.
+            tools += list(code_tools.tools.values())
+            architecture = f"architecture-{settings.TEAM}"
+            system = (
                 settings.SYSTEM_PROMPT
-                + f"\nThe code belongs to IT's {settings.TEAM} team, which {settings.TEAMS[settings.TEAM]} "
-                + f"Check it against how that team codes, in the skill architecture-{settings.TEAM}."
-                + "\n\nSkills:\n" + skills.catalog(hide="audience-")
+                + f"\nThe code belongs to IT's {settings.TEAM} team, which {settings.TEAMS[settings.TEAM]}"
+                + "\n\n" + skills.load("code-review").instructions
+                + "\n\n" + skills.load(architecture).instructions
             )
+            hide = ("audience-", "code-review", architecture)
+            if any(not s.name.startswith(hide) for s in skills.list_skills()):
+                tools.append(LoadSkillTool(skills))
+                system += "\n\nIf a task fits a skill, load it with load_skill before you start.\nSkills:\n" + skills.catalog(hide=hide)
+            prompts.append(system)
         if settings.DOCUMENT_TEAM in teams:
             # Opslag i OT's dokumenter: kun søgningen, og agenten svarer direkte.
             tools += list(ot_tools.tools.values())

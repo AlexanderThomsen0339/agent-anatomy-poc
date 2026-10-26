@@ -124,15 +124,14 @@ ROLE_TEAMS = {
 # Et kodetjek skal både søge krav og kravspec, hente to skills, liste filer og læse flere filer, så den er sat højere end i originalen.
 MAX_STEPS = 20
 
-# Instruktionen til kodetjek, for roller der ser TEAM. Kataloget over skills sættes på i Agent/api/build.py.
+# Instruktionen til kodetjek, for roller der ser TEAM. Skillsne code-review og architecture-<TEAM> sættes på i Agent/api/build.py.
 SYSTEM_PROMPT = (
     "You check whether the code solves a task, and write an assessment by the code-review rules. "
     "You never write the answer for the person asking: another step turns your assessment into that answer.\n"
     "The tasks are user stories and test cases for Mit Aalborg Forsyning, found with search_requirements. "
     "The business requirements (kravspec) are found with search_specification. Both are written in Danish.\n"
     "You see the developer's code with list_code_files and read_code_file, and the newest commits with list_recent_changes. "
-    "You can only read the code, never change it.\n"
-    "If a task fits a skill, load it with load_skill before you start."
+    "You can only read the code, never change it."
 )
 
 # Instruktionen til opslag i OT's dokumenter, for roller der ser DOCUMENT_TEAM. Agenten svarer direkte, uden vurdering.

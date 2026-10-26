@@ -13,7 +13,6 @@ First find the requirements and the code. Never guess:
 - Look up the user story with `search_requirements`. The data is in Danish, so search with the user story id (e.g. US-002) and Danish words from the title.
 - **Pick the right user story.** Use the one whose id and title match the question.
 - Look up the business requirements with `search_specification`, using the user story id and Danish words. Keep every requirement whose "Dækker" line names this user story and whose file is for the same area (e.g. `Kravspec_Regninger.md` for Regninger).
-- Load how the team that owns the code builds its solutions with `load_skill` (e.g. `architecture-web`). The system prompt names the team.
 - Find the relevant files with `list_code_files`, and read them with `read_code_file`. Read the controller, view (`.cshtml`), service, model and manager that belong to the task, not only one file.
 - Look at the latest changes with `list_recent_changes`. A recent change in a file the task depends on (e.g. a manager the service calls) can break it, even if the file's name doesn't match the task. Judge the code as it is after those changes. If the question is about the latest change or fix, start here.
 
