@@ -33,7 +33,7 @@ The code is the demo project *Mit Aalborg Forsyning – Regninger* (.NET, C#) on
 - Does our code solve US-003 Regninger er ikke længere tilgængelige?
 - Does our code solve US-001 Vis regningsoversigt?
 
-The page shows each step live, then a folded *Sources* box with the test documents, requirement files and code folder (and its git repo) the agent actually used, then a folded *Assessment* box with every requirement's status, then the answer. The agent assesses the code once per question, the same whoever asks: one line per requirement (met, not met, can't tell) plus risks. The verdict (**Løst**, **Delvist løst** or **Ikke løst**, "X af Y krav er opfyldt") is counted from that list by the code, not written by the AI. A dropdown above the question says who is asking, and the answer is written from the assessment for that role; switching role on the same question reuses the assessment. *Product / communication* gets at most 8 lines of plain Danish: how many requirements are met, only what is missing, and at most two risks from how the code is built (`architecture-web`). *IT* gets a technical answer with file:line, what can't be told from the code, architecture deviations and what to fix first.
+The page is a chat in Danish. The question is a bubble, each step shows live in *Sådan finder jeg svaret* (folded away when the answer is ready), and the answer is a bubble with the verdict as a coloured badge, a folded *Kilder* box with the test documents, requirement files and code folder (and its git repo) the agent actually used, and a folded *Vurdering pr. krav* box with every requirement's status. The field at the bottom sends with Enter, and *Ny samtale* starts over. The agent assesses the code once per question, the same whoever asks: one line per requirement (met, not met, can't tell) plus risks. The verdict (**Løst**, **Delvist løst** or **Ikke løst**, "X af Y krav er opfyldt") is counted from that list by the code, not written by the AI. A dropdown above the question says who is asking, and the answer is written from the assessment for that role; switching role on the same question reuses the assessment. *Produkt / kommunikation* gets at most 8 lines of plain Danish: how many requirements are met, only what is missing, and at most two risks from how the code is built (`architecture-web`). *IT* gets a technical answer with file:line, what can't be told from the code, architecture deviations and what to fix first.
 
 A question can be followed up. Under each answer is a field for the next question, and the page sends the earlier questions and answers with it (at most 3, in a hidden field `c`, so the server remembers nothing). If the agent can't tell which user story is meant, it doesn't guess: it writes `QUESTION:` and a short question that lists the user stories that could fit (rule in `code-review`), the page shows it under *The agent asks*, and the answer, e.g. "Den om billing", comes back with the conversation.
 
@@ -48,7 +48,7 @@ Choose *Vedligehold* or *IT* in the dropdown to ask about the documents the OT t
 - Which signals are there for kølevandspumpe 2?
 - Which document says "BERAN backup"? (quoted words are matched word for word, and the answer names the file and page)
 
-Which teams a role sees is set in `ROLE_TEAMS` in `settings.py`, and the code gives each role an agent with only those teams' tools; the AI doesn't choose. *Product / communication* sees web (code check), *Vedligehold* sees OT (only `search_ot_documents`, no code), and *IT* sees both, because IT covers both teams. IT's agent decides from the question whether it is a code check or an OT lookup. An OT lookup answers straight away with the signal, its old and new name, description, unit and range, and the *Sources* box lists the sheets it used. There is no assessment and nothing is saved, because there is no code to judge.
+Which teams a role sees is set in `ROLE_TEAMS` in `settings.py`, and the code gives each role an agent with only those teams' tools; the AI doesn't choose. *Produkt / kommunikation* sees web (code check), *Vedligehold* sees OT (only `search_ot_documents`, no code), and *IT* sees both, because IT covers both teams. IT's agent decides from the question whether it is a code check or an OT lookup. An OT lookup answers straight away with the signal, its old and new name, description, unit and range, and the *Kilder* box lists the sheets it used. There is no assessment and nothing is saved, because there is no code to judge.
 
 ## The flow
 
@@ -85,12 +85,12 @@ Each step is marked in the code with a comment like `# 13: TÆNK`. Search for `#
 | 16c | `list_code_files`: files in `CODE_FOLDER` | `MCP/infrastructure/tools/code_list_tool.py` | MCP gives read access to the code, limited to `CODE_FOLDER`. |
 | 16d | `read_code_file`: one file with line numbers | `MCP/infrastructure/tools/code_read_tool.py` | MCP returns line numbers so the answer can point to `file:line`. It refuses paths outside `CODE_FOLDER`. |
 | 16e | `search_specification`: business requirements | `MCP/infrastructure/tools/specification_search_tool.py` | The test cases say what the test team checks; the kravspec says what the business ordered. Searching for a US id returns exactly the requirements that cover it, or says none are documented, so the agent can't invent one. |
-| 16f | `search_ot_documents`: the OT team's documents (roles that see OT) | `MCP/infrastructure/tools/ot_document_search_tool.py` | Only roles whose `ROLE_TEAMS` include OT (IT and Vedligehold) get this tool (`build_ot_service()`), so Product / communication never sees OT's documents and Vedligehold never sees code. Each row of a sheet is one result. |
+| 16f | `search_ot_documents`: the OT team's documents (roles that see OT) | `MCP/infrastructure/tools/ot_document_search_tool.py` | Only roles whose `ROLE_TEAMS` include OT (IT and Vedligehold) get this tool (`build_ot_service()`), so Produkt / kommunikation never sees OT's documents and Vedligehold never sees code. Each row of a sheet is one result. |
 | 17 | Results go into the history | `agent_service.py` | The Agent layer keeps the history, so Gemini sees everything it has learned on the next step. |
 | 18 | Step shown on the page, back to 13 | `web.py` · `render_step()` | The Agent layer's page shows each step live, so the user sees what the agent is doing. |
 | 19 | Assessment ready | `agent_service.py` | The Agent layer returns Gemini's assessment text together with all the steps it took. Back in `web.py`, `parse_assessment()` (`answer_writer.py`) reads one line per requirement, and `Assessment.verdict` counts the verdict from it. If the agent didn't finish or wrote no assessment lines, the page shows what it wrote under *Not finished*. |
 | 20b | Answer written for the role | `Agent/application/answer_writer.py` · `write()` | Gemini gets only the assessment and the `audience-<role>` skill, no tools, so it can rewrite but not re-judge. The assessment is kept per question, so both roles get the same verdict. |
-| 20 | OUTPUT: answer shown on the page | `web.py` · `render_sources()`, `render_assessment()`, `render_markdown()` | The Agent layer's page shows the *Sources* and *Assessment* boxes and turns the answer into HTML for the user. |
+| 20 | OUTPUT: answer shown on the page | `web.py` · `render_sources()`, `render_assessment()`, `render_markdown()` | The Agent layer's page shows the *Kilder* and *Vurdering pr. krav* boxes and turns the answer into HTML for the user. |
 
 Gemini decides which tools to call and in which order. The code only runs the loop.
 
@@ -348,7 +348,7 @@ flowchart LR
   A -. "only in build.py" .-> S
 ```
 
-File by file. Only the three `api/build.py` files and `web.py` (for the folder paths in the *Sources* box) read `settings.py`; everything else gets its values passed in. `Agent/api/build.py` is the one place where all four layers meet.
+File by file. Only the three `api/build.py` files and `web.py` (for the folder paths in the *Kilder* box) read `settings.py`; everything else gets its values passed in. `Agent/api/build.py` is the one place where all four layers meet.
 
 ```mermaid
 flowchart TD
@@ -477,7 +477,7 @@ Everything is in `settings.py`:
 | `TEAM` | The team whose code is checked, and so which `architecture-<team>` skill it is checked against. |
 | `DOCUMENT_TEAM` | The team whose documents `search_ot_documents` searches (`ot`). |
 | `ROLES`, `DEFAULT_ROLE` | The roles in the dropdown. A role that sees web needs an `audience-<key>` skill. |
-| `ROLE_TEAMS` | Which teams each role sees, and so which tools its agent gets: Product / communication web, IT web and OT, Vedligehold OT. |
+| `ROLE_TEAMS` | Which teams each role sees, and so which tools its agent gets: Produkt / kommunikation web, IT web and OT, Vedligehold OT. |
 | `MAX_STEPS`, `SYSTEM_PROMPT`, `OT_PROMPT` | The step limit, the instruction for code checks and the instruction for OT lookups. |
 
 How the code is reviewed is in `Skills/data/skills/code-review/SKILL.md`, and the answer formats are in `audience-product/SKILL.md` and `audience-it/SKILL.md`.

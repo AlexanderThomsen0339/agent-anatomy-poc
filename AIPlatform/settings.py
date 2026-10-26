@@ -102,7 +102,7 @@ DOCUMENT_TEAM = "ot"
 # Et kodetjek skrives om til rollen med skillen audience-<rolle>, så en rolle, der ser TEAM, skal have sådan en skill.
 # Hvorfor? En udvikler vil have kode og file:line, mens en fra kommunikation vil vide, hvad kunden oplever.
 ROLES = {
-    "product": "Product / communication",
+    "product": "Produkt / kommunikation",
     "it": "IT",
     "maintenance": "Vedligehold",
 }
@@ -111,7 +111,7 @@ DEFAULT_ROLE = "product"
 # Hvilke hold hver rolle ser. Det er det, der bestemmer, hvilken agent en rolle får:
 # TEAM giver krav og kode (kodetjek), DOCUMENT_TEAM giver OT's dokumenter (search_ot_documents).
 # Hvorfor? IT dækker både web og OT, så IT ser begge. Vedligehold ser kun OT's dokumenter,
-# og Product / communication kun web's kode. AI'en vælger ikke selv; den får kun værktøjerne til rollens hold.
+# og Produkt / kommunikation kun web's kode. AI'en vælger ikke selv; den får kun værktøjerne til rollens hold.
 ROLE_TEAMS = {
     "product": ["web"],
     "it": ["web", "ot"],

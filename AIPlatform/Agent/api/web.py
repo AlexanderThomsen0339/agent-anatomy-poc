@@ -20,7 +20,7 @@ from MCP.domain.models import Checkout
 PORT = 8000
 
 HEAD = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="da"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AI Platform POC</title>
 <style>
 /* Aalborg Forsynings farver (brand colours). Mørk tilstand følger styresystemet. */
@@ -29,81 +29,128 @@ HEAD = """<!doctype html>
   --secondary: #72b5a3; --secondary-light: #edf6f3;
   --accent: #e66f45; --accent-dark: #d45c36;
   --bg: #f7f9f8; --surface: #ffffff; --text: #17383b; --muted: #5b6f71; --border: #d8e3e1;
-  --hero: #005b63; --hero-text: #ffffff; --heading: #005b63;
-  --highlight: rgba(0, 91, 99, 0.08); --code-bg: #e6f1f1; --error: #c62828; --edge: #005b63;
+  --hero: #005b63; --hero-text: #ffffff; --heading: #005b63; --user: #e6f1f1;
+  --highlight: rgba(0, 91, 99, 0.06); --code-bg: #e6f1f1; --error: #c62828; --edge: #005b63;
+  --ok: #1e7d4f; --ok-bg: #e3f4ea; --part: #9a5a00; --part-bg: #fdf0dc; --bad: #b3261e; --bad-bg: #fbe5e3;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #17383b; --surface: #1d4448; --text: #ffffff; --muted: #b9cbc9; --border: rgba(114, 181, 163, 0.30);
-    --hero: #00464d; --heading: #72b5a3;
-    --highlight: rgba(114, 181, 163, 0.12); --code-bg: rgba(114, 181, 163, 0.20); --error: #ff8a80; --edge: #72b5a3;
+    --hero: #00464d; --heading: #72b5a3; --user: #245358;
+    --highlight: rgba(114, 181, 163, 0.10); --code-bg: rgba(114, 181, 163, 0.20); --error: #ff8a80; --edge: #72b5a3;
+    --ok: #8fe0b4; --ok-bg: rgba(143, 224, 180, 0.15); --part: #ffcf7d; --part-bg: rgba(255, 207, 125, 0.15);
+    --bad: #ffaaa3; --bad-bg: rgba(255, 170, 163, 0.15);
   }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 "Segoe UI", system-ui, sans-serif; }
-header { background: var(--hero); color: var(--hero-text); padding: 1.6em 1em 1.4em; }
-header div, main { max-width: 860px; margin: 0 auto; }
-header h1 { margin: 0; font-size: 1.6em; font-weight: 600; letter-spacing: .01em; }
-header p { margin: .2em 0 0; opacity: .85; }
-main { padding: 1.5em 1em 3em; }
-form { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.2em 1.4em; margin-bottom: 1.5em; }
-form p { margin: 0 0 .9em; }
-label { font-weight: 600; color: var(--heading); }
-select, textarea { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
-select { padding: .35em .6em; margin-left: .4em; font-weight: 400; }
-textarea { width: 100%; padding: .7em .8em; resize: vertical; }
-select:focus, textarea:focus { outline: 2px solid var(--secondary); outline-offset: 1px; border-color: var(--secondary); }
-button { font: inherit; font-weight: 600; color: #fff; background: var(--accent); border: 0; border-radius: 6px; padding: .55em 1.4em; cursor: pointer; }
-button:hover { background: var(--accent-dark); }
-h2 { color: var(--heading); font-size: 1.15em; margin: 1.6em 0 .6em; }
-.step { color: var(--muted); margin: .25em 0; padding: .2em .7em; border-left: 3px solid var(--secondary); background: var(--highlight); border-radius: 0 4px 4px 0; }
-.error { color: var(--error); border-left-color: var(--error); }
+header { background: var(--hero); color: var(--hero-text); padding: 1em 16px; }
+.bar { max-width: 860px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: .6em 1.2em; }
+.bar .title { flex: 1 1 auto; }
+header h1 { margin: 0; font-size: 1.35em; font-weight: 600; }
+header p { margin: 0; opacity: .85; font-size: .9em; }
+header form { margin: 0; }
+header label { font-size: .9em; }
+header select { font: inherit; font-size: .9em; color: var(--text); background: var(--surface); border: 0; border-radius: 6px; padding: .35em .5em; margin-left: .3em; }
+header a { color: var(--hero-text); font-size: .9em; text-decoration: none; border: 1px solid rgba(255,255,255,.5); border-radius: 6px; padding: .3em .7em; }
+header a:hover { background: rgba(255,255,255,.12); }
+main { max-width: 860px; margin: 0 auto; padding: 1.2em 16px 3em; }
+.welcome { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.1em 1.3em; margin-bottom: 1em; }
+.welcome h2 { margin: 0 0 .3em; color: var(--heading); font-size: 1.1em; }
+.welcome p { margin: 0 0 .8em; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: .5em; }
+.chip { font: inherit; font-size: .9em; color: var(--heading); background: var(--highlight); border: 1px solid var(--border); border-radius: 999px; padding: .35em .9em; cursor: pointer; }
+.chip:hover { border-color: var(--secondary); }
+.msg { margin: .9em 0; }
+.msg .who { font-size: .8em; color: var(--muted); margin: 0 0 .2em; }
+.msg.user { display: flex; flex-direction: column; align-items: flex-end; }
+.msg.user .bubble { background: var(--user); border-radius: 14px 14px 4px 14px; padding: .55em 1em; max-width: 85%; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg.agent .bubble { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--edge); border-radius: 4px 14px 14px 14px; padding: .5em 1.2em; overflow-wrap: anywhere; }
+.msg.agent.asks .bubble { border-left-color: var(--accent); }
+.bubble p { margin: .5em 0; }
+.bubble ul { padding-left: 1.2em; margin: .4em 0; }
+.bubble li { margin: .35em 0; }
+code { background: var(--code-bg); border-radius: 4px; padding: .05em .35em; font-size: .9em; overflow-wrap: anywhere; }
+.verdict { display: inline-block; font-weight: 600; border-radius: 999px; padding: .2em .8em; margin: .6em 0 .2em; }
+.verdict.ok { color: var(--ok); background: var(--ok-bg); }
+.verdict.part { color: var(--part); background: var(--part-bg); }
+.verdict.bad { color: var(--bad); background: var(--bad-bg); }
+.count { color: var(--muted); margin-left: .4em; }
+details { margin: .5em 0; }
+summary { cursor: pointer; font-weight: 600; color: var(--heading); font-size: .9em; }
+.work { background: var(--highlight); border-radius: 8px; padding: .5em .9em; }
+.step { color: var(--muted); margin: .3em 0; font-size: .92em; }
+.step ul { margin: .2em 0; padding-left: 1.3em; }
+.error { color: var(--error); }
+.busy { color: var(--muted); font-size: .92em; }
+.busy::before { content: ""; display: inline-block; width: .8em; height: .8em; margin-right: .5em; border: 2px solid var(--secondary); border-top-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -1px; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .step a, .sources a { color: var(--heading); }
-.answer { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--edge); border-radius: 8px; padding: .6em 1.4em; }
-.answer li { margin: .35em 0; }
-.answer code, .sources code { background: var(--code-bg); border-radius: 4px; padding: .05em .35em; font-size: .9em; }
-.sources { color: var(--muted); font-size: .85em; margin-top: 1em; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .5em 1em; }
-.sources summary { cursor: pointer; font-weight: 600; color: var(--heading); }
-.sources code { word-break: break-all; }
+.sources { color: var(--muted); font-size: .85em; border-top: 1px solid var(--border); padding-top: .4em; }
+.sources ul { padding-left: 1.2em; }
+.table { overflow-x: auto; }
 .sources table { border-collapse: collapse; margin-top: .5em; }
-.sources td { padding: .35em .5em; vertical-align: top; border-top: 1px solid var(--border); }
+.sources td, .sources th { padding: .35em .5em; vertical-align: top; border-top: 1px solid var(--border); text-align: left; }
+.composer { position: sticky; bottom: 0; background: var(--bg); padding: .8em 0 .4em; margin-top: 1em; }
+.composer form { display: flex; gap: .5em; align-items: flex-end; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: .5em; }
+textarea { flex: 1; font: inherit; color: var(--text); background: transparent; border: 0; padding: .45em .5em; resize: none; min-height: 2.6em; }
+textarea:focus { outline: none; }
+.composer form:focus-within { border-color: var(--secondary); box-shadow: 0 0 0 2px rgba(114, 181, 163, 0.35); }
+.hint { font-size: .78em; color: var(--muted); margin: .3em .2em 0; }
+button.send { font: inherit; font-weight: 600; color: #fff; background: var(--accent); border: 0; border-radius: 8px; padding: .55em 1.2em; cursor: pointer; }
+button.send:hover { background: var(--accent-dark); }
+button.send:disabled { opacity: .6; cursor: progress; }
 pre { white-space: pre-wrap; background: var(--code-bg); padding: 1em; border-radius: 6px; }
 </style></head><body>
-<header><div><h1>AI Platform POC</h1><p>{use_case}</p></div></header>
+<header><div class="bar">
+<div class="title"><h1>AI Platform POC</h1><p>{use_case}</p></div>
+<form method="get" action="/"><label>Jeg er <select name="role" onchange="if (this.selectedOptions[0].dataset.use != '{use_case_key}') { this.form.q.value = ''; this.form.c.value = ''; } this.form.submit()">{roles}</select></label>{keep}</form>
+<a href="/?role={role}">Ny samtale</a>
+</div></header>
 <main>
-<form method="get" action="/">
-<p><label>I am <select name="role" onchange="if (this.selectedOptions[0].dataset.use != '{use_case_key}') this.form.q.value = ''; this.form.submit()">{roles}</select></label></p>
-<p><textarea name="q" rows="3" placeholder="{placeholder}">{question}</textarea></p>
-<p><button>{button}</button></p>
-</form>
 """
+
+
+# Lidt JavaScript til sidst på siden. Siden virker også uden.
+# Enter sender (Shift+Enter giver en ny linje), knappen låses, så man ikke sender to gange, og et eksempel kan klikkes.
+SCRIPT = """<script>
+for (const form of document.querySelectorAll(".composer form")) {
+  const box = form.querySelector("textarea"), send = form.querySelector("button");
+  box.addEventListener("keydown", e => { if (e.key == "Enter" && !e.shiftKey && box.value.trim()) { e.preventDefault(); form.requestSubmit(); } });
+  form.addEventListener("submit", e => { if (!box.value.trim()) { e.preventDefault(); return; } send.disabled = true; send.textContent = "Arbejder …"; });
+}
+for (const chip of document.querySelectorAll(".chip")) {
+  chip.addEventListener("click", () => { const box = document.querySelector(".composer textarea"); box.value = chip.textContent; box.form.requestSubmit(); });
+}
+</script>"""
 
 
 # Hvad hvert værktøj hedder for en bruger, der ikke kender værktøjerne.
 FRIENDLY = {
-    "load_skill": lambda a: f"📘 Loading the {a.get('name', '')} rules",
-    "search_requirements": lambda a: f"🔎 Looking up the test cases: {a.get('query', '')}",
-    "search_specification": lambda a: f"📋 Looking up the business requirements: {a.get('query', '')}",
-    "list_code_files": lambda a: "📂 Listing the project's files",
-    "read_code_file": lambda a: f"📄 Reading {a.get('path', '').replace(chr(92), '/').split('/')[-1]}",
-    "list_recent_changes": lambda a: "🕓 Looking at the latest changes on the branch",
-    "search_ot_documents": lambda a: f"🔎 Searching OT's documents: {a.get('query', '')}",
+    "load_skill": lambda a: f"📘 Henter reglerne i {a.get('name', '')}",
+    "search_requirements": lambda a: f"🔎 Slår testcases op: {a.get('query', '')}",
+    "search_specification": lambda a: f"📋 Slår forretningens krav op: {a.get('query', '')}",
+    "list_code_files": lambda a: "📂 Ser projektets filer igennem",
+    "read_code_file": lambda a: f"📄 Læser {a.get('path', '').replace(chr(92), '/').split('/')[-1]}",
+    "list_recent_changes": lambda a: "🕓 Ser de seneste ændringer på branchen",
+    "search_ot_documents": lambda a: f"🔎 Søger i OT's dokumenter: {a.get('query', '')}",
 }
 
-# Teksten på siden for hvert hold: overskrift og eksempel i feltet. En rolle, der ser flere hold, får dem alle.
-# Hvorfor? Vedligehold tjekker ikke kode, så "Does our code solve US-001?" ville forvirre.
+# Teksten på siden for hvert hold: overskrift, hvad man kan spørge om, og eksempler, man kan klikke på.
+# En rolle, der ser flere hold, får dem alle.
+# Hvorfor? Vedligehold tjekker ikke kode, så "Løser koden US-004?" ville forvirre.
 PAGE_TEXT = {
-    settings.TEAM: ("Code Check", "Does our code solve US-001?"),
-    settings.DOCUMENT_TEAM: ("OT documents", "Which signal is Kedel Fyr Nødud in 800xA?"),
+    settings.TEAM: ("Kodetjek", "om koden løser en user story", ["Løser koden US-004?", "Er kravene til regninger overholdt?"]),
+    settings.DOCUMENT_TEAM: ("OT-dokumenter", "om noget i OT's dokumenter", ["Hvilket signal er Kedel Fyr Nødud i 800xA?"]),
 }
 
 
-def page_text(teams: list[str]) -> tuple[str, str, str]:
-    """Overskrift, eksempel og knap til siden for en rolle, der ser de givne hold."""
+def page_text(teams: list[str]) -> tuple[str, str, list[str]]:
+    """Overskrift, hvad man kan spørge om, og eksempler til siden for en rolle, der ser de givne hold."""
     heading = " · ".join(PAGE_TEXT[t][0] for t in teams)
-    placeholder = " Or: ".join(PAGE_TEXT[t][1] for t in teams)
-    button = "Check the code" if teams == [settings.TEAM] else "Ask"
-    return heading, placeholder, button
+    topics = " eller ".join(PAGE_TEXT[t][1] for t in teams)
+    examples = [e for t in teams for e in PAGE_TEXT[t][2]]
+    return heading, topics, examples
 
 
 def render_step(steps: list[Step]) -> str:
@@ -113,7 +160,7 @@ def render_step(steps: list[Step]) -> str:
         a, o = step.action, step.observation
         label = FRIENDLY.get(a.tool, lambda _: f"⚙️ {a.tool}")(a.arguments)
         css = "step error" if o.is_error else "step"
-        html += f'<div class="{css}">{escape(label)}{" (failed)" if o.is_error else ""}</div>'
+        html += f'<p class="{css}">{escape(label)}{" (fejlede)" if o.is_error else ""}</p>'
     return html
 
 
@@ -133,10 +180,10 @@ def render_checkout(checkout: Checkout) -> str:
     pr = checkout.pull_request
     if pr:
         return html + (
-            f'<p class="step">🔀 Checking pull request <a href="{escape(pr.url)}">{pr.id} "{escape(pr.title)}"</a> '
+            f'<p class="step">🔀 Tjekker pull request <a href="{escape(pr.url)}">{pr.id} "{escape(pr.title)}"</a> '
             f'(<code>{escape(pr.branch)}</code> → {escape(settings.CODE_BRANCH)}), commit {escape(checkout.commit)}</p>'
         )
-    return html + f'<p class="step">🔀 No open pull request matches the question, so checking <code>{escape(checkout.branch)}</code> (commit {escape(checkout.commit)})</p>'
+    return html + f'<p class="step">🔀 Ingen åben pull request passer til spørgsmålet, så jeg tjekker <code>{escape(checkout.branch)}</code> (commit {escape(checkout.commit)})</p>'
 
 
 def render_changes(checkout: Checkout) -> str:
@@ -145,7 +192,7 @@ def render_changes(checkout: Checkout) -> str:
     if not commits:
         return ""
     items = "".join(f"<li><code>{escape(h)}</code> {escape(d)}, {escape(a)}: {escape(s)}</li>" for h, d, a, s in commits)
-    return f'<p class="step">🕓 Starting from the latest changes on <code>{escape(checkout.branch)}</code>:</p><ul class="step">{items}</ul>'
+    return f'<div class="step">🕓 Starter fra de seneste ændringer på <code>{escape(checkout.branch)}</code>:<ul>{items}</ul></div>'
 
 
 def changes_first(question: str, checkout: Checkout) -> str:
@@ -183,18 +230,18 @@ def render_sources(steps: list[Step], checkout: Checkout | None = None) -> str:
         return f"<p>{label}</p><ul>{items}</ul>" if items else ""
 
     repo = code_repo(Path(settings.CODE_FOLDER))
-    code = f"<p>Code: <code>{escape(str(settings.CODE_FOLDER))}</code>"
+    code = f"<p>Kode: <code>{escape(str(settings.CODE_FOLDER))}</code>"
     code += f" (repo <code>{escape(repo)}</code>)" if repo else ""
     if checkout:
         # Hvilken branch og commit koden kom fra, og PR'en, hvis det var en PR's branch.
-        code += f", branch <code>{escape(checkout.branch)}</code> at commit <code>{escape(checkout.commit)}</code>"
+        code += f", branch <code>{escape(checkout.branch)}</code> ved commit <code>{escape(checkout.commit)}</code>"
         if checkout.pull_request:
-            code += f', from <a href="{escape(checkout.pull_request.url)}">pull request {checkout.pull_request.id}</a>'
+            code += f', fra <a href="{escape(checkout.pull_request.url)}">pull request {checkout.pull_request.id}</a>'
     code += "</p>"
     return (
-        '<details class="sources"><summary>Sources</summary>'
-        + rows("Test cases:", Path(settings.DATA_FOLDER), test_files)
-        + rows("Business requirements:", Path(settings.SPEC_FOLDER), spec_files)
+        '<details class="sources"><summary>Kilder</summary>'
+        + rows("Testcases:", Path(settings.DATA_FOLDER), test_files)
+        + rows("Forretningens krav:", Path(settings.SPEC_FOLDER), spec_files)
         + code
         + "".join(f"<li><code>{escape(f)}</code></li>" for f in code_files).join(("<ul>", "</ul>"))
         + "</details>"
@@ -207,10 +254,10 @@ def render_document_sources(steps: list[Step]) -> str:
     for step in steps:
         if step.action.tool == "search_ot_documents" and not step.observation.is_error:
             sheets |= set(re.findall(r"^\[(.+?)\]", step.observation.content, re.MULTILINE))
-    items = "".join(f"<li><code>{escape(s)}</code></li>" for s in sorted(sheets)) or "<li>None found</li>"
+    items = "".join(f"<li><code>{escape(s)}</code></li>" for s in sorted(sheets)) or "<li>Ingen fundet</li>"
     return (
-        '<details class="sources"><summary>Sources</summary>'
-        f"<p>Documents from the {escape(settings.DOCUMENT_TEAM.upper())} team in <code>{escape(str(settings.OT_FOLDER))}</code>:</p><ul>{items}</ul></details>"
+        '<details class="sources"><summary>Kilder</summary>'
+        f"<p>Dokumenter fra {escape(settings.DOCUMENT_TEAM.upper())}-holdet i <code>{escape(str(settings.OT_FOLDER))}</code>:</p><ul>{items}</ul></details>"
     )
 
 
@@ -222,7 +269,8 @@ def render_assessment(assessment: Assessment) -> str:
         f"<td>{escape(f.code)}</td><td><code>{escape(f.where)}</code></td><td>{escape(f.fix)}</td></tr>"
         for f in assessment.findings
     )
-    return f'<details class="sources"><summary>Assessment</summary><table>{rows}</table></details>'
+    head = "<tr><th></th><th>Id</th><th>Kravet</th><th>Koden</th><th>Hvor</th><th>Ret</th></tr>"
+    return f'<details class="sources"><summary>Vurdering pr. krav</summary><div class="table"><table>{head}{rows}</table></div></details>'
 
 
 def fingerprint(steps: list[Step]) -> str:
@@ -295,25 +343,44 @@ def with_conversation(question: str, conversation: list[tuple[str, str]]) -> str
     return f"Earlier in this conversation:\n{earlier}\n\nThe user now says: {question}\nRead it in the light of the earlier conversation."
 
 
+def render_user(question: str) -> str:
+    """Et spørgsmål fra brugeren som en boble til højre."""
+    return f'<div class="msg user"><div class="bubble">{escape(question)}</div></div>'
+
+
+def render_agent(html: str, who: str = "AI", css: str = "") -> str:
+    """Et svar fra agenten som en boble til venstre."""
+    return f'<div class="msg agent {css}"><div class="who">{escape(who)}</div><div class="bubble">{html}</div></div>'
+
+
 def render_conversation(conversation: list[tuple[str, str]]) -> str:
-    """Den tidligere samtale øverst, så man kan se, hvad der allerede er sagt."""
-    if not conversation:
-        return ""
-    turns = "".join(
-        f'<p class="step">🧑 {escape(q)}</p><div class="answer">{render_markdown(a)}</div>' for q, a in conversation
-    )
-    return f"<h2>Earlier in this conversation</h2>{turns}"
+    """Den tidligere samtale som bobler, så man kan se, hvad der allerede er sagt."""
+    return "".join(render_user(q) + render_agent(render_markdown(a)) for q, a in conversation)
 
 
-def render_follow_up(conversation: list[tuple[str, str]], question: str, reply: str, role: str, button: str) -> str:
-    """En formular under svaret, der fortsætter samtalen: samtalen indtil nu ligger i det skjulte felt c."""
-    turns = (conversation + [(question, reply)])[-MAX_TURNS:]
+def render_verdict(assessment: Assessment, answer: str) -> str:
+    """Dommen som et farvet mærke over svaret: grøn, når alt er opfyldt, orange for delvist og rød for ingenting."""
+    met = assessment.count("MET")
+    total = met + assessment.count("NOT_MET") + assessment.count("CANT_TELL")
+    css = "ok" if met == total else "bad" if met == 0 else "part"
+    word, _, rest = assessment.verdict.partition(". ")
+    body = answer[len(assessment.verdict):] if answer.startswith(assessment.verdict) else answer
     return (
-        '<form method="get" action="/">'
+        f'<span class="verdict {css}">{escape(word.strip("*"))}</span><span class="count">{escape(rest)}</span>'
+        + render_markdown(body)
+    )
+
+
+def render_composer(turns: list[tuple[str, str]], role: str, placeholder: str, button: str) -> str:
+    """Feltet nederst på siden. Samtalen indtil nu ligger i det skjulte felt c og sendes med næste spørgsmål."""
+    turns = turns[-MAX_TURNS:]
+    return (
+        '<div class="composer"><form method="get" action="/">'
         f'<input type="hidden" name="role" value="{escape(role)}">'
-        f'<input type="hidden" name="c" value="{escape(json.dumps(turns, ensure_ascii=False))}">'
-        '<p><textarea name="q" rows="2" placeholder="Answer or ask a follow-up"></textarea></p>'
-        f"<p><button>{escape(button)}</button></p></form>"
+        f'<input type="hidden" name="c" value="{escape(json.dumps(turns, ensure_ascii=False)) if turns else ""}">'
+        f'<textarea name="q" rows="1" placeholder="{escape(placeholder)}" aria-label="Dit spørgsmål" autofocus></textarea>'
+        f'<button class="send">{escape(button)}</button></form>'
+        '<p class="hint">Enter sender · Shift+Enter giver en ny linje</p></div>'
     )
 
 
@@ -356,12 +423,12 @@ def make_handler(agents, writer, checkouts):
                 return
             query = parse_qs(url.query)
             question = query.get("q", [""])[0].strip()
-            # Den tidligere samtale, hvis spørgsmålet kommer fra formularen under et svar.
+            # Den tidligere samtale, hvis spørgsmålet kommer fra feltet under et svar.
             conversation = read_conversation(query.get("c", [""])[0]) if question else []
             # Det, agenten og skribenten får: spørgsmålet med samtalen foran.
             asked = with_conversation(question, conversation)
             # Rollen kommer fra dropdownen. Den står i adressen, så den er valgt igen ved næste spørgsmål.
-            # Skifter man til en rolle, der ser andre hold, tømmes feltet, fordi spørgsmålet måske ikke giver mening der.
+            # Skifter man til en rolle, der ser andre hold, starter en ny samtale, fordi spørgsmålet måske ikke giver mening der.
             role = query.get("role", [settings.DEFAULT_ROLE])[0]
             if role not in settings.ROLES:
                 role = settings.DEFAULT_ROLE
@@ -381,21 +448,46 @@ def make_handler(agents, writer, checkouts):
                 f'{" selected" if key == role else ""}>{escape(label)}</option>'
                 for key, label in settings.ROLES.items()
             )
-            heading, placeholder, button = page_text(teams)
+            # Skifter man rolle, sendes det samme spørgsmål og den samme samtale igen, så svaret til den anden rolle
+            # hentes med det samme, og vurderingen genbruges.
+            keep = (
+                f'<input type="hidden" name="q" value="{escape(question)}">'
+                f'<input type="hidden" name="c" value="{escape(json.dumps(conversation, ensure_ascii=False)) if conversation else ""}">'
+            )
+            heading, topics, examples = page_text(teams)
             self.write(
-                HEAD.replace("{roles}", roles).replace("{question}", "" if conversation else escape(question))
-                .replace("{use_case_key}", "+".join(teams)).replace("{use_case}", heading).replace("{placeholder}", placeholder).replace("{button}", button)
+                HEAD.replace("{roles}", roles).replace("{keep}", keep).replace("{role}", escape(role))
+                .replace("{use_case_key}", "+".join(teams)).replace("{use_case}", heading)
             )
 
             if not question:
-                self.write("</main></body></html>")
+                # Ingen spørgsmål endnu: sig, hvad man kan spørge om, og vis eksempler, man kan klikke på.
+                chips = "".join(f'<button type="button" class="chip">{escape(e)}</button>' for e in examples)
+                self.write(
+                    f'<div class="welcome"><h2>Hvad vil du vide?</h2><p>Spørg {escape(topics)}. '
+                    f'Svaret skrives til {escape(settings.ROLES[role])}.</p><div class="chips">{chips}</div></div>'
+                    + render_composer([], role, f"Fx: {examples[0]}", "Spørg") + SCRIPT + "</main></body></html>"
+                )
                 return
+
+            self.write(render_conversation(conversation) + render_user(question))
+            # Skridtene står i en boks, der er åben, mens agenten arbejder, og foldes sammen, når svaret er klar.
+            self.write('<details class="work" id="work" open><summary>Sådan finder jeg svaret</summary>')
+            self.write('<p class="busy" id="busy">Arbejder …</p>')
+            work_open = True
+
+            def close_work() -> None:
+                nonlocal work_open
+                if work_open:
+                    self.write('</details><script>work.open = false; busy.remove()</script>')
+                    work_open = False
 
             # Et kodetjek holder låsen, til svaret er skrevet, så et andet spørgsmål ikke skifter branch imens.
             holds_code = checks_code and checkouts is not None
             if holds_code:
                 checkouts.lock.acquire()
             checkout = None
+            turns = conversation
             try:
                 if holds_code:
                     # Vælg branch (en PR, der passer til spørgsmålet, ellers dev) og hent det nyeste, så en udvikler kan pushe og straks spørge.
@@ -406,7 +498,7 @@ def make_handler(agents, writer, checkouts):
                         checkout = checkouts.checkout(" ".join([q for q, _ in conversation] + [question]))
                         self.write(render_checkout(checkout) + render_changes(checkout))
                     except RuntimeError as e:
-                        self.write(f'<p class="step error">🔀 Could not fetch the code, so the last copy is used: {escape(str(e))}</p>')
+                        self.write(f'<p class="step error">🔀 Kunne ikke hente koden, så den sidste kopi bruges: {escape(str(e))}</p>')
 
                 # Samme spørgsmål med andre store/små bogstaver, mellemrum eller tegnsætning genbruger vurderingen,
                 # så længe koden og kravene er uændrede. Er en fil rettet, tjekkes koden igen.
@@ -417,7 +509,7 @@ def make_handler(agents, writer, checkouts):
                 same_commit = not checkout or cached and cached[4] == checkout.commit
                 if cached and same_commit and cached[2] == fingerprint(cached[0].steps):
                     run, assessment = cached[0], cached[1]
-                    self.write('<p class="step">♻️ The code and requirements have not changed, so the earlier check is used</p>')
+                    self.write('<p class="step">♻️ Koden og kravene er ikke ændret, så det tidligere tjek bruges</p>')
                 else:
                     # Hvorfor kun de seneste ændringer?
                     # Er koden tjekket før på samme branch, og er kravene uændrede, er det kun de nye commits, der kan ændre svaret.
@@ -427,11 +519,10 @@ def make_handler(agents, writer, checkouts):
                         changed = checkouts.changed_since(cached[4])
                         if changed and len(changed) <= MAX_CHANGED_FILES:
                             earlier = cached[0]
-                    self.write(render_conversation(conversation) + "<h2>What I am doing</h2>")
                     task = changes_first(asked, checkout) if checkout and checkout.changes.startswith("commit ") else asked
                     if earlier:
                         self.write(
-                            f'<p class="step">🔁 Checked before on commit {escape(cached[4])}, so only what changed since then is read ({len(changed)} {"file" if len(changed) == 1 else "files"}): '
+                            f'<p class="step">🔁 Tjekket før på commit {escape(cached[4])}, så kun det, der er ændret siden, læses ({len(changed)} {"fil" if len(changed) == 1 else "filer"}): '
                             + ", ".join(f"<code>{escape(f)}</code>" for f in changed) + "</p>"
                         )
                         task = changes_question(asked, earlier.answer, cached[4], changed)
@@ -450,42 +541,44 @@ def make_handler(agents, writer, checkouts):
                 looked_up_ot = any(s.action.tool == "search_ot_documents" for s in run.steps)
                 # Det, der står i svaret, og som næste spørgsmål i samtalen får med.
                 reply, asks_back = run.answer, False
+                who = f"AI · svar til {settings.ROLES[role]}"
                 if not assessment and run.finished and run.answer.strip().upper().startswith(CLARIFY):
                     # Agenten ved ikke, hvilken user story der menes, og spørger i stedet for at gætte.
-                    # Svaret sendes med samtalen i formularen herunder.
+                    # Svaret sendes med samtalen i feltet herunder.
                     reply, asks_back = run.answer.strip()[len(CLARIFY):].strip(), True
-                    self.write(f'<h2>The agent asks</h2><div class="answer">{render_markdown(reply)}</div>')
+                    close_work()
+                    self.write(render_agent(render_markdown(reply), "AI spørger", "asks"))
                 elif not assessment and run.finished and looked_up_ot:
                     # Et opslag i OT's dokumenter: der er ingen kode at vurdere, så agentens svar vises direkte.
-                    self.write(
-                        render_document_sources(run.steps)
-                        + f'<h2>Answer for {escape(settings.ROLES[role])}</h2>'
-                        + f'<div class="answer">{render_markdown(run.answer)}</div>'
-                    )
+                    close_work()
+                    self.write(render_agent(render_markdown(run.answer) + render_document_sources(run.steps), who))
                 elif not assessment:
                     # Agenten blev ikke færdig eller skrev ikke en vurdering. Vis det, den skrev.
-                    self.write(f'<h2>Not finished</h2>{render_sources(run.steps, checkout)}<div class="answer">{render_markdown(run.answer)}</div>')
+                    close_work()
+                    self.write(render_agent(
+                        '<p class="error"><b>Ikke færdig.</b> Agenten nåede ikke frem til en vurdering. Prøv at spørge igen, gerne med user storyens id.</p>'
+                        + render_markdown(run.answer) + render_sources(run.steps, checkout), who
+                    ))
                 else:
                     # 20: OUTPUT: Vurderingen skrives om til et svar til rollen, laves om fra markdown til HTML og sendes. SLUT.
-                    # Kilderne og vurderingen står øverst i lukkede bokse, så de ikke fylder, men kan foldes ud.
-                    self.write('<p class="step">✍️ Writing the answer</p>')
-                    answer = writer.write(asked, assessment, role)
-                    reply = answer
-                    # Overskriften siger, hvem svaret er til. Skifter man rolle i dropdownen, hentes svaret til den anden rolle
-                    # med det samme, og vurderingen genbruges.
-                    self.write(
-                        render_sources(run.steps, checkout) + render_assessment(assessment)
-                        + f'<h2>Answer for {escape(settings.ROLES[role])}</h2>'
-                        + f'<div class="answer">{render_markdown(answer)}</div>'
-                    )
-                self.write(render_follow_up(conversation, question, reply, role, "Answer" if asks_back else "Ask"))
+                    # Dommen står som et farvet mærke øverst, og kilderne og vurderingen står i lukkede bokse under svaret.
+                    self.write('<p class="step">✍️ Skriver svaret</p>')
+                    reply = writer.write(asked, assessment, role)
+                    close_work()
+                    self.write(render_agent(
+                        render_verdict(assessment, reply) + render_sources(run.steps, checkout) + render_assessment(assessment), who
+                    ))
+                turns = conversation + [(question, reply)]
+                self.write(render_composer(turns, role, "Svar her" if asks_back else "Spørg videre", "Svar" if asks_back else "Spørg"))
             except Exception as e:
                 # Fejlen vises på siden, så demoen ikke bare hænger.
-                self.write(f'<h2 class="error">Error</h2><pre>{escape(repr(e))}</pre>')
+                close_work()
+                self.write(render_agent(f'<p class="error"><b>Fejl.</b></p><pre>{escape(repr(e))}</pre>', "AI", "asks"))
+                self.write(render_composer(turns, role, "Prøv igen", "Spørg"))
             finally:
                 if holds_code:
                     checkouts.lock.release()
-            self.write("</main></body></html>")
+            self.write(SCRIPT + "</main></body></html>")
 
         def write(self, html: str) -> None:
             self.wfile.write(html.encode("utf-8"))
