@@ -190,7 +190,7 @@ flowchart LR
     A["Vurdering fra agenten<br/>MET / NOT_MET / CANT_TELL / RISK<br/>én linje pr. krav"] --> CLEAN["Ryd op<br/>(fjern ✅, der citerer<br/>samme kode som en ❌)"]
     CLEAN --> V["Dom tælles af koden<br/>'Delvist løst. 4 of 5 met.'"]
     V --> ROLE{"Rolle"}
-    ROLE -->|Produkt / kommunikation| P["audience-product<br/>Højst 8 linjer, almindeligt sprog,<br/>kun det, der mangler"]
+    ROLE -->|Produkt / kommunikation| P["audience-product<br/>Kort svar i hele sætninger,<br/>hvad kunden oplever og hvorfor"]
     ROLE -->|IT| I["audience-it<br/>Fil:linje, kode, rettelse,<br/>arkitektur, hvad først"]
     V -.->|alt opfyldt| N["Kun dommen +<br/>'Nothing is missing.'"]
 ```
@@ -299,7 +299,7 @@ Hver kilde har sit eget indeks, så fx de 20.000 signaler ikke skubber kravene u
 |---|---|
 | `code-review` | Hvordan koden vurderes: slå krav op, læs koden, én linje pr. krav med status, aldrig gætte. |
 | `architecture-web` | Hvordan web-holdet koder: routes → services → managers, interfaces, dependency injection, kvalitet. Fast og uafhængig af projektet. |
-| `audience-product` | Svar til produkt/kommunikation: højst 8 linjer, almindeligt sprog, kun det, der mangler. |
+| `audience-product` | Svar til produkt/kommunikation: kort svar i hele sætninger som en kollega: svaret først, så hvad kunden oplever og hvorfor, og om testen kan gennemføres. |
 | `audience-it` | Svar til IT: fil:linje, koden, rettelsen, arkitektur og hvad der skal rettes først. |
 
 En skill er en mappe med en `SKILL.md`. `code-review` og holdets `architecture-<hold>` skal bruges i hvert kodetjek, så koden sætter dem ind i systemprompten. Skills, agenten selv kan vælge, vises kun med navn og beskrivelse og hentes med `load_skill`, når der er brug for dem. Et nyt hold (fx FDAP) får sin egen `architecture-fdap` uden at ændre kode.
