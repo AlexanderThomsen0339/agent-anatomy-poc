@@ -16,6 +16,8 @@ Ordene, man ser på siden og hører under demoen, forklaret kort. Siden er på e
 | **Intet mangler.** | Står under dommen, når alt er MET og der ingen risici er. Så skrives der ikke mere. |
 | **"Forretningen har ikke skrevet krav ned for dette."** | Tilføjes dommen, når kravspec ikke har krav til den user story (agenten skrev `NO_SPEC`). Agenten må ikke finde på krav. |
 | **Not finished** | Overskrift, når agenten ikke nåede frem til en vurdering: enten ramte den **step-grænsen** (svaret er så "I did not finish within the step limit."), eller den skrev ikke en vurdering, koden kunne læse. Siden viser så det, agenten nåede at skrive. Det er ikke en dom. |
+| **The agent asks** | Agenten ved ikke, hvilken user story der menes, og spørger i stedet for at gætte (den skrev `QUESTION:`). Man svarer i feltet under, og svaret sendes med samtalen. Det er ikke en dom. |
+| **Earlier in this conversation** | De tidligere spørgsmål og svar i samme samtale (højst 3). Siden sender dem med næste spørgsmål, så agenten kan forstå fx "Den om billing". |
 | **Answer for …** | Overskriften over selve svaret, fx *Answer for IT*. Siger, hvilken rolle svaret er skrevet til. |
 | **Error** | Noget gik galt (fx Gemini svarede ikke). Fejlen vises på siden, så demoen ikke bare hænger. |
 
