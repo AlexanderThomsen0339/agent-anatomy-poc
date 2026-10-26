@@ -130,8 +130,8 @@ class Assessment:
         """Dommen regnes ud her og ikke af AI'en, så tallet altid passer med listen."""
         met = self.count("MET")
         total = met + self.count("NOT_MET") + self.count("CANT_TELL")
-        word = "Solved" if met == total else "Not solved" if met == 0 else "Partly solved"
-        line = f"**{word}**. {met} of {total} requirements met."
+        word = "Løst" if met == total else "Ikke løst" if met == 0 else "Delvist løst"
+        line = f"**{word}**. {met} af {total} krav er opfyldt."
         if self.no_spec:
-            line += " The business has not written down requirements for this."
+            line += " Forretningen har ikke skrevet krav ned for dette."
         return line

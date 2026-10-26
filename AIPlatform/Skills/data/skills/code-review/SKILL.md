@@ -31,17 +31,17 @@ Give every KRAV id and every acceptance criterion exactly one line with one stat
 Add a `RISK` line for each serious way the code differs from how the team builds (the architecture skill), at most 3.
 If `search_specification` found no business requirement for the user story, add a line with only `NO_SPEC`.
 
-Each line has six parts separated by `|`, in English:
+Each line has six parts separated by `|`. Keep the status word in English and write the rest in Danish:
 `STATUS | ids | what the requirement asks | what the code does | file.cs:line | how to fix`
 
-- **What the code does** is technical and exact: the method, the expression or the value, in backticks, e.g. ``@row.InvoiceAmount`` is printed without a format.
+- **What the code does** is technical and exact: the method, the expression or the value, in backticks, e.g. ``@row.InvoiceAmount`` udskrives uden format.
 - **How to fix** is the concrete code change, e.g. use ``amount.ToString("N2", new CultureInfo("da-DK"))``. Leave it empty for `MET`. For `CANT_TELL`, say what would show it (a test, a log, another repo).
 
 For example:
 ```
-NOT_MET | KRAV-REG-04, AC7 | Dates are shown as dd-mm-yyyy | `@row.InvoiceDate` prints the raw value in ISO format | Views/Partials/BillingTableBody.cshtml:8 | Format in the mapping with `date.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)`
-CANT_TELL | AC9 | The page loads within 2 seconds | `GetBillingOverview()` calls the billing system once per contract | Core/Billing/Services/BillingService.cs:30 | Measure with a load test against the test environment
-RISK | - | Business logic belongs in a service | `Index()` reads the session and filters invoices itself | Controllers/BillingController.cs:27 | Move the filtering to `IBillingService` in Core/Billing/Services and inject it
+NOT_MET | KRAV-REG-04, AC7 | Datoer vises som dd-mm-åååå | `@row.InvoiceDate` udskriver den rå værdi i ISO-format | Views/Partials/BillingTableBody.cshtml:8 | Formatér i mappingen med `date.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)`
+CANT_TELL | AC9 | Siden indlæses på under 2 sekunder | `GetBillingOverview()` kalder regningssystemet én gang pr. kontrakt | Core/Billing/Services/BillingService.cs:30 | Mål det med en belastningstest mod testmiljøet
+RISK | - | Forretningslogik hører til i en service | `Index()` læser sessionen og filtrerer selv fakturaerne | Controllers/BillingController.cs:27 | Flyt filtreringen til `IBillingService` i Core/Billing/Services og injicér den
 ```
 
 If a KRAV and an acceptance criterion say the same thing, write one line with both ids. Only use a file:line you have read. Never put a `|` inside a part. Write nothing else: no verdict, no introduction, no headings.
