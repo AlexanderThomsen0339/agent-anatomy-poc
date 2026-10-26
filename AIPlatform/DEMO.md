@@ -436,4 +436,4 @@ flowchart LR
 - **Vurderinger gemmes kun i hukommelsen** og forsvinder ved genstart.
 - **Testcases og kravspec er eksempler** skrevet til demo-projektet.
 
-**Mulige næste skridt:** søgning på betydning (embeddings), opfølgende spørgsmål i samme samtale, Word-filer i OT-søgningen, og en arkitektur-skill pr. hold (fx FDAP).
+**Mulige næste skridt:** søgning på betydning (embeddings), Word-filer i OT-søgningen, og en arkitektur-skill pr. hold (fx FDAP).

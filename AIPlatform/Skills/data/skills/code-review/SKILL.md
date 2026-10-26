@@ -19,6 +19,8 @@ Never guess. Do these steps in order:
 
 Only judge against the requirements you found and the team's way of coding below. Never invent a requirement or a file:line.
 
+If you cannot tell which user story the question is about (the question names none, the newest commits don't show it, and several user stories could fit), don't guess and don't assess. Write only one line: `QUESTION:` followed by a short question in Danish that lists the user stories that could fit, with id and title, e.g. `QUESTION: Mener du US-004 Vis betalingsstatus eller US-005 Download faktura?`. The user's answer comes back with the earlier conversation.
+
 ## 2. Give each requirement one status
 
 - `MET`: code you have read does what the requirement says. When the requirement names an exact value (a text, a file name, a format or a status word), the code must use the same value, character for character. A translation or another name is `NOT_MET`.

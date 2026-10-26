@@ -3,6 +3,7 @@ Kør fra AIPlatform-mappen:
     python -m Agent.api.web
 """
 import hashlib
+import json
 import re
 from html import escape
 from pathlib import Path
@@ -265,6 +266,57 @@ def changes_question(question: str, earlier: str, commit: str, changed: list[str
     )
 
 
+# Hvor mange tidligere spørgsmål og svar agenten får med. Flere gør prompten lang uden at hjælpe.
+MAX_TURNS = 3
+
+# Sådan starter agenten sit svar, når den ikke ved, hvilken user story der menes (skillen code-review).
+CLARIFY = "QUESTION:"
+
+
+def read_conversation(raw: str) -> list[tuple[str, str]]:
+    """Den tidligere samtale fra det skjulte felt c: en liste af [spørgsmål, svar].
+
+    Hvorfor i siden og ikke på serveren?
+    Så husker serveren ingenting mellem to spørgsmål, og en genstart mister ikke en samtale.
+    Hver side har samtalen med i formularen og sender den med næste spørgsmål.
+    """
+    try:
+        turns = json.loads(raw) if raw else []
+        return [(str(q), str(a)) for q, a in turns][-MAX_TURNS:]
+    except (ValueError, TypeError):
+        return []
+
+
+def with_conversation(question: str, conversation: list[tuple[str, str]]) -> str:
+    """Spørgsmålet til agenten med den tidligere samtale foran, så "Den om billing" kan forstås."""
+    if not conversation:
+        return question
+    earlier = "\n".join(f"User: {q}\nYou: {a}" for q, a in conversation)
+    return f"Earlier in this conversation:\n{earlier}\n\nThe user now says: {question}\nRead it in the light of the earlier conversation."
+
+
+def render_conversation(conversation: list[tuple[str, str]]) -> str:
+    """Den tidligere samtale øverst, så man kan se, hvad der allerede er sagt."""
+    if not conversation:
+        return ""
+    turns = "".join(
+        f'<p class="step">🧑 {escape(q)}</p><div class="answer">{render_markdown(a)}</div>' for q, a in conversation
+    )
+    return f"<h2>Earlier in this conversation</h2>{turns}"
+
+
+def render_follow_up(conversation: list[tuple[str, str]], question: str, reply: str, role: str, button: str) -> str:
+    """En formular under svaret, der fortsætter samtalen: samtalen indtil nu ligger i det skjulte felt c."""
+    turns = (conversation + [(question, reply)])[-MAX_TURNS:]
+    return (
+        '<form method="get" action="/">'
+        f'<input type="hidden" name="role" value="{escape(role)}">'
+        f'<input type="hidden" name="c" value="{escape(json.dumps(turns, ensure_ascii=False))}">'
+        '<p><textarea name="q" rows="2" placeholder="Answer or ask a follow-up"></textarea></p>'
+        f"<p><button>{escape(button)}</button></p></form>"
+    )
+
+
 def render_markdown(text: str) -> str:
     """Den lille smule markdown, svaret bruger: fed, kode og punktlister."""
     def inline(line: str) -> str:
@@ -304,6 +356,10 @@ def make_handler(agents, writer, checkouts):
                 return
             query = parse_qs(url.query)
             question = query.get("q", [""])[0].strip()
+            # Den tidligere samtale, hvis spørgsmålet kommer fra formularen under et svar.
+            conversation = read_conversation(query.get("c", [""])[0]) if question else []
+            # Det, agenten og skribenten får: spørgsmålet med samtalen foran.
+            asked = with_conversation(question, conversation)
             # Rollen kommer fra dropdownen. Den står i adressen, så den er valgt igen ved næste spørgsmål.
             # Skifter man til en rolle, der ser andre hold, tømmes feltet, fordi spørgsmålet måske ikke giver mening der.
             role = query.get("role", [settings.DEFAULT_ROLE])[0]
@@ -327,7 +383,7 @@ def make_handler(agents, writer, checkouts):
             )
             heading, placeholder, button = page_text(teams)
             self.write(
-                HEAD.replace("{roles}", roles).replace("{question}", escape(question))
+                HEAD.replace("{roles}", roles).replace("{question}", "" if conversation else escape(question))
                 .replace("{use_case_key}", "+".join(teams)).replace("{use_case}", heading).replace("{placeholder}", placeholder).replace("{button}", button)
             )
 
@@ -346,14 +402,15 @@ def make_handler(agents, writer, checkouts):
                     # Det sker før fingeraftrykket herunder, så en anden branch eller en ændret fil giver et nyt tjek.
                     # Fortsæt i MCP/application/checkout_service.py.
                     try:
-                        checkout = checkouts.checkout(question)
+                        # Kun brugerens egne ord, så et id, agenten selv nævnte i sit spørgsmål, ikke vælger en PR.
+                        checkout = checkouts.checkout(" ".join([q for q, _ in conversation] + [question]))
                         self.write(render_checkout(checkout) + render_changes(checkout))
                     except RuntimeError as e:
                         self.write(f'<p class="step error">🔀 Could not fetch the code, so the last copy is used: {escape(str(e))}</p>')
 
                 # Samme spørgsmål med andre store/små bogstaver, mellemrum eller tegnsætning genbruger vurderingen,
                 # så længe koden og kravene er uændrede. Er en fil rettet, tjekkes koden igen.
-                key = " ".join(re.sub(r"[^\w\s-]", " ", question.lower()).split())
+                key = " ".join(re.sub(r"[^\w\s-]", " ", asked.lower()).split())
                 # Kun roller, der tjekker kode, kan genbruge en vurdering. Vedligehold har ingen.
                 cached = checked.get(key) if checks_code else None
                 # En ny commit giver altid et nyt tjek, også hvis den ændrer en fil, agenten ikke læste sidst.
@@ -370,14 +427,14 @@ def make_handler(agents, writer, checkouts):
                         changed = checkouts.changed_since(cached[4])
                         if changed and len(changed) <= MAX_CHANGED_FILES:
                             earlier = cached[0]
-                    self.write("<h2>What I am doing</h2>")
-                    task = changes_first(question, checkout) if checkout and checkout.changes.startswith("commit ") else question
+                    self.write(render_conversation(conversation) + "<h2>What I am doing</h2>")
+                    task = changes_first(asked, checkout) if checkout and checkout.changes.startswith("commit ") else asked
                     if earlier:
                         self.write(
                             f'<p class="step">🔁 Checked before on commit {escape(cached[4])}, so only what changed since then is read ({len(changed)} {"file" if len(changed) == 1 else "files"}): '
                             + ", ".join(f"<code>{escape(f)}</code>" for f in changed) + "</p>"
                         )
-                        task = changes_question(question, earlier.answer, cached[4], changed)
+                        task = changes_question(asked, earlier.answer, cached[4], changed)
                     # 12: AGENTEN KØRER: Fortsæt i Agent/application/agent_service.py.
                     # 18: VIS SKRIDT: on_step kaldes efter hvert skridt, og render_step() sender det til browseren med det samme.
                     # Agenten får ikke rollen. Vurderingen skal være den samme, uanset hvem der spørger.
@@ -391,7 +448,14 @@ def make_handler(agents, writer, checkouts):
                         checked[key] = (run, assessment, fingerprint(run.steps), *commit, requirements_fingerprint())
 
                 looked_up_ot = any(s.action.tool == "search_ot_documents" for s in run.steps)
-                if not assessment and run.finished and looked_up_ot:
+                # Det, der står i svaret, og som næste spørgsmål i samtalen får med.
+                reply, asks_back = run.answer, False
+                if not assessment and run.finished and run.answer.strip().upper().startswith(CLARIFY):
+                    # Agenten ved ikke, hvilken user story der menes, og spørger i stedet for at gætte.
+                    # Svaret sendes med samtalen i formularen herunder.
+                    reply, asks_back = run.answer.strip()[len(CLARIFY):].strip(), True
+                    self.write(f'<h2>The agent asks</h2><div class="answer">{render_markdown(reply)}</div>')
+                elif not assessment and run.finished and looked_up_ot:
                     # Et opslag i OT's dokumenter: der er ingen kode at vurdere, så agentens svar vises direkte.
                     self.write(
                         render_document_sources(run.steps)
@@ -405,7 +469,8 @@ def make_handler(agents, writer, checkouts):
                     # 20: OUTPUT: Vurderingen skrives om til et svar til rollen, laves om fra markdown til HTML og sendes. SLUT.
                     # Kilderne og vurderingen står øverst i lukkede bokse, så de ikke fylder, men kan foldes ud.
                     self.write('<p class="step">✍️ Writing the answer</p>')
-                    answer = writer.write(question, assessment, role)
+                    answer = writer.write(asked, assessment, role)
+                    reply = answer
                     # Overskriften siger, hvem svaret er til. Skifter man rolle i dropdownen, hentes svaret til den anden rolle
                     # med det samme, og vurderingen genbruges.
                     self.write(
@@ -413,6 +478,7 @@ def make_handler(agents, writer, checkouts):
                         + f'<h2>Answer for {escape(settings.ROLES[role])}</h2>'
                         + f'<div class="answer">{render_markdown(answer)}</div>'
                     )
+                self.write(render_follow_up(conversation, question, reply, role, "Answer" if asks_back else "Ask"))
             except Exception as e:
                 # Fejlen vises på siden, så demoen ikke bare hænger.
                 self.write(f'<h2 class="error">Error</h2><pre>{escape(repr(e))}</pre>')
