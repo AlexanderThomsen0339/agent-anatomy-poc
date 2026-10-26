@@ -95,6 +95,6 @@ Ordene, man ser på siden og hører under demoen, forklaret kort. Siden, svarene
 | **Skill** | En arbejdsinstruks i en `SKILL.md`. Agenten ser kun navn og beskrivelse og henter teksten, når den skal bruge den. |
 | `code-review` | Skill: hvordan koden vurderes (slå krav op, læs koden, én linje pr. krav, aldrig gætte). |
 | `architecture-web` | Skill: hvordan web-holdet koder (routes → services → managers, interfaces, dependency injection). Giver RISK-linjer. |
-| `audience-product` / `audience-it` | Skills: hvordan svaret skrives til rollen. Produkt: højst 8 linjer, almindeligt sprog, kun det, der mangler. IT: fil:linje, kode, rettelse og hvad der skal rettes først. |
+| `audience-product` / `audience-it` | Skills: hvordan svaret skrives til rollen. Produkt: kort svar i hele sætninger som en kollega, uden id'er og kode. IT: fil:linje, kode, rettelse og hvad der skal rettes først. |
 | **Port / adapter** | En port er en fast grænseflade (fx `AgentBrain`), en adapter er det, der opfylder den (fx `GeminiBrain`). Gør det muligt at skifte Gemini, Azure eller søgningen ud uden at røre resten. |
 | **POC** | *Proof of concept*: en lille, fungerende prøve, ikke et færdigt produkt. |
