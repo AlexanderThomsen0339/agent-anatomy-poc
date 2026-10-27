@@ -337,6 +337,12 @@ MAX_TURNS = 3
 # Sådan starter agenten sit svar, når den ikke ved, hvilken user story der menes (skillen code-review).
 CLARIFY = "QUESTION:"
 
+# Det, agenten får at vide, når den allerede har stillet sit ene spørgsmål i samtalen.
+ALREADY_ASKED = (
+    "\n\nYou already asked the user a clarifying question in this conversation, and the message above is their answer. "
+    "Do not ask again: write the assessment now. If they mean more than one user story (e.g. \"alle\"), assess all of them."
+)
+
 # Beskeder med højst så mange ord kan være småsnak og spørges først om (trin 11b).
 SMALL_TALK_WORDS = 8
 
@@ -375,7 +381,12 @@ def render_agent(html: str, who: str = "AI", css: str = "") -> str:
 
 def render_conversation(conversation: list[tuple[str, str]]) -> str:
     """Den tidligere samtale som bobler, så man kan se, hvad der allerede er sagt."""
-    return "".join(render_user(q) + render_agent(render_markdown(a)) for q, a in conversation)
+    def agent(a: str) -> str:
+        # Et opklarende spørgsmål står i samtalen med QUESTION: foran, så agenten kan se, at den allerede har spurgt.
+        if a.startswith(CLARIFY):
+            return render_agent(render_markdown(a[len(CLARIFY):].strip()), "AI spørger", "asks")
+        return render_agent(render_markdown(a))
+    return "".join(render_user(q) + agent(a) for q, a in conversation)
 
 
 def render_verdict(assessment: Assessment, answer: str) -> str:
@@ -496,7 +507,9 @@ def make_handler(agents, writer, checkouts, small_talk=None):
             # uden at hente koden, læse commits eller slå testcases op.
             # Hvorfor kun korte beskeder? Et langt spørgsmål er næsten altid et rigtigt spørgsmål,
             # og så spares kaldet, så Geminis gratis kvote rækker længere.
-            if small_talk and len(question.split()) <= SMALL_TALK_WORDS:
+            # Har agenten lige stillet et spørgsmål, er beskeden et svar på det og aldrig småsnak.
+            asked_before = any(a.startswith(CLARIFY) for _, a in conversation)
+            if small_talk and not asked_before and len(question.split()) <= SMALL_TALK_WORDS:
                 answer = small_talk.reply(asked, topics)
                 if answer:
                     turns = conversation + [(question, answer)]
@@ -552,6 +565,10 @@ def make_handler(agents, writer, checkouts, small_talk=None):
                         if changed and len(changed) <= MAX_CHANGED_FILES:
                             earlier = cached[0]
                     task = changes_first(asked, checkout) if checkout and checkout.changes.startswith("commit ") else asked
+                    if asked_before:
+                        # Hvorfor siger koden det, når skillen allerede gør?
+                        # En lille model spørger ellers igen og igen, selvom brugeren har svaret.
+                        task += ALREADY_ASKED
                     if earlier:
                         self.write(
                             f'<p class="step">🔁 Tjekket før på commit {escape(cached[4])}, så kun det, der er ændret siden, læses ({len(changed)} {"fil" if len(changed) == 1 else "filer"}): '
@@ -580,6 +597,7 @@ def make_handler(agents, writer, checkouts, small_talk=None):
                     reply, asks_back = run.answer.strip()[len(CLARIFY):].strip(), True
                     close_work()
                     self.write(render_agent(render_markdown(reply), "AI spørger", "asks"))
+                    reply = f"{CLARIFY} {reply}"
                 elif not assessment and run.finished and looked_up_ot:
                     # Et opslag i OT's dokumenter: der er ingen kode at vurdere, så agentens svar vises direkte.
                     close_work()

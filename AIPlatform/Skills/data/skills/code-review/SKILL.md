@@ -22,6 +22,7 @@ Only judge against the requirements you found and the team's way of coding below
 ### Is the question clear enough?
 Before you assess, decide if you know what the user wants checked.
 - **Clear**: the question names a user story, or a page or feature that only one user story covers, or it asks about the latest changes and the newest commits all belong to one feature. Then assess it.
+- **Broad**: the question asks about everything, e.g. "Hvilke tests mangler at blive løst?" or "alle tests". That is clear too: assess every user story in the area it names, or else in the areas the newest commits change. Put the user story id in front of each AC, e.g. `US-002 AC1`, so lines from different user stories can be told apart.
 - **Unclear**: the question could mean several things, or you would have to guess what to check, e.g. "Virker det?", "Er regningerne ok?" or "Diaco siger, de seneste ændringer virker. Gør de det?" when his commits touch more than one feature. Then don't assess yet.
 
 When it is unclear, first look (the newest commits, `search_requirements`) so you can make a good guess. Then write only one line: `QUESTION:` followed by your best guess as a question to the user, in plain Danish, like a colleague would ask. Say what you think they mean, why you think so, and the most likely alternative. No code words, file names or AC numbers; a user story is named by its title. For example:
