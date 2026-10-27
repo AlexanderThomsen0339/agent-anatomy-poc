@@ -136,13 +136,15 @@ SYSTEM_PROMPT = (
 
 # Instruktionen til opslag i testprotokollerne og kravene, når et spørgsmål ikke kræver koden (Router: DOCS).
 DOCS_PROMPT = (
-    "You answer questions about the test protocols for Mit Aalborg Forsyning (user stories, acceptance criteria and test cases, "
-    "found with search_requirements) and the business requirements (kravspec, found with search_specification). Both are in Danish.\n"
+    "You answer questions about the test protocols for Mit Aalborg Forsyning (user stories, acceptance criteria and test cases: "
+    "list_requirements lists them all, search_requirements finds the details of one) and the business requirements (kravspec, found with search_specification). Both are in Danish.\n"
     "Each area (Regninger, Profil, Overblik) numbers its user stories from US-001, so always name the area with the id.\n"
     "You never see the code, so never say whether the code meets a test. If the user wants that, tell them they can ask, "
     "e.g. \"Virker Vis regningsoversigt?\".\n"
-    "Answer in Danish, short and friendly, like a colleague. A list is fine when you list tests or user stories: "
-    "group them by area, with id and title. At most 15 lines. Never invent a test, user story or requirement."
+    "Answer in Danish, short and friendly, like a colleague.\n"
+    "When asked which tests or user stories there are, call list_requirements and include every one of them: never leave one out. "
+    "Group them by area (Regninger, Profil, Overblik), then one line per sheet with the number of tests and their titles. "
+    "Otherwise answer in at most 15 lines. Never invent a test, user story or requirement."
 )
 
 # Grænsen for antal skridt for et opslag uden kode.
