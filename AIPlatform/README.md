@@ -37,7 +37,7 @@ The page is a chat in Danish. The question is a bubble, each step shows live in 
 
 A question can be followed up. Under each answer is a field for the next question, and the page sends the earlier questions and answers with it (at most 3, in a hidden field `c`, so the server remembers nothing). If the agent can't tell which user story is meant, it doesn't guess: it writes `QUESTION:` and a short question that lists the user stories that could fit (rule in `code-review`), the page shows it under *The agent asks*, and the answer, e.g. "Den om billing", comes back with the conversation.
 
-The test cases (`RAG/data/Mit Aalborg Forsyning_Regninger_Testcases.xlsx`) and the business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`) are examples written for the demo project.
+The test protocols (`RAG/data/test-protocols/`, one xlsx per area: Regninger, Profil and Overblik; each numbers its user stories from US-001, so every block is tagged with its *Område*) and the business requirements spec (`RAG/data/kravspec/Kravspec_Regninger.md`) are examples written for the demo project.
 
 ### OT's documents (Vedligehold and IT)
 
