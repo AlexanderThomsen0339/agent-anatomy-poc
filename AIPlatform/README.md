@@ -4,6 +4,8 @@ A developer asks: *"Does our code solve this user story?"* An AI agent looks up 
 
 The code has four layers, each with its own README: [Agent](Agent/README.md), [MCP](MCP/README.md), [RAG](RAG/README.md) and [Skills](Skills/README.md).
 
+The presentation of the POC for Kommunikation and IT is in [Praesentation](Praesentation/README.md).
+
 ## Run the demo
 
 Python 3.10+. Run everything from the `AIPlatform/` folder.
