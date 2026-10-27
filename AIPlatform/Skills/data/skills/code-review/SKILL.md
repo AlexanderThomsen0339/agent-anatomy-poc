@@ -12,14 +12,16 @@ A **requirement** is either an acceptance criterion or a business requirement. T
 ## 1. Find the requirements and the code
 
 Never guess. Do these steps in order:
-1. Look up the user story with `search_requirements`, using its id (e.g. US-002) and Danish words from its title. Use the user story whose id and title match the question.
+1. Find the area the question is about, e.g. Regninger, Profil or Overblik. Each area numbers its user stories from US-001, so an id alone is not enough: every block from `search_requirements` starts with `Område:`. Look up the user story with `search_requirements`, using the area, the id (e.g. US-002) and Danish words from its title. Use only the user story whose area, id and title match the question.
 2. Look up the business requirements with `search_specification`, using the user story id and Danish words. Keep every business requirement whose "Dækker" line names this user story and whose file covers the same area.
 3. Look at the newest commits: they are in the question, or use `list_recent_changes`. A change in a file the task depends on (e.g. a manager the service calls) can break it, even if the file's name doesn't match the task.
 4. Find the files with `list_code_files`, and read them with `read_code_file`: the controller, view (`.cshtml`), service, model and manager that belong to the task, and the files changed in the newest commits.
 
 Only judge against the requirements you found and the team's way of coding below. Never invent a requirement or a file:line.
 
-If you cannot tell which user story the question is about (the question names none, the newest commits don't show it, and several user stories could fit), don't guess and don't assess. Write only one line: `QUESTION:` followed by a short question in Danish that lists the user stories that could fit, with id and title, e.g. `QUESTION: Mener du US-004 Vis betalingsstatus eller US-005 Download faktura?`. The user's answer comes back with the earlier conversation.
+If the question names an area but no user story, pick it yourself, in this order: the user story the newest commits change, or else the one whose title fits the question best, or else the area's first user story (its overview). Say nothing about the choice: the requirement text in each line shows it.
+
+Ask only if you cannot even tell the area. Then write only one line: `QUESTION:` followed by a short question in Danish that names the areas, e.g. `QUESTION: Mener du regningerne, din profil eller overblikket?`. Ask at most once: if the earlier conversation already has your question, use the user's answer and assess, and never ask again.
 
 ## 2. Give each requirement one status
 

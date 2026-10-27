@@ -40,7 +40,7 @@ Ordene, man ser på siden og hører under demoen, forklaret kort. Siden, svarene
 |---|---|
 | **User story** (US-xxx) | Opgaven, fx *US-005 Download faktura*. Id'et bruges til at finde krav, testcases og en PR. |
 | **Acceptkriterie** (AC) | En betingelse i user storyen, der skal være opfyldt, før den er færdig. |
-| **Testcase** | Det, test-holdet tjekker. Ligger i Excel-filerne (`RAG/data/*.xlsx`) og findes med `search_requirements`. |
+| **Testcase** | Det, test-holdet tjekker. Ligger i testprotokollerne (`RAG/data/test-protocols/*.xlsx`), én fil pr. område (Regninger, Profil, Overblik). Hvert område nummererer sine user stories fra US-001, så id'et siges sammen med området, fx Regninger US-001, og findes med `search_requirements`. |
 | **Kravspec** | Forretningens krav: det, forretningen har bestilt. Hvert krav har et id som `KRAV-REG-03` og en linje *Dækker:* med de user stories, det hører til. Ligger i `RAG/data/kravspec/` og findes med `search_specification`. |
 | **Krav** (*requirement*) | Fællesord for det, koden tjekkes mod: acceptkriterier, testcases og kravspec. |
 | **Not documented** | Svar fra `search_specification`, når der ingen krav er. Agenten skal sige det i stedet for at gætte. |

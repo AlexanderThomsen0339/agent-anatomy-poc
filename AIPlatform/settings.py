@@ -33,7 +33,7 @@ except ImportError:
 
 # 2. RAG
 # Mappen med user stories og testcases (.xlsx), som search_requirements søger i.
-DATA_FOLDER = ROOT / "RAG" / "data"
+DATA_FOLDER = ROOT / "RAG" / "data" / "test-protocols"
 
 # Mappen med forretningens kravspec (.md), som search_specification søger i.
 # Hvert krav har et id som KRAV-REG-03 og en linje "Dækker:" med de user stories og testcases, det hører til.
