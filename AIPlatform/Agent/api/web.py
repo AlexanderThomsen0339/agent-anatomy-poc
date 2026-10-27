@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import settings
-from Agent.api.build import build_agents, build_writer
+from Agent.api.build import build_agents, build_small_talk, build_writer
 from Agent.application.answer_writer import parse_assessment
 from Agent.domain.models import AgentRun, Assessment, Step
 from MCP.api.build import build_checkout_service
@@ -337,6 +337,9 @@ MAX_TURNS = 3
 # Sådan starter agenten sit svar, når den ikke ved, hvilken user story der menes (skillen code-review).
 CLARIFY = "QUESTION:"
 
+# Beskeder med højst så mange ord kan være småsnak og spørges først om (trin 11b).
+SMALL_TALK_WORDS = 8
+
 
 def read_conversation(raw: str) -> list[tuple[str, str]]:
     """Den tidligere samtale fra det skjulte felt c: en liste af [spørgsmål, svar].
@@ -422,7 +425,7 @@ def render_markdown(text: str) -> str:
     return html + ("</ul>" if in_list else "")
 
 
-def make_handler(agents, writer, checkouts):
+def make_handler(agents, writer, checkouts, small_talk=None):
 
     # Hvorfor gemme vurderingen?
     # Skifter man rolle eller spørger igen om uændret kode, skal svaret bygge på den samme vurdering.
@@ -488,6 +491,18 @@ def make_handler(agents, writer, checkouts):
                 return
 
             self.write(render_conversation(conversation) + render_user(question))
+
+            # 11b: SMÅSNAK? En kort besked som "Hej, hvordan går det" får et svar med ét kald,
+            # uden at hente koden, læse commits eller slå testcases op.
+            # Hvorfor kun korte beskeder? Et langt spørgsmål er næsten altid et rigtigt spørgsmål,
+            # og så spares kaldet, så Geminis gratis kvote rækker længere.
+            if small_talk and len(question.split()) <= SMALL_TALK_WORDS:
+                answer = small_talk.reply(asked, topics)
+                if answer:
+                    turns = conversation + [(question, answer)]
+                    self.write(render_agent(render_markdown(answer), "AI") + render_composer(turns, role, "Spørg videre", "Spørg"))
+                    self.write(SCRIPT + "</main></body></html>")
+                    return
             # Skridtene står i en boks, der er åben, mens agenten arbejder, og foldes sammen, når svaret er klar.
             self.write('<details class="work" id="work" open><summary>Sådan finder jeg svaret</summary>')
             self.write('<p class="busy" id="busy">Arbejder …</p>')
@@ -612,12 +627,13 @@ def main():
     # Agenten bygges én gang, så xlsx-filerne kun indlæses ved start. Fortsæt i Agent/api/build.py.
     agents = build_agents()
     writer = build_writer()
+    small_talk = build_small_talk()
     # Branch-valget og repoet med koden, hvis den hentes fra et repo (CODE_REPO). Fortsæt i MCP/api/build.py.
     checkouts = build_checkout_service()
 
     # 10: VENT: Serveren er klar og venter på, at nogen stiller et spørgsmål på siden.
     # Hvert spørgsmål lander i Handler.do_GET() herover.
-    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agents, writer, checkouts))
+    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agents, writer, checkouts, small_talk))
     print(f"AI Platform POC is running on http://localhost:{PORT} (Ctrl+C to stop)")
     server.serve_forever()
 

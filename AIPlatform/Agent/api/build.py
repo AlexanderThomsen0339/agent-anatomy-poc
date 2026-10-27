@@ -2,6 +2,7 @@
 import settings
 from Agent.application.agent_service import AgentService
 from Agent.application.answer_writer import AnswerWriter
+from Agent.application.small_talk import SmallTalk
 from Agent.infrastructure.brains.gemini_brain import GeminiBrain
 from MCP.api.build import build_ot_service, build_service as build_tools
 from MCP.application.tool_service import ToolService
@@ -71,3 +72,9 @@ def build_writer() -> AnswerWriter:
     skills = build_skills()
     brain = GeminiBrain(model=settings.GEMINI_MODEL, api_key=settings.GEMINI_API_KEY, thinking=settings.GEMINI_THINKING)
     return AnswerWriter(brain, lambda role: skills.load(f"audience-{role}").instructions)
+
+
+def build_small_talk() -> SmallTalk:
+    # Det første skridt for hvert spørgsmål (trin 11b): er det småsnak, svares der uden at se i koden.
+    brain = GeminiBrain(model=settings.GEMINI_MODEL, api_key=settings.GEMINI_API_KEY, thinking=settings.GEMINI_THINKING)
+    return SmallTalk(brain)
