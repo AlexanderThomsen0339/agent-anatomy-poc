@@ -61,6 +61,7 @@ main { max-width: 860px; margin: 0 auto; padding: 1.2em 16px 3em; }
 .chips { display: flex; flex-wrap: wrap; gap: .5em; }
 .chip { font: inherit; font-size: .9em; color: var(--heading); background: var(--highlight); border: 1px solid var(--border); border-radius: 999px; padding: .35em .9em; cursor: pointer; }
 .chip:hover { border-color: var(--secondary); }
+.chips.reply { margin: .5em 0 0; }
 .msg { margin: .9em 0; }
 .msg .who { font-size: .8em; color: var(--muted); margin: 0 0 .2em; }
 .msg.user { display: flex; flex-direction: column; align-items: flex-end; }
@@ -203,7 +204,8 @@ def changes_first(question: str, checkout: Checkout) -> str:
         "Start from these changes. Find out which page or feature the changed code belongs to (follow who calls it), "
         "look up that feature's user stories and test cases, read the changed files and the code that uses them, "
         "and judge whether the requirements are still met after the changes. "
-        "If the question names a user story, check that one, but still take the changes into account."
+        "If the question names a user story, check that one, but still take the changes into account. "
+        "If it is unclear what the user wants checked, ask with your best guess, as the code-review rules say."
     )
 
 
@@ -558,7 +560,7 @@ def make_handler(agents, writer, checkouts):
                 reply, asks_back = run.answer, False
                 who = f"AI · svar til {settings.ROLES[role]}"
                 if not assessment and run.finished and run.answer.strip().upper().startswith(CLARIFY):
-                    # Agenten ved ikke, hvilken user story der menes, og spørger i stedet for at gætte.
+                    # Spørgsmålet var uklart, så agenten spørger med sit bedste gæt i stedet for at vurdere noget forkert.
                     # Svaret sendes med samtalen i feltet herunder.
                     reply, asks_back = run.answer.strip()[len(CLARIFY):].strip(), True
                     close_work()
@@ -584,6 +586,9 @@ def make_handler(agents, writer, checkouts):
                         render_verdict(assessment, reply) + render_sources(run.steps, checkout) + render_assessment(assessment, role), who
                     ))
                 turns = conversation + [(question, reply)]
+                if asks_back:
+                    # Agenten har gættet, hvad der menes. Ét klik siger ja til gættet.
+                    self.write('<div class="chips reply">' '<button type="button" class="chip">Ja, tjek det</button></div>')
                 self.write(render_composer(turns, role, "Svar her" if asks_back else "Spørg videre", "Svar" if asks_back else "Spørg"))
             except Exception as e:
                 # Fejlen vises på siden, så demoen ikke bare hænger.

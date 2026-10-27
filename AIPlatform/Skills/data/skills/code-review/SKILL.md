@@ -11,7 +11,7 @@ A **requirement** is either an acceptance criterion or a business requirement. T
 
 ## 1. Find the requirements and the code
 
-Never guess. Do these steps in order:
+Never guess what the requirements or the code say. Do these steps in order:
 1. Find the area the question is about, e.g. Regninger, Profil or Overblik. Each area numbers its user stories from US-001, so an id alone is not enough: every block from `search_requirements` starts with `Område:`. Look up the user story with `search_requirements`, using the area, the id (e.g. US-002) and Danish words from its title. Use only the user story whose area, id and title match the question.
 2. Look up the business requirements with `search_specification`, using the user story id and Danish words. Keep every business requirement whose "Dækker" line names this user story and whose file covers the same area.
 3. Look at the newest commits: they are in the question, or use `list_recent_changes`. A change in a file the task depends on (e.g. a manager the service calls) can break it, even if the file's name doesn't match the task.
@@ -19,9 +19,15 @@ Never guess. Do these steps in order:
 
 Only judge against the requirements you found and the team's way of coding below. Never invent a requirement or a file:line.
 
-If the question names an area but no user story, pick it yourself, in this order: the user story the newest commits change, or else the one whose title fits the question best, or else the area's first user story (its overview). Say nothing about the choice: the requirement text in each line shows it.
+### Is the question clear enough?
+Before you assess, decide if you know what the user wants checked.
+- **Clear**: the question names a user story, or a page or feature that only one user story covers, or it asks about the latest changes and the newest commits all belong to one feature. Then assess it.
+- **Unclear**: the question could mean several things, or you would have to guess what to check, e.g. "Virker det?", "Er regningerne ok?" or "Diaco siger, de seneste ændringer virker. Gør de det?" when his commits touch more than one feature. Then don't assess yet.
 
-Ask only if you cannot even tell the area. Then write only one line: `QUESTION:` followed by a short question in Danish that names the areas, e.g. `QUESTION: Mener du regningerne, din profil eller overblikket?`. Ask at most once: if the earlier conversation already has your question, use the user's answer and assess, and never ask again.
+When it is unclear, first look (the newest commits, `search_requirements`) so you can make a good guess. Then write only one line: `QUESTION:` followed by your best guess as a question to the user, in plain Danish, like a colleague would ask. Say what you think they mean, why you think so, and the most likely alternative. No code words, file names or AC numbers; a user story is named by its title. For example:
+`QUESTION: Jeg tror, du spørger, om regningsoversigten stadig virker, fordi Diacos seneste ændring er i forbindelsen til regningssystemet. Skal jeg tjekke det, eller mener du hans ændring af profilsiden?`
+
+Ask at most once. If the earlier conversation already has your question, the user's answer settles it: "ja" or similar means your guess, otherwise use what they wrote. Then assess, and never ask again.
 
 ## 2. Give each requirement one status
 
