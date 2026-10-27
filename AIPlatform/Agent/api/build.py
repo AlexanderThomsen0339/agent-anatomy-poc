@@ -2,7 +2,7 @@
 import settings
 from Agent.application.agent_service import AgentService
 from Agent.application.answer_writer import AnswerWriter
-from Agent.application.small_talk import SmallTalk
+from Agent.application.router import Router
 from Agent.infrastructure.brains.gemini_brain import GeminiBrain
 from MCP.api.build import build_ot_service, build_service as build_tools
 from MCP.application.tool_service import ToolService
@@ -10,8 +10,12 @@ from Skills.api.build import build_service as build_skills
 from Skills.api.skill_tool import LoadSkillTool
 
 
-def build_agents() -> dict[str, AgentService]:
-    """Én agent pr. rolle. Rollen får kun værktøjerne til de hold, den ser (ROLE_TEAMS i settings.py)."""
+def build_agents() -> tuple[dict[str, AgentService], AgentService]:
+    """Én agent pr. rolle, plus agenten til opslag uden kode.
+
+    Rollen får kun værktøjerne til de hold, den ser (ROLE_TEAMS i settings.py).
+    Opslagsagenten får kun søgningen i testprotokollerne og kravene, så den aldrig rører repoet.
+    """
     # 2: BYG AGENTERNE: Her samles alle lag. Det sker én gang, når serveren starter.
 
     # 3: SKILLS: Fortsæt i Skills/api/build.py.
@@ -63,7 +67,10 @@ def build_agents() -> dict[str, AgentService]:
         return AgentService(brain, ToolService(tools), system, max_steps=settings.MAX_STEPS)
 
     # Agenterne er klar. Tilbage til main() i Agent/api/web.py (trin 10).
-    return {role: build_agent(teams) for role, teams in settings.ROLE_TEAMS.items()}
+    agents = {role: build_agent(teams) for role, teams in settings.ROLE_TEAMS.items()}
+    docs_tools = [code_tools.tools["search_requirements"], code_tools.tools["search_specification"]]
+    docs = AgentService(brain, ToolService(docs_tools), settings.DOCS_PROMPT, max_steps=settings.DOCS_MAX_STEPS)
+    return agents, docs
 
 
 def build_writer() -> AnswerWriter:
@@ -74,7 +81,7 @@ def build_writer() -> AnswerWriter:
     return AnswerWriter(brain, lambda role: skills.load(f"audience-{role}").instructions)
 
 
-def build_small_talk() -> SmallTalk:
-    # Det første skridt for hvert spørgsmål (trin 11b): er det småsnak, svares der uden at se i koden.
+def build_router() -> Router:
+    # Det første skridt for hvert spørgsmål (trin 11b): småsnak, opslag uden kode eller kodetjek.
     brain = GeminiBrain(model=settings.GEMINI_MODEL, api_key=settings.GEMINI_API_KEY, thinking=settings.GEMINI_THINKING)
-    return SmallTalk(brain)
+    return Router(brain)
