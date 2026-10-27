@@ -1,0 +1,30 @@
+<section id="workflows" data-transition="fade" style="background:#F5F6F2;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:44px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Workflows og AI</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">En fast workflow med én agent i midten</h2>
+</div>
+<div style="display:flex;gap:24px;flex-wrap:wrap">
+<p style="font-size:26px;color:#0D4A4D;background:#FDFDFB;border:2px solid #0F6266;padding:10px 24px;border-radius:999px"><b>Workflow:</b> fast kode bestemmer vejen</p>
+<p style="font-size:26px;color:#1A1410;background:#F6C9AE;border:2px solid #E2703A;padding:10px 24px;border-radius:999px"><b>Agent:</b> AI'en bestemmer selv vejen</p>
+</div>
+<div style="display:flex;gap:16px;align-items:stretch">
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FDFDFB;border:2px solid #0F6266;padding:24px;border-radius:16px"><p style="font-size:24px;font-weight:600;color:#0F6266">1 · Kode</p><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:28px;font-weight:700;color:#0D4A4D">Rollen giver værktøjerne</h3></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FDFDFB;border:2px solid #0F6266;padding:24px;border-radius:16px"><p style="font-size:24px;font-weight:600;color:#0F6266">2 · Kode</p><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:28px;font-weight:700;color:#0D4A4D">Vælg branch: PR eller dev</h3></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FDFDFB;border:2px solid #0F6266;padding:24px;border-radius:16px"><p style="font-size:24px;font-weight:600;color:#0F6266">3 · Kode</p><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:28px;font-weight:700;color:#0D4A4D">Genbrug svaret eller læs kun ændringer</h3></div>
+<div style="flex:1.3;display:flex;flex-direction:column;gap:8px;background:#F6C9AE;border:2px solid #E2703A;padding:24px;border-radius:16px"><p style="font-size:24px;font-weight:600;color:#8A3A14">4 · Agent</p><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:28px;font-weight:700;color:#1A1410">Slår op, læser koden og vurderer hvert krav</h3></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FDFDFB;border:2px solid #0F6266;padding:24px;border-radius:16px"><p style="font-size:24px;font-weight:600;color:#0F6266">5 · Kode</p><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:28px;font-weight:700;color:#0D4A4D">Ryd op og tæl dommen</h3></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FBE6DA;border:2px dashed #E2703A;padding:24px;border-radius:16px"><p style="font-size:24px;font-weight:600;color:#8A3A14">6 · AI, fast trin</p><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:28px;font-weight:700;color:#1A1410">Skriv svaret til rollen</h3></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:26px;font-weight:600;color:#0D4A4D">Anthropics mønstre i POC'en</p>
+<div style="display:flex;gap:16px;flex-wrap:wrap">
+<p style="font-size:24px;color:#0D4A4D;background:#E6EEEC;padding:8px 20px;border-radius:999px"><b>Med:</b> augmented LLM</p>
+<p style="font-size:24px;color:#0D4A4D;background:#E6EEEC;padding:8px 20px;border-radius:999px"><b>Med:</b> agent-løkke</p>
+<p style="font-size:24px;color:#0D4A4D;background:#E6EEEC;padding:8px 20px;border-radius:999px"><b>Med:</b> prompt-kæde, vurdering så svar</p>
+<p style="font-size:24px;color:#0D4A4D;background:#E6EEEC;padding:8px 20px;border-radius:999px"><b>I kode:</b> routing via rollen</p>
+<p style="font-size:24px;color:#5A3A20;background:#FBE6DA;padding:8px 20px;border-radius:999px"><b>Næste:</b> evaluator-optimizer</p>
+<p style="font-size:24px;color:#4A5558;background:#ECECE8;padding:8px 20px;border-radius:999px"><b>Fravalgt:</b> parallelisering, orchestrator-workers</p>
+</div>
+</div>
+<aside>Anthropic skelner mellem workflows, hvor fast kode bestemmer vejen, og agenter, hvor AI'en selv bestemmer. POC'en er en blanding: en fast workflow med én agent i midten. Fire af de seks trin er almindelig kode: rollen giver værktøjerne, koden vælger branch, et tidligere svar genbruges eller kun ændrede filer læses, og dommen tælles af koden. Kun trin 4 er en rigtig agent, der selv bestemmer, hvad den slår op og læser. Trin 6 bruger AI, men som et fast trin i kæden. Af Anthropics mønstre har vi augmented LLM, agent-løkken og prompt-kæden. Routing sker i koden via rollen. Evaluator-optimizer, hvor koden tjekker vurderingen og sender den tilbage, er næste skridt. Parallelisering og orchestrator-workers er fravalgt, fordi de gør det dyrere og mere komplekst, uden at vi har brug for det endnu.</aside>
+</section>
