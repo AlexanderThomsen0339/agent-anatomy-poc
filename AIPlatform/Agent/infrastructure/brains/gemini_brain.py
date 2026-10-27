@@ -3,8 +3,11 @@
 Det er den eneste fil i Agent-laget, der kender til Google.
 Resten af laget taler kun med porten AgentBrain.
 """
+import re
+import time
+
 from google import genai
-from google.genai import types
+from google.genai import errors, types
 
 from Agent.domain.models import Action, Decision, History, Observation
 from MCP.domain.models import ToolSpec
@@ -26,7 +29,7 @@ class GeminiBrain:
     def decide(self, system: str, question: str, history: History, tools: list[ToolSpec]) -> Decision:
         # 13: TÆNK: Spørgsmål, historik og værktøjer oversættes til Geminis format (_to_contents),
         # og Gemini kaldes over internettet med generate_content().
-        result = self.client.models.generate_content(
+        result = self._generate(
             model=self.model,
             contents=self._to_contents(question, history),
             config=types.GenerateContentConfig(
@@ -63,6 +66,22 @@ class GeminiBrain:
         decision = Decision(text=text, actions=actions)
         self.raw[id(decision)] = content
         return decision
+
+    def _generate(self, **request) -> types.GenerateContentResponse:
+        # Hvorfor vente og prøve igen?
+        # Free tier har en grænse for input-tokens pr. minut, og hver runde sender hele historikken med.
+        # Rammes grænsen (429), siger Google, hvor mange sekunder der skal ventes. Så venter vi og prøver igen,
+        # i stedet for at hele spørgsmålet fejler. Er ventetiden over et minut (fx dagsgrænsen), giver vi op.
+        for attempt in range(5):
+            try:
+                return self.client.models.generate_content(**request)
+            except errors.ClientError as e:
+                match = re.search(r"retry in ([\d.]+)s", str(e))
+                wait = float(match.group(1)) + 1 if match else 15 * (attempt + 1)
+                if e.code != 429 or wait > 60 or attempt == 4:
+                    raise
+                print(f"Gemini: kvoten pr. minut er brugt, venter {wait:.0f} sekunder og prøver igen.")
+                time.sleep(wait)
 
     def _to_contents(self, question: str, history: History) -> list[types.Content]:
         contents = [types.Content(role="user", parts=[types.Part(text=question)])]
