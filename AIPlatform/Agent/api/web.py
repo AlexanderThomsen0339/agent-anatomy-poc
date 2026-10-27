@@ -21,7 +21,7 @@ from MCP.domain.models import Checkout
 PORT = 8000
 
 HEAD = """<!doctype html>
-<html lang="da"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AI Platform POC</title>
 <style>
 /* Aalborg Forsynings farver (brand colours). Mørk tilstand følger styresystemet. */
@@ -106,8 +106,8 @@ pre { white-space: pre-wrap; background: var(--code-bg); padding: 1em; border-ra
 </style></head><body>
 <header><div class="bar">
 <div class="title"><h1>AI Platform POC</h1><p>{use_case}</p></div>
-<form method="get" action="/"><label>Jeg er <select name="role" onchange="if (this.selectedOptions[0].dataset.use != '{use_case_key}') { this.form.q.value = ''; this.form.c.value = ''; } this.form.submit()">{roles}</select></label>{keep}</form>
-<a href="/?role={role}">Ny samtale</a>
+<form method="get" action="/"><label>{i_am} <select name="role" onchange="if (this.selectedOptions[0].dataset.use != '{use_case_key}') { this.form.q.value = ''; this.form.c.value = ''; } this.form.submit()">{roles}</select></label>{keep}</form>
+<a href="/?role={role}">{new_chat}</a>
 </div></header>
 <main>
 """
@@ -119,7 +119,7 @@ SCRIPT = """<script>
 for (const form of document.querySelectorAll(".composer form")) {
   const box = form.querySelector("textarea"), send = form.querySelector("button");
   box.addEventListener("keydown", e => { if (e.key == "Enter" && !e.shiftKey && box.value.trim()) { e.preventDefault(); form.requestSubmit(); } });
-  form.addEventListener("submit", e => { if (!box.value.trim()) { e.preventDefault(); return; } send.disabled = true; send.textContent = "Arbejder …"; });
+  form.addEventListener("submit", e => { if (!box.value.trim()) { e.preventDefault(); return; } send.disabled = true; send.textContent = "{working}"; });
 }
 for (const chip of document.querySelectorAll(".chip")) {
   chip.addEventListener("click", () => { const box = document.querySelector(".composer textarea"); box.value = chip.textContent; box.form.requestSubmit(); });
@@ -127,31 +127,91 @@ for (const chip of document.querySelectorAll(".chip")) {
 </script>"""
 
 
+# Alle tekster på siden, på hvert sprog. Sproget vælges med LANGUAGE i settings.py.
+# Hvorfor ét sted? Så kan siden skifte sprog uden at røre resten af koden, og en manglende oversættelse ses let.
+TEXTS = {
+    "da": {
+        "i_am": "Jeg er", "new_chat": "Ny samtale", "working": "Arbejder …", "or": " eller ",
+        "skill": "📘 Henter reglerne i {}", "search_requirements": "🔎 Slår testcases op: {}",
+        "list_requirements": "📋 Ser listen over alle tests igennem", "search_specification": "📋 Slår forretningens krav op: {}",
+        "list_code_files": "📂 Ser projektets filer igennem", "read_code_file": "📄 Læser {}",
+        "list_recent_changes": "🕓 Ser de seneste ændringer på branchen", "search_ot_documents": "🔎 Søger i OT's dokumenter: {}",
+        "failed": " (fejlede)",
+        "checking_pr": "Tjekker pull request", "no_pr": "Ingen åben pull request passer til spørgsmålet, så jeg tjekker",
+        "starting_from": "Starter fra de seneste ændringer på",
+        "code": "Kode:", "at_commit": "ved commit", "from_pr": "fra", "sources": "Kilder", "test_cases": "Testcases:",
+        "requirements": "Forretningens krav:", "none_found": "Ingen fundet", "documents_from": "Dokumenter fra {}-holdet i",
+        "works": "Virker", "see_it": "Se svaret til IT", "requirement": "Kravet", "why_fails": "Hvorfor det fejler",
+        "where": "Hvor", "fix": "Ret", "per_requirement": "Vurdering pr. krav", "ai_asks": "AI spørger",
+        "your_question": "Dit spørgsmål", "hint": "Enter sender · Shift+Enter giver en ny linje",
+        "welcome": "Hvad vil du vide?", "ask_about": "Spørg {}.", "written_for": "Svaret skrives til {}.", "eg": "Fx: {}",
+        "ask": "Spørg", "ask_more": "Spørg videre", "how": "Sådan finder jeg svaret",
+        "nothing_in_docs": "Jeg fandt ikke noget i testprotokollerne om det.", "lookup_failed": "Opslaget fejlede: {}",
+        "answer_for": "AI · svar til {}", "fetch_failed": "Kunne ikke hente koden, så den sidste kopi bruges: {}",
+        "reused": "Koden og kravene er ikke ændret, så det tidligere tjek bruges",
+        "checked_before": "Tjekket før på commit {}, så kun det, der er ændret siden, læses ({} {}):", "file": "fil", "files": "filer",
+        "not_finished": "<b>Ikke færdig.</b> Agenten nåede ikke frem til en vurdering. Prøv at spørge igen, gerne med user storyens id.",
+        "writing": "Skriver svaret", "yes_check": "Ja, tjek det", "reply_here": "Svar her", "reply": "Svar",
+        "error": "Fejl.", "try_again": "Prøv igen",
+        "teams": {
+            settings.TEAM: ("Kodetjek", "om koden løser en user story", ["Løser koden US-004?", "Er kravene til regninger overholdt?"]),
+            settings.DOCUMENT_TEAM: ("OT-dokumenter", "om noget i OT's dokumenter", ["Hvilket signal er Kedel Fyr Nødud i 800xA?"]),
+        },
+    },
+    "en": {
+        "i_am": "I am", "new_chat": "New chat", "working": "Working …", "or": " or ",
+        "skill": "📘 Loading the rules in {}", "search_requirements": "🔎 Looking up test cases: {}",
+        "list_requirements": "📋 Going through the list of all tests", "search_specification": "📋 Looking up the business requirements: {}",
+        "list_code_files": "📂 Going through the project's files", "read_code_file": "📄 Reading {}",
+        "list_recent_changes": "🕓 Looking at the latest changes on the branch", "search_ot_documents": "🔎 Searching OT's documents: {}",
+        "failed": " (failed)",
+        "checking_pr": "Checking pull request", "no_pr": "No open pull request matches the question, so I'm checking",
+        "starting_from": "Starting from the latest changes on",
+        "code": "Code:", "at_commit": "at commit", "from_pr": "from", "sources": "Sources", "test_cases": "Test cases:",
+        "requirements": "Business requirements:", "none_found": "None found", "documents_from": "Documents from the {} team in",
+        "works": "Works", "see_it": "See the answer for IT", "requirement": "Requirement", "why_fails": "Why it fails",
+        "where": "Where", "fix": "Fix", "per_requirement": "Assessment per requirement", "ai_asks": "AI asks",
+        "your_question": "Your question", "hint": "Enter sends · Shift+Enter adds a new line",
+        "welcome": "What do you want to know?", "ask_about": "Ask {}.", "written_for": "The answer is written for {}.", "eg": "E.g. {}",
+        "ask": "Ask", "ask_more": "Ask a follow-up", "how": "How I find the answer",
+        "nothing_in_docs": "I didn't find anything about that in the test protocols.", "lookup_failed": "The lookup failed: {}",
+        "answer_for": "AI · answer for {}", "fetch_failed": "Could not fetch the code, so the last copy is used: {}",
+        "reused": "The code and requirements haven't changed, so the earlier check is used",
+        "checked_before": "Checked before on commit {}, so only what changed since is read ({} {}):", "file": "file", "files": "files",
+        "not_finished": "<b>Not finished.</b> The agent didn't reach an assessment. Try asking again, ideally with the user story's id.",
+        "writing": "Writing the answer", "yes_check": "Yes, check it", "reply_here": "Reply here", "reply": "Reply",
+        "error": "Error.", "try_again": "Try again",
+        "teams": {
+            settings.TEAM: ("Code check", "whether the code solves a user story", ["Does the code solve US-004?", "Are the billing requirements met?"]),
+            settings.DOCUMENT_TEAM: ("OT documents", "about something in OT's documents", ["Which signal is Kedel Fyr Nødud in 800xA?"]),
+        },
+    },
+}
+T = TEXTS[settings.LANGUAGE]
+SCRIPT = SCRIPT.replace("{working}", T["working"])
+
 # Hvad hvert værktøj hedder for en bruger, der ikke kender værktøjerne.
 FRIENDLY = {
-    "load_skill": lambda a: f"📘 Henter reglerne i {a.get('name', '')}",
-    "search_requirements": lambda a: f"🔎 Slår testcases op: {a.get('query', '')}",
-    "list_requirements": lambda a: "📋 Ser listen over alle tests igennem",
-    "search_specification": lambda a: f"📋 Slår forretningens krav op: {a.get('query', '')}",
-    "list_code_files": lambda a: "📂 Ser projektets filer igennem",
-    "read_code_file": lambda a: f"📄 Læser {a.get('path', '').replace(chr(92), '/').split('/')[-1]}",
-    "list_recent_changes": lambda a: "🕓 Ser de seneste ændringer på branchen",
-    "search_ot_documents": lambda a: f"🔎 Søger i OT's dokumenter: {a.get('query', '')}",
+    "load_skill": lambda a: T["skill"].format(a.get('name', '')),
+    "search_requirements": lambda a: T["search_requirements"].format(a.get('query', '')),
+    "list_requirements": lambda a: T["list_requirements"],
+    "search_specification": lambda a: T["search_specification"].format(a.get('query', '')),
+    "list_code_files": lambda a: T["list_code_files"],
+    "read_code_file": lambda a: T["read_code_file"].format(a.get('path', '').replace(chr(92), '/').split('/')[-1]),
+    "list_recent_changes": lambda a: T["list_recent_changes"],
+    "search_ot_documents": lambda a: T["search_ot_documents"].format(a.get('query', '')),
 }
 
 # Teksten på siden for hvert hold: overskrift, hvad man kan spørge om, og eksempler, man kan klikke på.
 # En rolle, der ser flere hold, får dem alle.
 # Hvorfor? Vedligehold tjekker ikke kode, så "Løser koden US-004?" ville forvirre.
-PAGE_TEXT = {
-    settings.TEAM: ("Kodetjek", "om koden løser en user story", ["Løser koden US-004?", "Er kravene til regninger overholdt?"]),
-    settings.DOCUMENT_TEAM: ("OT-dokumenter", "om noget i OT's dokumenter", ["Hvilket signal er Kedel Fyr Nødud i 800xA?"]),
-}
+PAGE_TEXT = T["teams"]
 
 
 def page_text(teams: list[str]) -> tuple[str, str, list[str]]:
     """Overskrift, hvad man kan spørge om, og eksempler til siden for en rolle, der ser de givne hold."""
     heading = " · ".join(PAGE_TEXT[t][0] for t in teams)
-    topics = " eller ".join(PAGE_TEXT[t][1] for t in teams)
+    topics = T["or"].join(PAGE_TEXT[t][1] for t in teams)
     examples = [e for t in teams for e in PAGE_TEXT[t][2]]
     return heading, topics, examples
 
@@ -163,7 +223,7 @@ def render_step(steps: list[Step]) -> str:
         a, o = step.action, step.observation
         label = FRIENDLY.get(a.tool, lambda _: f"⚙️ {a.tool}")(a.arguments)
         css = "step error" if o.is_error else "step"
-        html += f'<p class="{css}">{escape(label)}{" (fejlede)" if o.is_error else ""}</p>'
+        html += f'<p class="{css}">{escape(label)}{T["failed"] if o.is_error else ""}</p>'
     return html
 
 
@@ -183,10 +243,10 @@ def render_checkout(checkout: Checkout) -> str:
     pr = checkout.pull_request
     if pr:
         return html + (
-            f'<p class="step">🔀 Tjekker pull request <a href="{escape(pr.url)}">{pr.id} "{escape(pr.title)}"</a> '
+            f'<p class="step">🔀 {T["checking_pr"]} <a href="{escape(pr.url)}">{pr.id} "{escape(pr.title)}"</a> '
             f'(<code>{escape(pr.branch)}</code> → {escape(settings.CODE_BRANCH)}), commit {escape(checkout.commit)}</p>'
         )
-    return html + f'<p class="step">🔀 Ingen åben pull request passer til spørgsmålet, så jeg tjekker <code>{escape(checkout.branch)}</code> (commit {escape(checkout.commit)})</p>'
+    return html + f'<p class="step">🔀 {T["no_pr"]} <code>{escape(checkout.branch)}</code> (commit {escape(checkout.commit)})</p>'
 
 
 def render_changes(checkout: Checkout) -> str:
@@ -195,7 +255,7 @@ def render_changes(checkout: Checkout) -> str:
     if not commits:
         return ""
     items = "".join(f"<li><code>{escape(h)}</code> {escape(d)}, {escape(a)}: {escape(s)}</li>" for h, d, a, s in commits)
-    return f'<div class="step">🕓 Starter fra de seneste ændringer på <code>{escape(checkout.branch)}</code>:<ul>{items}</ul></div>'
+    return f'<div class="step">🕓 {T["starting_from"]} <code>{escape(checkout.branch)}</code>:<ul>{items}</ul></div>'
 
 
 def changes_first(question: str, checkout: Checkout) -> str:
@@ -234,18 +294,18 @@ def render_sources(steps: list[Step], checkout: Checkout | None = None) -> str:
         return f"<p>{label}</p><ul>{items}</ul>" if items else ""
 
     repo = code_repo(Path(settings.CODE_FOLDER))
-    code = f"<p>Kode: <code>{escape(str(settings.CODE_FOLDER))}</code>"
+    code = f"<p>{T['code']} <code>{escape(str(settings.CODE_FOLDER))}</code>"
     code += f" (repo <code>{escape(repo)}</code>)" if repo else ""
     if checkout:
         # Hvilken branch og commit koden kom fra, og PR'en, hvis det var en PR's branch.
-        code += f", branch <code>{escape(checkout.branch)}</code> ved commit <code>{escape(checkout.commit)}</code>"
+        code += f", branch <code>{escape(checkout.branch)}</code> {T['at_commit']} <code>{escape(checkout.commit)}</code>"
         if checkout.pull_request:
-            code += f', fra <a href="{escape(checkout.pull_request.url)}">pull request {checkout.pull_request.id}</a>'
+            code += f', {T["from_pr"]} <a href="{escape(checkout.pull_request.url)}">pull request {checkout.pull_request.id}</a>'
     code += "</p>"
     return (
-        '<details class="sources"><summary>Kilder</summary>'
-        + rows("Testcases:", Path(settings.DATA_FOLDER), test_files)
-        + rows("Forretningens krav:", Path(settings.SPEC_FOLDER), spec_files)
+        f'<details class="sources"><summary>{T["sources"]}</summary>'
+        + rows(T["test_cases"], Path(settings.DATA_FOLDER), test_files)
+        + rows(T["requirements"], Path(settings.SPEC_FOLDER), spec_files)
         + code
         + "".join(f"<li><code>{escape(f)}</code></li>" for f in code_files).join(("<ul>", "</ul>"))
         + "</details>"
@@ -258,10 +318,10 @@ def render_document_sources(steps: list[Step]) -> str:
     for step in steps:
         if step.action.tool == "search_ot_documents" and not step.observation.is_error:
             sheets |= set(re.findall(r"^\[(.+?)\]", step.observation.content, re.MULTILINE))
-    items = "".join(f"<li><code>{escape(s)}</code></li>" for s in sorted(sheets)) or "<li>Ingen fundet</li>"
+    items = "".join(f"<li><code>{escape(s)}</code></li>" for s in sorted(sheets)) or f"<li>{T['none_found']}</li>"
     return (
-        '<details class="sources"><summary>Kilder</summary>'
-        f"<p>Dokumenter fra {escape(settings.DOCUMENT_TEAM.upper())}-holdet i <code>{escape(str(settings.OT_FOLDER))}</code>:</p><ul>{items}</ul></details>"
+        f'<details class="sources"><summary>{T["sources"]}</summary>'
+        f"<p>{T['documents_from'].format(escape(settings.DOCUMENT_TEAM.upper()))} <code>{escape(str(settings.OT_FOLDER))}</code>:</p><ul>{items}</ul></details>"
     )
 
 
@@ -277,8 +337,8 @@ def render_assessment(assessment: Assessment, role: str) -> str:
         if technical:
             return f.code
         if f.status == "MET":
-            return "Virker"
-        return f.why or "Se svaret til IT"
+            return T["works"]
+        return f.why or T["see_it"]
 
     def row(f) -> str:
         cells = f"<td>{icons[f.status]}</td><td>{escape(f.ids)}</td><td>{escape(f.requirement)}</td><td>{escape(why(f))}</td>"
@@ -286,10 +346,10 @@ def render_assessment(assessment: Assessment, role: str) -> str:
             cells += f"<td><code>{escape(f.where)}</code></td><td>{escape(f.fix)}</td>"
         return f"<tr>{cells}</tr>"
 
-    head = "<tr><th></th><th>Id</th><th>Kravet</th><th>Hvorfor det fejler</th>"
-    head += "<th>Hvor</th><th>Ret</th></tr>" if technical else "</tr>"
+    head = f"<tr><th></th><th>Id</th><th>{T['requirement']}</th><th>{T['why_fails']}</th>"
+    head += f"<th>{T['where']}</th><th>{T['fix']}</th></tr>" if technical else "</tr>"
     rows = "".join(row(f) for f in assessment.findings)
-    return f'<details class="sources"><summary>Vurdering pr. krav</summary><div class="table"><table>{head}{rows}</table></div></details>'
+    return f'<details class="sources"><summary>{T["per_requirement"]}</summary><div class="table"><table>{head}{rows}</table></div></details>'
 
 
 def fingerprint(steps: list[Step]) -> str:
@@ -383,7 +443,7 @@ def render_conversation(conversation: list[tuple[str, str]]) -> str:
     def agent(a: str) -> str:
         # Et opklarende spørgsmål står i samtalen med QUESTION: foran, så agenten kan se, at den allerede har spurgt.
         if a.startswith(CLARIFY):
-            return render_agent(render_markdown(a[len(CLARIFY):].strip()), "AI spørger", "asks")
+            return render_agent(render_markdown(a[len(CLARIFY):].strip()), T["ai_asks"], "asks")
         return render_agent(render_markdown(a))
     return "".join(render_user(q) + agent(a) for q, a in conversation)
 
@@ -408,9 +468,9 @@ def render_composer(turns: list[tuple[str, str]], role: str, placeholder: str, b
         '<div class="composer"><form method="get" action="/">'
         f'<input type="hidden" name="role" value="{escape(role)}">'
         f'<input type="hidden" name="c" value="{escape(json.dumps(turns, ensure_ascii=False)) if turns else ""}">'
-        f'<textarea name="q" rows="1" placeholder="{escape(placeholder)}" aria-label="Dit spørgsmål" autofocus></textarea>'
+        f'<textarea name="q" rows="1" placeholder="{escape(placeholder)}" aria-label="{escape(T['your_question'])}" autofocus></textarea>'
         f'<button class="send">{escape(button)}</button></form>'
-        '<p class="hint">Enter sender · Shift+Enter giver en ny linje</p></div>'
+        f'<p class="hint">{T["hint"]}</p></div>'
     )
 
 
@@ -488,15 +548,16 @@ def make_handler(agents, writer, checkouts, router=None, docs=None):
             self.write(
                 HEAD.replace("{roles}", roles).replace("{keep}", keep).replace("{role}", escape(role))
                 .replace("{use_case_key}", "+".join(teams)).replace("{use_case}", heading)
+                .replace("{lang}", settings.LANGUAGE).replace("{i_am}", T["i_am"]).replace("{new_chat}", T["new_chat"])
             )
 
             if not question:
                 # Ingen spørgsmål endnu: sig, hvad man kan spørge om, og vis eksempler, man kan klikke på.
                 chips = "".join(f'<button type="button" class="chip">{escape(e)}</button>' for e in examples)
                 self.write(
-                    f'<div class="welcome"><h2>Hvad vil du vide?</h2><p>Spørg {escape(topics)}. '
-                    f'Svaret skrives til {escape(settings.ROLES[role])}.</p><div class="chips">{chips}</div></div>'
-                    + render_composer([], role, f"Fx: {examples[0]}", "Spørg") + SCRIPT + "</main></body></html>"
+                    f'<div class="welcome"><h2>{T["welcome"]}</h2><p>{escape(T["ask_about"].format(topics))} '
+                    f'{escape(T["written_for"].format(settings.ROLES[role]))}</p><div class="chips">{chips}</div></div>'
+                    + render_composer([], role, T["eg"].format(examples[0]), T["ask"]) + SCRIPT + "</main></body></html>"
                 )
                 return
 
@@ -510,24 +571,24 @@ def make_handler(agents, writer, checkouts, router=None, docs=None):
             route, answer = router.route(asked, topics) if router and checks_code and not asked_before else ("", "")
             if route == CHAT:
                 turns = conversation + [(question, answer)]
-                self.write(render_agent(render_markdown(answer), "AI") + render_composer(turns, role, "Spørg videre", "Spørg"))
+                self.write(render_agent(render_markdown(answer), "AI") + render_composer(turns, role, T["ask_more"], T["ask"]))
                 self.write(SCRIPT + "</main></body></html>")
                 return
             if route == DOCS and docs:
-                self.write('<details class="work" id="work" open><summary>Sådan finder jeg svaret</summary><p class="busy" id="busy">Arbejder …</p>')
+                self.write(f'<details class="work" id="work" open><summary>{T["how"]}</summary><p class="busy" id="busy">{T["working"]}</p>')
                 try:
                     run = docs.run(f"{asked}\n\nThe reader is {settings.ROLES[role]}.", on_step=lambda s: self.write(render_step(s)))
-                    reply = run.answer.strip() or "Jeg fandt ikke noget i testprotokollerne om det."
+                    reply = run.answer.strip() or T["nothing_in_docs"]
                 except Exception as e:
-                    reply = f"Opslaget fejlede: {e!r}"
+                    reply = T["lookup_failed"].format(repr(e))
                     run = None
                 self.write('</details><script>work.open = false; busy.remove()</script>')
-                self.write(render_agent(render_markdown(reply) + (render_sources(run.steps) if run else ""), f"AI · svar til {settings.ROLES[role]}"))
-                self.write(render_composer(conversation + [(question, reply)], role, "Spørg videre", "Spørg") + SCRIPT + "</main></body></html>")
+                self.write(render_agent(render_markdown(reply) + (render_sources(run.steps) if run else ""), T["answer_for"].format(settings.ROLES[role])))
+                self.write(render_composer(conversation + [(question, reply)], role, T["ask_more"], T["ask"]) + SCRIPT + "</main></body></html>")
                 return
             # Skridtene står i en boks, der er åben, mens agenten arbejder, og foldes sammen, når svaret er klar.
-            self.write('<details class="work" id="work" open><summary>Sådan finder jeg svaret</summary>')
-            self.write('<p class="busy" id="busy">Arbejder …</p>')
+            self.write(f'<details class="work" id="work" open><summary>{T["how"]}</summary>')
+            self.write(f'<p class="busy" id="busy">{T["working"]}</p>')
             work_open = True
 
             def close_work() -> None:
@@ -552,7 +613,7 @@ def make_handler(agents, writer, checkouts, router=None, docs=None):
                         checkout = checkouts.checkout(" ".join([q for q, _ in conversation] + [question]))
                         self.write(render_checkout(checkout) + render_changes(checkout))
                     except RuntimeError as e:
-                        self.write(f'<p class="step error">🔀 Kunne ikke hente koden, så den sidste kopi bruges: {escape(str(e))}</p>')
+                        self.write(f'<p class="step error">🔀 {escape(T["fetch_failed"].format(e))}</p>')
 
                 # Samme spørgsmål med andre store/små bogstaver, mellemrum eller tegnsætning genbruger vurderingen,
                 # så længe koden og kravene er uændrede. Er en fil rettet, tjekkes koden igen.
@@ -563,7 +624,7 @@ def make_handler(agents, writer, checkouts, router=None, docs=None):
                 same_commit = not checkout or cached and cached[4] == checkout.commit
                 if cached and same_commit and cached[2] == fingerprint(cached[0].steps):
                     run, assessment = cached[0], cached[1]
-                    self.write('<p class="step">♻️ Koden og kravene er ikke ændret, så det tidligere tjek bruges</p>')
+                    self.write(f'<p class="step">♻️ {T["reused"]}</p>')
                 else:
                     # Hvorfor kun de seneste ændringer?
                     # Er koden tjekket før på samme branch, og er kravene uændrede, er det kun de nye commits, der kan ændre svaret.
@@ -580,7 +641,7 @@ def make_handler(agents, writer, checkouts, router=None, docs=None):
                         task += ALREADY_ASKED
                     if earlier:
                         self.write(
-                            f'<p class="step">🔁 Tjekket før på commit {escape(cached[4])}, så kun det, der er ændret siden, læses ({len(changed)} {"fil" if len(changed) == 1 else "filer"}): '
+                            f'<p class="step">🔁 {escape(T["checked_before"].format(cached[4], len(changed), T["file"] if len(changed) == 1 else T["files"]))} '
                             + ", ".join(f"<code>{escape(f)}</code>" for f in changed) + "</p>"
                         )
                         task = changes_question(asked, earlier.answer, cached[4], changed)
@@ -591,7 +652,7 @@ def make_handler(agents, writer, checkouts, router=None, docs=None):
                     if earlier:
                         # Kilderne og fingeraftrykket skal dække al den kode, vurderingen bygger på, også den fra det tidligere tjek.
                         run = AgentRun(run.answer, earlier.steps + run.steps, run.finished)
-                    assessment = parse_assessment(run.answer) if run.finished and checks_code else None
+                    assessment = parse_assessment(run.answer, settings.LANGUAGE) if run.finished and checks_code else None
                     if assessment:
                         commit = (checkout.branch, checkout.commit) if checkout else ("", "")
                         checked[key] = (run, assessment, fingerprint(run.steps), *commit, requirements_fingerprint())
@@ -599,13 +660,13 @@ def make_handler(agents, writer, checkouts, router=None, docs=None):
                 looked_up_ot = any(s.action.tool == "search_ot_documents" for s in run.steps)
                 # Det, der står i svaret, og som næste spørgsmål i samtalen får med.
                 reply, asks_back = run.answer, False
-                who = f"AI · svar til {settings.ROLES[role]}"
+                who = T["answer_for"].format(settings.ROLES[role])
                 if not assessment and run.finished and run.answer.strip().upper().startswith(CLARIFY):
                     # Spørgsmålet var uklart, så agenten spørger med sit bedste gæt i stedet for at vurdere noget forkert.
                     # Svaret sendes med samtalen i feltet herunder.
                     reply, asks_back = run.answer.strip()[len(CLARIFY):].strip(), True
                     close_work()
-                    self.write(render_agent(render_markdown(reply), "AI spørger", "asks"))
+                    self.write(render_agent(render_markdown(reply), T["ai_asks"], "asks"))
                     reply = f"{CLARIFY} {reply}"
                 elif not assessment and run.finished and looked_up_ot:
                     # Et opslag i OT's dokumenter: der er ingen kode at vurdere, så agentens svar vises direkte.
@@ -615,13 +676,13 @@ def make_handler(agents, writer, checkouts, router=None, docs=None):
                     # Agenten blev ikke færdig eller skrev ikke en vurdering. Vis det, den skrev.
                     close_work()
                     self.write(render_agent(
-                        '<p class="error"><b>Ikke færdig.</b> Agenten nåede ikke frem til en vurdering. Prøv at spørge igen, gerne med user storyens id.</p>'
+                        f'<p class="error">{T["not_finished"]}</p>'
                         + render_markdown(run.answer) + render_sources(run.steps, checkout), who
                     ))
                 else:
                     # 20: OUTPUT: Vurderingen skrives om til et svar til rollen, laves om fra markdown til HTML og sendes. SLUT.
                     # Dommen står som et farvet mærke øverst, og kilderne og vurderingen står i lukkede bokse under svaret.
-                    self.write('<p class="step">✍️ Skriver svaret</p>')
+                    self.write(f'<p class="step">✍️ {T["writing"]}</p>')
                     reply = writer.write(asked, assessment, role)
                     close_work()
                     self.write(render_agent(
@@ -630,13 +691,13 @@ def make_handler(agents, writer, checkouts, router=None, docs=None):
                 turns = conversation + [(question, reply)]
                 if asks_back:
                     # Agenten har gættet, hvad der menes. Ét klik siger ja til gættet.
-                    self.write('<div class="chips reply">' '<button type="button" class="chip">Ja, tjek det</button></div>')
-                self.write(render_composer(turns, role, "Svar her" if asks_back else "Spørg videre", "Svar" if asks_back else "Spørg"))
+                    self.write(f'<div class="chips reply"><button type="button" class="chip">{T["yes_check"]}</button></div>')
+                self.write(render_composer(turns, role, T["reply_here"] if asks_back else T["ask_more"], T["reply"] if asks_back else T["ask"]))
             except Exception as e:
                 # Fejlen vises på siden, så demoen ikke bare hænger.
                 close_work()
-                self.write(render_agent(f'<p class="error"><b>Fejl.</b></p><pre>{escape(repr(e))}</pre>', "AI", "asks"))
-                self.write(render_composer(turns, role, "Prøv igen", "Spørg"))
+                self.write(render_agent(f'<p class="error"><b>{T["error"]}</b></p><pre>{escape(repr(e))}</pre>', "AI", "asks"))
+                self.write(render_composer(turns, role, T["try_again"], T["ask"]))
             finally:
                 if holds_code:
                     checkouts.lock.release()

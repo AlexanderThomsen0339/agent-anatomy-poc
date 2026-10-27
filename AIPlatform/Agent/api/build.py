@@ -64,12 +64,12 @@ def build_agents() -> tuple[dict[str, AgentService], AgentService]:
                 "A. Check whether the code solves a task:\n" + prompts[0]
                 + "\n\nB. Look something up in OT's documents. Then answer directly, and do not write an assessment:\n" + prompts[1]
             )
-        return AgentService(brain, ToolService(tools), system, max_steps=settings.MAX_STEPS)
+        return AgentService(brain, ToolService(tools), system + settings.LANGUAGE_NOTE, max_steps=settings.MAX_STEPS)
 
     # Agenterne er klar. Tilbage til main() i Agent/api/web.py (trin 10).
     agents = {role: build_agent(teams) for role, teams in settings.ROLE_TEAMS.items()}
     docs_tools = [code_tools.tools[name] for name in ("list_requirements", "search_requirements", "search_specification")]
-    docs = AgentService(brain, ToolService(docs_tools), settings.DOCS_PROMPT, max_steps=settings.DOCS_MAX_STEPS)
+    docs = AgentService(brain, ToolService(docs_tools), settings.DOCS_PROMPT + settings.LANGUAGE_NOTE, max_steps=settings.DOCS_MAX_STEPS)
     return agents, docs
 
 
@@ -78,10 +78,10 @@ def build_writer() -> AnswerWriter:
     # Den får rollens skill (audience-<rolle>) fra Skills-laget, men ingen værktøjer.
     skills = build_skills()
     brain = GeminiBrain(model=settings.GEMINI_MODEL, api_key=settings.GEMINI_API_KEY, thinking=settings.GEMINI_THINKING)
-    return AnswerWriter(brain, lambda role: skills.load(f"audience-{role}").instructions)
+    return AnswerWriter(brain, lambda role: skills.load(f"audience-{role}").instructions, settings.LANGUAGE_NOTE)
 
 
 def build_router() -> Router:
     # Det første skridt for hvert spørgsmål (trin 11b): småsnak, opslag uden kode eller kodetjek.
     brain = GeminiBrain(model=settings.GEMINI_MODEL, api_key=settings.GEMINI_API_KEY, thinking=settings.GEMINI_THINKING)
-    return Router(brain)
+    return Router(brain, settings.LANGUAGE_NOTE)

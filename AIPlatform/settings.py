@@ -98,13 +98,12 @@ TEAM = "web"
 # Holdet, der laver dokumenterne i OT_FOLDER, som search_ot_documents søger i.
 DOCUMENT_TEAM = "ot"
 
-# Rollerne, man kan vælge på siden. Nøglen står i adressen, værdien er det, brugeren ser i dropdownen.
+# Rollerne, man kan vælge på siden. Nøglen står i adressen, værdien er det, brugeren ser i dropdownen (på hvert sprog).
 # Et kodetjek skrives om til rollen med skillen audience-<rolle>, så en rolle, der ser TEAM, skal have sådan en skill.
 # Hvorfor? En udvikler vil have kode og file:line, mens en fra kommunikation vil vide, hvad kunden oplever.
-ROLES = {
-    "product": "Produkt / kommunikation",
-    "it": "IT",
-    "maintenance": "Vedligehold",
+ROLE_NAMES = {
+    "da": {"product": "Produkt / kommunikation", "it": "IT", "maintenance": "Vedligehold"},
+    "en": {"product": "Product / communication", "it": "IT", "maintenance": "Maintenance"},
 }
 DEFAULT_ROLE = "product"
 
@@ -119,7 +118,29 @@ ROLE_TEAMS = {
 }
 
 
-# 5. Agent
+# 5. Sprog
+# Sproget på siden og i svarene: "da" (dansk) eller "en" (engelsk).
+# Hvorfor en indstilling? Brugerne er danske, men siden skal kunne vises på engelsk, fx til et skærmbillede.
+# Den kan også sættes uden at rette filen: AIPLATFORM_LANGUAGE=en python -m Agent.api.web
+LANGUAGE = os.environ.get("AIPLATFORM_LANGUAGE", "da")
+if LANGUAGE not in ROLE_NAMES:
+    LANGUAGE = "da"
+ROLES = ROLE_NAMES[LANGUAGE]
+
+# Det, der sættes sidst på hver instruktion, når sproget er engelsk.
+# Hvorfor sidst? Skills og prompts siger "Danish" mange steder. Den sidste instruktion vinder,
+# så de kan forblive som de er, og dansk virker præcis som før.
+ENGLISH_NOTE = (
+    "\n\nLANGUAGE: Write everything the user reads in English, even where the instructions above say Danish: "
+    "answers, questions to the user, and the requirement and why parts of an assessment. "
+    "The test protocols and requirements are in Danish: keep searching with Danish words, but translate titles and requirements "
+    "into English when you write them. Ids, file names, code and the status words stay as they are. "
+    "Use these headings instead of the Danish ones: Missing, Can't tell, Architecture, Fix first, and write Fix: instead of Ret:."
+)
+LANGUAGE_NOTE = ENGLISH_NOTE if LANGUAGE == "en" else ""
+
+
+# 6. Agent
 # Grænsen for antal skridt. Beskytter mod en agent, der kører i ring.
 # Et kodetjek skal både søge krav og kravspec, hente to skills, liste filer og læse flere filer, så den er sat højere end i originalen.
 MAX_STEPS = 20
