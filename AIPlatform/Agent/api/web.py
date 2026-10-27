@@ -11,7 +11,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import settings
-from Agent.api.build import build_agents, build_small_talk, build_writer
+from Agent.api.build import build_agents, build_router, build_writer
+from Agent.application.router import CHAT, DOCS
 from Agent.application.answer_writer import parse_assessment
 from Agent.domain.models import AgentRun, Assessment, Step
 from MCP.api.build import build_checkout_service
@@ -343,9 +344,6 @@ ALREADY_ASKED = (
     "Do not ask again: write the assessment now. If they mean more than one user story (e.g. \"alle\"), assess all of them."
 )
 
-# Beskeder med højst så mange ord kan være småsnak og spørges først om (trin 11b).
-SMALL_TALK_WORDS = 8
-
 
 def read_conversation(raw: str) -> list[tuple[str, str]]:
     """Den tidligere samtale fra det skjulte felt c: en liste af [spørgsmål, svar].
@@ -436,7 +434,7 @@ def render_markdown(text: str) -> str:
     return html + ("</ul>" if in_list else "")
 
 
-def make_handler(agents, writer, checkouts, small_talk=None):
+def make_handler(agents, writer, checkouts, router=None, docs=None):
 
     # Hvorfor gemme vurderingen?
     # Skifter man rolle eller spørger igen om uændret kode, skal svaret bygge på den samme vurdering.
@@ -503,19 +501,29 @@ def make_handler(agents, writer, checkouts, small_talk=None):
 
             self.write(render_conversation(conversation) + render_user(question))
 
-            # 11b: SMÅSNAK? En kort besked som "Hej, hvordan går det" får et svar med ét kald,
-            # uden at hente koden, læse commits eller slå testcases op.
-            # Hvorfor kun korte beskeder? Et langt spørgsmål er næsten altid et rigtigt spørgsmål,
-            # og så spares kaldet, så Geminis gratis kvote rækker længere.
-            # Har agenten lige stillet et spørgsmål, er beskeden et svar på det og aldrig småsnak.
+            # 11b: HVAD KRÆVER SPØRGSMÅLET? Ét kald uden værktøjer afgør det (Agent/application/router.py).
+            # Småsnak som "Hej, hvordan går det" svares med det samme. Et spørgsmål som "Hvilke tests er der?"
+            # slås op i testprotokollerne og kravene. Ingen af dem henter koden eller læser commits.
+            # Har agenten lige stillet et spørgsmål, er beskeden et svar på det og går direkte til kodetjekket.
             asked_before = any(a.startswith(CLARIFY) for _, a in conversation)
-            if small_talk and not asked_before and len(question.split()) <= SMALL_TALK_WORDS:
-                answer = small_talk.reply(asked, topics)
-                if answer:
-                    turns = conversation + [(question, answer)]
-                    self.write(render_agent(render_markdown(answer), "AI") + render_composer(turns, role, "Spørg videre", "Spørg"))
-                    self.write(SCRIPT + "</main></body></html>")
-                    return
+            route, answer = router.route(asked, topics) if router and checks_code and not asked_before else ("", "")
+            if route == CHAT:
+                turns = conversation + [(question, answer)]
+                self.write(render_agent(render_markdown(answer), "AI") + render_composer(turns, role, "Spørg videre", "Spørg"))
+                self.write(SCRIPT + "</main></body></html>")
+                return
+            if route == DOCS and docs:
+                self.write('<details class="work" id="work" open><summary>Sådan finder jeg svaret</summary><p class="busy" id="busy">Arbejder …</p>')
+                try:
+                    run = docs.run(f"{asked}\n\nThe reader is {settings.ROLES[role]}.", on_step=lambda s: self.write(render_step(s)))
+                    reply = run.answer.strip() or "Jeg fandt ikke noget i testprotokollerne om det."
+                except Exception as e:
+                    reply = f"Opslaget fejlede: {e!r}"
+                    run = None
+                self.write('</details><script>work.open = false; busy.remove()</script>')
+                self.write(render_agent(render_markdown(reply) + (render_sources(run.steps) if run else ""), f"AI · svar til {settings.ROLES[role]}"))
+                self.write(render_composer(conversation + [(question, reply)], role, "Spørg videre", "Spørg") + SCRIPT + "</main></body></html>")
+                return
             # Skridtene står i en boks, der er åben, mens agenten arbejder, og foldes sammen, når svaret er klar.
             self.write('<details class="work" id="work" open><summary>Sådan finder jeg svaret</summary>')
             self.write('<p class="busy" id="busy">Arbejder …</p>')
@@ -643,15 +651,15 @@ def make_handler(agents, writer, checkouts, small_talk=None):
 def main():
     # 1: START: Her starter vi, når man kører "python -m Agent.api.web".
     # Agenten bygges én gang, så xlsx-filerne kun indlæses ved start. Fortsæt i Agent/api/build.py.
-    agents = build_agents()
+    agents, docs = build_agents()
     writer = build_writer()
-    small_talk = build_small_talk()
+    router = build_router()
     # Branch-valget og repoet med koden, hvis den hentes fra et repo (CODE_REPO). Fortsæt i MCP/api/build.py.
     checkouts = build_checkout_service()
 
     # 10: VENT: Serveren er klar og venter på, at nogen stiller et spørgsmål på siden.
     # Hvert spørgsmål lander i Handler.do_GET() herover.
-    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agents, writer, checkouts, small_talk))
+    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agents, writer, checkouts, router, docs))
     print(f"AI Platform POC is running on http://localhost:{PORT} (Ctrl+C to stop)")
     server.serve_forever()
 
