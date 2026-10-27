@@ -8,6 +8,7 @@ from MCP.infrastructure.tools.code_changes_tool import CodeChangesTool
 from MCP.infrastructure.tools.code_list_tool import CodeListTool
 from MCP.infrastructure.tools.code_read_tool import CodeReadTool
 from MCP.infrastructure.tools.ot_document_search_tool import OtDocumentSearchTool
+from MCP.infrastructure.tools.requirements_list_tool import RequirementsListTool
 from MCP.infrastructure.tools.requirements_search_tool import RequirementsSearchTool
 from MCP.infrastructure.tools.specification_search_tool import SpecificationSearchTool
 from RAG.application.ingest_service import IngestService
@@ -29,9 +30,11 @@ def build_service() -> ToolService:
     specification = KeywordIndex()
     IngestService(MarkdownLoader(settings.SPEC_FOLDER), ParagraphChunker(), specification).run()
 
-    # De fem værktøjer, AI'en kan kalde. Tilbage til build_agents() (trin 9).
+    # De seks værktøjer, AI'en kan kalde. Tilbage til build_agents() (trin 9).
     tools = [
         RequirementsSearchTool(requirements, k=settings.SEARCH_K),
+        # Oversigten over alle tests, så "Hvilke tests er der?" ikke kun får de få bedste søgetræf.
+        RequirementsListTool(XlsxLoader(settings.DATA_FOLDER).load()),
         SpecificationSearchTool(specification, k=settings.SEARCH_K),
         CodeListTool(settings.CODE_FOLDER),
         CodeReadTool(settings.CODE_FOLDER),

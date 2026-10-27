@@ -131,6 +131,7 @@ for (const chip of document.querySelectorAll(".chip")) {
 FRIENDLY = {
     "load_skill": lambda a: f"📘 Henter reglerne i {a.get('name', '')}",
     "search_requirements": lambda a: f"🔎 Slår testcases op: {a.get('query', '')}",
+    "list_requirements": lambda a: "📋 Ser listen over alle tests igennem",
     "search_specification": lambda a: f"📋 Slår forretningens krav op: {a.get('query', '')}",
     "list_code_files": lambda a: "📂 Ser projektets filer igennem",
     "read_code_file": lambda a: f"📄 Læser {a.get('path', '').replace(chr(92), '/').split('/')[-1]}",

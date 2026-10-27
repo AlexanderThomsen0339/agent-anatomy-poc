@@ -24,6 +24,8 @@ class Router:
             "Also when it answers a question you asked earlier (e.g. \"ja\").\n"
             f"- {DOCS}: the test protocols and the business requirements are enough, without the code, e.g. which tests or "
             "user stories there are, or what a test, user story or requirement says.\n"
+            "If the user follows up on an earlier answer about tests or requirements (e.g. \"du mangler nogle\", \"kun for Profil\"), "
+            f"it is still {DOCS}.\n"
             f"- {CHAT}: a greeting, thanks, small talk, or a question about what you can do.\n"
             f"For {CHECK} or {DOCS}, write only that word. When in doubt between them, write {CHECK}.\n"
             f"For {CHAT}, answer it yourself in Danish, in one to three friendly sentences like a colleague, "

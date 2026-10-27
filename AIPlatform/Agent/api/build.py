@@ -68,7 +68,7 @@ def build_agents() -> tuple[dict[str, AgentService], AgentService]:
 
     # Agenterne er klar. Tilbage til main() i Agent/api/web.py (trin 10).
     agents = {role: build_agent(teams) for role, teams in settings.ROLE_TEAMS.items()}
-    docs_tools = [code_tools.tools["search_requirements"], code_tools.tools["search_specification"]]
+    docs_tools = [code_tools.tools[name] for name in ("list_requirements", "search_requirements", "search_specification")]
     docs = AgentService(brain, ToolService(docs_tools), settings.DOCS_PROMPT, max_steps=settings.DOCS_MAX_STEPS)
     return agents, docs
 
