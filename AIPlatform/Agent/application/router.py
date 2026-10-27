@@ -7,8 +7,10 @@ CHAT, DOCS, CHECK = "CHAT", "DOCS", "CHECK"
 
 class Router:
 
-    def __init__(self, brain: AgentBrain):
+    def __init__(self, brain: AgentBrain, language_note: str = ""):
         self.brain = brain
+        # Sættes sidst på instruktionen, så småsnak kan svares på et andet sprog end dansk.
+        self.language_note = language_note
 
     def route(self, asked: str, topics: str) -> tuple[str, str]:
         """Vejen for beskeden, og svaret, hvis den er småsnak.
@@ -30,6 +32,7 @@ class Router:
             f"For {CHECK} or {DOCS}, write only that word. When in doubt between them, write {CHECK}.\n"
             f"For {CHAT}, answer it yourself in Danish, in one to three friendly sentences like a colleague, "
             "and say what you can help with. Never make up anything about the code, the changes or the tests."
+            + self.language_note
         )
         try:
             text = self.brain.decide(system, asked, [], []).text.strip()

@@ -26,6 +26,8 @@ pip install -r requirements.txt
    ```
 4. Open http://localhost:8000 and ask a question.
 
+The page and the answers are in Danish. To show them in English (e.g. for a screenshot), set `LANGUAGE = "en"` in `settings.py`, or start the page with `AIPLATFORM_LANGUAGE=en python -m Agent.api.web`. The page texts are in `TEXTS` in `Agent/api/web.py`, the verdict words in `VERDICT_WORDS` in `Agent/domain/models.py`, and the AI gets `ENGLISH_NOTE` from `settings.py` at the end of every instruction. The test protocols and requirements stay Danish; the AI translates what it quotes.
+
 ## Questions to ask
 
 The code is the demo project *Mit Aalborg Forsyning – Regninger* (.NET, C#) on the Dev branch of the Azure DevOps repo AI platform POC.

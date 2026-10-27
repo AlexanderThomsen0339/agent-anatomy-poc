@@ -6,10 +6,12 @@ from Agent.domain.models import Assessment, Finding
 from Agent.domain.ports import AgentBrain
 
 STATUSES = ("MET", "NOT_MET", "CANT_TELL", "RISK")
+# Det, svaret siger, når alt er opfyldt, på hvert sprog.
+NOTHING_MISSING = {"da": "Intet mangler.", "en": "Nothing is missing."}
 LOCATION = re.compile(r"^`?[\w./\\-]+\.\w+(:\d+)?`?$")
 
 
-def parse_assessment(text: str) -> Assessment | None:
+def parse_assessment(text: str, language: str = "da") -> Assessment | None:
     """Læser vurderingen, som skillen code-review beder agenten skrive: én linje pr. krav.
 
     Hvorfor linjer med | og ikke JSON?
@@ -30,7 +32,7 @@ def parse_assessment(text: str) -> Assessment | None:
     findings = drop_contradictions(findings)
     if not any(f.status != "RISK" for f in findings):
         return None
-    return Assessment(findings, no_spec=bool(re.search(r"^\s*NO_SPEC\b", text, re.MULTILINE)))
+    return Assessment(findings, no_spec=bool(re.search(r"^\s*NO_SPEC\b", text, re.MULTILINE)), language=language)
 
 
 def drop_contradictions(findings: list[Finding]) -> list[Finding]:
@@ -51,16 +53,18 @@ def drop_contradictions(findings: list[Finding]) -> list[Finding]:
 
 class AnswerWriter:
 
-    def __init__(self, brain: AgentBrain, instructions_for: Callable[[str], str]):
+    def __init__(self, brain: AgentBrain, instructions_for: Callable[[str], str], language_note: str = ""):
         # instructions_for henter skillen audience-<rolle>. Den kommer udefra fra Skills-laget.
+        # language_note sættes sidst på instruktionen, når svaret skal på et andet sprog end skillen siger.
         self.brain = brain
         self.instructions_for = instructions_for
+        self.language_note = language_note
 
     def write(self, question: str, assessment: Assessment, role: str) -> str:
         # Er alt opfyldt, og er der ingen risici, er der intet at skrive ud over dommen. Så spares et kald til Gemini,
         # og svaret kan ikke komme til at indeholde skillens overskrifter uden indhold.
         if all(f.status == "MET" for f in assessment.findings):
-            return assessment.verdict + "\n\nIntet mangler."
+            return assessment.verdict + "\n\n" + NOTHING_MISSING.get(assessment.language, NOTHING_MISSING["da"])
         # 20b: SKRIV SVARET: Gemini får kun vurderingen og rollens skill, ingen værktøjer.
         # Den kan derfor ikke vurdere koden igen, kun skrive om. Dommen sættes på af koden.
         findings = "\n".join(
@@ -74,6 +78,7 @@ class AnswerWriter:
         system = (
             self.instructions_for(role)
             + "\n\nOnly use the assessment you are given. Never add, remove or change a status, an id or a file:line."
+            + self.language_note
         )
         text = self.brain.decide(system, prompt, [], []).text.strip()
         return assessment.verdict + "\n\n" + text
