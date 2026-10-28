@@ -118,6 +118,12 @@ ROLE_TEAMS = {
 }
 
 
+# Aalborg Forsynings logo i toppen af siden. Læg filen her (svg eller png). Findes den ikke, vises siden uden logo.
+LOGO_FILE = ROOT / "assets" / "logo.svg"
+if not LOGO_FILE.exists() and LOGO_FILE.with_suffix(".png").exists():
+    LOGO_FILE = LOGO_FILE.with_suffix(".png")
+
+
 # 5. Sprog
 # Sproget på siden og i svarene: "da" (dansk) eller "en" (engelsk).
 # Hvorfor en indstilling? Brugerne er danske, men siden skal kunne vises på engelsk, fx til et skærmbillede.
