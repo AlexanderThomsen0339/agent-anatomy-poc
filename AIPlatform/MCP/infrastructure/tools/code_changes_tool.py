@@ -31,8 +31,9 @@ class CodeChangesTool:
         },
     )
 
-    def __init__(self, folder: str | Path):
+    def __init__(self, folder: str | Path, max_chars: int = MAX_CHARS):
         self.folder = Path(folder)
+        self.max_chars = max_chars
 
     def run(self, arguments: dict) -> str:
         count = max(1, min(int(arguments.get("count") or 3), 10))
@@ -46,6 +47,6 @@ class CodeChangesTool:
         except (OSError, subprocess.CalledProcessError):
             return "The code folder is not a git repo, so there is no history of changes."
         text = result.stdout.strip() or "No commits found."
-        if len(text) > MAX_CHARS:
-            text = text[:MAX_CHARS] + f"\n... (cut after {MAX_CHARS} characters, ask for fewer commits)"
+        if len(text) > self.max_chars:
+            text = text[:self.max_chars] + f"\n... (cut after {self.max_chars} characters, ask for fewer commits)"
         return text

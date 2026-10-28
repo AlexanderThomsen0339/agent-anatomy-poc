@@ -22,12 +22,13 @@ from MCP.domain.models import ToolSpec
 
 class MistralBrain:
 
-    def __init__(self, model: str, base_url: str = "http://localhost:11434", context: int = 32768, temperature: float = 0.1):
+    def __init__(self, model: str, base_url: str = "http://localhost:11434", context: int = 16384, temperature: float = 0.1, timeout: int = 1800):
         # Det gamle OpenAI-endpoint (.../v1) virker også som adresse: /v1 fjernes.
         self.url = base_url.rstrip("/").removesuffix("/v1") + "/api/chat"
         self.model = model
         # Lav temperatur: en lille model holder sig bedre til formatet, når den ikke "improviserer".
         self.options = {"num_ctx": context, "temperature": temperature}
+        self.timeout = timeout
 
     def decide(self, system: str, question: str, history: History, tools: list[ToolSpec]) -> Decision:
         body = {
@@ -42,7 +43,7 @@ class MistralBrain:
                 for t in tools
             ]
         request = urllib.request.Request(self.url, json.dumps(body).encode(), {"Content-Type": "application/json"})
-        with urllib.request.urlopen(request, timeout=600) as response:
+        with urllib.request.urlopen(request, timeout=self.timeout) as response:
             message = json.loads(response.read())["message"]
 
         text = message.get("content") or ""

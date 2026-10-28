@@ -22,7 +22,10 @@ MISTRAL_BASE_URL = "http://localhost:11434"
 
 # Hvor meget tekst (tokens) modellen må se på én gang. Sendes med hvert kald, så `ollama serve` er nok.
 # Systemprompten fylder ca. 4.000, og commits, krav og kode kommer oveni. Mistral 7B kan højst 32.768.
-MISTRAL_CONTEXT = 32768
+MISTRAL_CONTEXT = 16384
+
+# Hvor længe et kald til Ollama må tage, i sekunder. Et langt kodetjek på en Mac mini kan tage minutter pr. skridt.
+MISTRAL_TIMEOUT = 1800
 
 
 # 2. RAG
@@ -142,14 +145,21 @@ LANGUAGE_NOTE = ENGLISH_NOTE if LANGUAGE == "en" else DANISH_NOTE
 
 # 6. Agent
 # Grænsen for antal skridt. Beskytter mod en agent, der kører i ring.
-# Et kodetjek skal både søge krav og kravspec, hente to skills, liste filer og læse flere filer, så den er sat højere end i originalen.
-MAX_STEPS = 20
+# Koden slår kravene op og læser de ændrede filer på forhånd (FIRST_STEPS), så der skal færre skridt til.
+# Hvert skridt sender hele samtalen til Mistral igen, så færre skridt er også meget hurtigere på en Mac mini.
+MAX_STEPS = 8
 
 # Lader koden søge kravene og læse de ændrede filer, før modellen tænker første gang (first_steps i Agent/api/web.py).
 # Hvorfor? En lille lokal model springer ellers værktøjerne over og gætter ud fra commits alene.
 FIRST_STEPS = True
 # Højst så mange af de filer, de nyeste commits ændrede, læses på forhånd, og kun kodefiler.
-FIRST_FILES = 3
+FIRST_FILES = 2
+
+# Hvor meget af en kodefil og af de nyeste commits modellen får, i tegn (ca. 3-4 tegn pr. token).
+# Hvorfor så lidt? Alt skal være inden for MISTRAL_CONTEXT. Ellers smider Ollama det ældste væk (reglerne),
+# og hvert skridt bliver meget langsommere, fordi den må læse alt forfra. Gemini kunne klare 20.000 og 15.000.
+READ_MAX_CHARS = 8_000
+CHANGES_MAX_CHARS = 6_000
 FIRST_FILE_TYPES = (".cs", ".cshtml", ".razor", ".js", ".ts", ".py")
 
 # Instruktionen til kodetjek, for roller der ser TEAM. Skillsne code-review og architecture-<TEAM> sættes på i Agent/api/build.py.

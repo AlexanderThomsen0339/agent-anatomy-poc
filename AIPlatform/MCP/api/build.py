@@ -37,8 +37,8 @@ def build_service() -> ToolService:
         RequirementsListTool(XlsxLoader(settings.DATA_FOLDER).load()),
         SpecificationSearchTool(specification, k=settings.SEARCH_K),
         CodeListTool(settings.CODE_FOLDER),
-        CodeReadTool(settings.CODE_FOLDER),
-        CodeChangesTool(settings.CODE_FOLDER),
+        CodeReadTool(settings.CODE_FOLDER, settings.READ_MAX_CHARS),
+        CodeChangesTool(settings.CODE_FOLDER, settings.CHANGES_MAX_CHARS),
     ]
     return ToolService(tools)
 
@@ -57,7 +57,7 @@ def build_checkout_service() -> CheckoutService | None:
         print(f"Code: {settings.CODE_REPO}, {settings.CODE_BRANCH} at commit {repository.sync(settings.CODE_BRANCH)} in {settings.CODE_FOLDER}")
     except RuntimeError as e:
         print(f"Code: could not fetch {settings.CODE_REPO}: {e}")
-    return CheckoutService(repository, finder, settings.CODE_BRANCH, CodeChangesTool(settings.CODE_FOLDER))
+    return CheckoutService(repository, finder, settings.CODE_BRANCH, CodeChangesTool(settings.CODE_FOLDER, settings.CHANGES_MAX_CHARS))
 
 
 def build_ot_service() -> ToolService:

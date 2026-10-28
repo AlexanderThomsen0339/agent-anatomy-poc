@@ -28,8 +28,9 @@ class CodeReadTool:
         },
     )
 
-    def __init__(self, folder: str | Path):
+    def __init__(self, folder: str | Path, max_chars: int = MAX_CHARS):
         self.folder = Path(folder).resolve()
+        self.max_chars = max_chars
 
     def run(self, arguments: dict) -> str:
         # 16d: LÆS FIL: Én fil fra CODE_FOLDER med linjenumre, så svaret kan henvise til fil:linje.
@@ -47,11 +48,11 @@ class CodeReadTool:
         except UnicodeDecodeError:
             return "The file is not text and cannot be read."
 
-        cut = len(text) > MAX_CHARS
-        lines = text[:MAX_CHARS].splitlines()
+        cut = len(text) > self.max_chars
+        lines = text[:self.max_chars].splitlines()
 
         # Linjenumre, så svaret kan henvise til fil:linje.
         numbered = "\n".join(f"{i:4} | {line}" for i, line in enumerate(lines, start=1))
         if cut:
-            numbered += f"\n... (cut after {MAX_CHARS} characters)"
+            numbered += f"\n... (cut after {self.max_chars} characters)"
         return numbered
