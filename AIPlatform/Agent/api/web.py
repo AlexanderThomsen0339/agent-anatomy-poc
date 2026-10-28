@@ -14,7 +14,7 @@ import settings
 from Agent.api.build import build_agents, build_router, build_writer
 from Agent.application.router import CHAT, DOCS
 from Agent.application.answer_writer import parse_assessment
-from Agent.domain.models import AgentRun, Assessment, Step
+from Agent.domain.models import Action, AgentRun, Assessment, Step
 from MCP.api.build import build_checkout_service
 from MCP.domain.models import Checkout
 
@@ -151,6 +151,7 @@ TEXTS = {
         "reused": "Koden og kravene er ikke ændret, så det tidligere tjek bruges",
         "checked_before": "Tjekket før på commit {}, så kun det, der er ændret siden, læses ({} {}):", "file": "fil", "files": "filer",
         "not_finished": "<b>Ikke færdig.</b> Agenten nåede ikke frem til en vurdering. Prøv at spørge igen, gerne med user storyens id.",
+        "model_text": "Det, modellen skrev",
         "writing": "Skriver svaret", "yes_check": "Ja, tjek det", "reply_here": "Svar her", "reply": "Svar",
         "error": "Fejl.", "try_again": "Prøv igen",
         "teams": {
@@ -179,6 +180,7 @@ TEXTS = {
         "reused": "The code and requirements haven't changed, so the earlier check is used",
         "checked_before": "Checked before on commit {}, so only what changed since is read ({} {}):", "file": "file", "files": "files",
         "not_finished": "<b>Not finished.</b> The agent didn't reach an assessment. Try asking again, ideally with the user story's id.",
+        "model_text": "What the model wrote",
         "writing": "Writing the answer", "yes_check": "Yes, check it", "reply_here": "Reply here", "reply": "Reply",
         "error": "Error.", "try_again": "Try again",
         "teams": {
@@ -256,6 +258,23 @@ def render_changes(checkout: Checkout) -> str:
         return ""
     items = "".join(f"<li><code>{escape(h)}</code> {escape(d)}, {escape(a)}: {escape(s)}</li>" for h, d, a, s in commits)
     return f'<div class="step">🕓 {T["starting_from"]} <code>{escape(checkout.branch)}</code>:<ul>{items}</ul></div>'
+
+
+def first_steps(words: str, checkout: Checkout | None) -> list[Action]:
+    """Det, koden slår op, før modellen tænker: kravene, kravspec'en og de filer, de nyeste commits ændrede.
+
+    Hvorfor ikke lade agenten selv gøre det?
+    En lille lokal model springer tit værktøjerne over og skriver ud fra commits alene. Så bygger svaret
+    ikke på user storyerne, og siden kan ikke vise, hvad den har kigget i. Agenten kan stadig søge og læse mere selv.
+    """
+    actions = [
+        Action("first-req", "search_requirements", {"query": words}),
+        Action("first-spec", "search_specification", {"query": words}),
+    ]
+    changed = re.findall(r"^diff --git a/(\S+) b/", checkout.changes, re.MULTILINE) if checkout else []
+    files = [f for f in dict.fromkeys(changed) if f.endswith(settings.FIRST_FILE_TYPES)][: settings.FIRST_FILES]
+    actions += [Action(f"first-file-{i}", "read_code_file", {"path": f}) for i, f in enumerate(files)]
+    return actions
 
 
 def changes_first(question: str, checkout: Checkout) -> str:
@@ -648,7 +667,9 @@ def make_handler(agents, writer, checkouts, router=None, docs=None):
                     # 12: AGENTEN KØRER: Fortsæt i Agent/application/agent_service.py.
                     # 18: VIS SKRIDT: on_step kaldes efter hvert skridt, og render_step() sender det til browseren med det samme.
                     # Agenten får ikke rollen. Vurderingen skal være den samme, uanset hvem der spørger.
-                    run = agent.run(task, on_step=lambda s: self.write(render_step(s)))
+                    words = " ".join([q for q, _ in conversation] + [question])
+                    first = first_steps(words, checkout) if settings.FIRST_STEPS else []
+                    run = agent.run(task, on_step=lambda s: self.write(render_step(s)), first=first)
                     if earlier:
                         # Kilderne og fingeraftrykket skal dække al den kode, vurderingen bygger på, også den fra det tidligere tjek.
                         run = AgentRun(run.answer, earlier.steps + run.steps, run.finished)
@@ -677,7 +698,9 @@ def make_handler(agents, writer, checkouts, router=None, docs=None):
                     close_work()
                     self.write(render_agent(
                         f'<p class="error">{T["not_finished"]}</p>'
-                        + render_markdown(run.answer) + render_sources(run.steps, checkout), who
+                        # Teksten er ikke en vurdering og ofte lang og på engelsk, så den står i en lukket boks.
+                        + f'<details class="sources"><summary>{T["model_text"]}</summary>{render_markdown(run.answer)}</details>'
+                        + render_sources(run.steps, checkout), who
                     ))
                 else:
                     # 20: OUTPUT: Vurderingen skrives om til et svar til rollen, laves om fra markdown til HTML og sendes. SLUT.

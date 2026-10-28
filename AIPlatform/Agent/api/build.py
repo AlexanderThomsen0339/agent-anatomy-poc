@@ -35,7 +35,7 @@ def build_agents() -> tuple[dict[str, AgentService], AgentService]:
     ot_tools = build_ot_service()
 
     # Hjernen, der taler med lokal Mistral gennem Ollama.
-    brain = MistralBrain(model=settings.MISTRAL_MODEL, base_url=settings.MISTRAL_BASE_URL)
+    brain = MistralBrain(settings.MISTRAL_MODEL, settings.MISTRAL_BASE_URL, settings.MISTRAL_CONTEXT)
 
     def build_agent(teams: list[str]) -> AgentService:
         # 9: SAML: Værktøjerne til rollens hold lægges i én ToolService, og systemprompten skrives til de samme hold.
@@ -90,11 +90,11 @@ def build_writer() -> AnswerWriter:
     # Skribenten, der laver vurderingen om til et svar til den valgte rolle (trin 20b).
     # Den får rollens skill (audience-<rolle>) fra Skills-laget, men ingen værktøjer.
     skills = build_skills()
-    brain = MistralBrain(model=settings.MISTRAL_MODEL, base_url=settings.MISTRAL_BASE_URL)
+    brain = MistralBrain(settings.MISTRAL_MODEL, settings.MISTRAL_BASE_URL, settings.MISTRAL_CONTEXT)
     return AnswerWriter(brain, lambda role: skills.load(f"audience-{role}").instructions, settings.LANGUAGE_NOTE)
 
 
 def build_router() -> Router:
     # Det første skridt for hvert spørgsmål (trin 11b): småsnak, opslag uden kode eller kodetjek.
-    brain = MistralBrain(model=settings.MISTRAL_MODEL, base_url=settings.MISTRAL_BASE_URL)
+    brain = MistralBrain(settings.MISTRAL_MODEL, settings.MISTRAL_BASE_URL, settings.MISTRAL_CONTEXT)
     return Router(brain, settings.LANGUAGE_NOTE)
