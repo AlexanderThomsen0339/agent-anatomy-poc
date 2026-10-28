@@ -7,13 +7,14 @@
 | Tool | Does | Why |
 |---|---|---|
 | `search_requirements` | Searches the user stories and test cases | Wraps the RAG search as a tool, so the agent chooses what to search for. |
+| `list_requirements` | Lists every user story and test case, by area and sheet | The search only returns the best few hits, so "Hvilke tests er der?" needs the whole list. Built once at start from the same xlsx files. |
 | `search_specification` | Searches the business requirements (kravspec) | A separate source from the tests. A US id returns exactly the requirements that cover it, or "not documented", so the agent can't invent one. |
 | `search_ot_documents` | Searches the OT team's documents, such as the signal list and PDFs. It returns PDF pages first and signal rows second, from separate indexes, so the signal list never hides a document. With `exact: true` it returns only the documents and pages that contain the words word for word, e.g. "BERAN backup". Only roles that see OT (IT and Vedligehold) get it, from `build_ot_service()` | Maintenance needs to find signals by code or Danish description. Its own index and tool set keep them apart from the requirements and the code. |
 | `list_code_files` | Lists the files in `CODE_FOLDER` | The agent has to find the relevant files before it can read them. |
 | `read_code_file` | Returns one file with line numbers | Line numbers let the answer point to `file:line`. Paths outside `CODE_FOLDER` are refused. |
 | `list_recent_changes` | Shows the newest commits on the branch with their changed lines | A fresh change in a file further down (e.g. a manager) can break a task. Without the history the agent only reads the files whose names match the task. |
 
-The code-check agent's sixth tool, `load_skill`, comes from the Skills layer but uses the same `ToolSpec`, so it sees six tools of the same kind.
+`load_skill` comes from the Skills layer but uses the same `ToolSpec`, so the agent would see it as just another tool. It is only given when there are skills the agent can choose itself; `code-review` and `architecture-<TEAM>` are put in the system prompt.
 
 **Why it's there:** without tools, Gemini can only guess. MCP lets it look things up and read the code, while keeping the access small and read-only. `ToolService.call()` turns any error into a result Gemini can read, so a failing tool never crashes the agent.
 

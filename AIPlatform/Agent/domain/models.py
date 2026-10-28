@@ -111,6 +111,11 @@ class Finding:
     # Svaret til produkt bruger det ikke.
     fix: str = ""
 
+    # Hvorfor en forklaring uden kode?
+    # Kommunikation skal kunne forstå, hvorfor et krav fejler, uden at læse koden.
+    # Den skrives af agenten, der har læst koden, så svaret til produkt ikke skal gætte årsagen.
+    why: str = ""
+
 
 @dataclass(frozen=True)
 class Assessment:
@@ -122,6 +127,9 @@ class Assessment:
     # Har forretningen ikke skrevet krav ned, skal svaret sige det i stedet for at gætte.
     no_spec: bool = False
 
+    # Sproget, dommen skrives på: "da" eller "en".
+    language: str = "da"
+
     def count(self, status: str) -> int:
         return sum(1 for f in self.findings if f.status == status)
 
@@ -130,8 +138,16 @@ class Assessment:
         """Dommen regnes ud her og ikke af AI'en, så tallet altid passer med listen."""
         met = self.count("MET")
         total = met + self.count("NOT_MET") + self.count("CANT_TELL")
-        word = "Solved" if met == total else "Not solved" if met == 0 else "Partly solved"
-        line = f"**{word}**. {met} of {total} requirements met."
+        words = VERDICT_WORDS.get(self.language, VERDICT_WORDS["da"])
+        word = words[0] if met == total else words[2] if met == 0 else words[1]
+        line = f"**{word}**. " + words[3].format(met=met, total=total)
         if self.no_spec:
-            line += " The business has not written down requirements for this."
+            line += " " + words[4]
         return line
+
+
+# Dommen på hvert sprog: løst, delvist løst, ikke løst, tallet og linjen, når der ingen krav er.
+VERDICT_WORDS = {
+    "da": ("Løst", "Delvist løst", "Ikke løst", "{met} af {total} krav er opfyldt.", "Forretningen har ikke skrevet krav ned for dette."),
+    "en": ("Solved", "Partly solved", "Not solved", "{met} of {total} requirements are met.", "The business has not written requirements for this."),
+}

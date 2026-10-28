@@ -32,12 +32,30 @@ class GitRepository:
         # Hvorfor fetch og reset i stedet for checkout og pull?
         # Mappen er kun en kopi. Reset gør den altid lig med branchen i repoet, også hvis nogen har force-pushet,
         # og der skal ikke holdes styr på lokale branches.
-        self._git("fetch", "origin", branch or "HEAD")
+        self._git("fetch", "origin", self._remote_branch(branch) if branch else "HEAD")
         self._git("reset", "--hard", "FETCH_HEAD")
         # Reset fjerner ikke filer, git ikke kender. Uden clean bliver filer fra en anden branch eller et gammelt repo
         # liggende, og list_code_files viser dem stadig.
         self._git("clean", "-ffdx")
         return self._git("rev-parse", "--short", "HEAD").strip()
+
+    def _remote_branch(self, branch: str) -> str:
+        """Branchens navn, som det står i repoet.
+
+        Hvorfor?
+        Git skelner mellem store og små bogstaver, så "Dev" findes ikke, hvis branchen hedder "dev".
+        Findes branchen slet ikke, siger fejlen, hvilke branches repoet har, så man kan rette CODE_BRANCH eller CODE_REPO.
+        """
+        heads = [line.split("refs/heads/", 1)[1] for line in self._git("ls-remote", "--heads", "origin").splitlines() if "refs/heads/" in line]
+        if branch in heads:
+            return branch
+        same = [h for h in heads if h.lower() == branch.lower()]
+        if same:
+            return same[0]
+        raise RuntimeError(
+            f"branchen {branch} findes ikke i {self.url}. Repoet har: {', '.join(heads) or 'ingen branches'}. "
+            "Ret CODE_BRANCH (eller CODE_REPO) i settings.py"
+        )
 
     def changed_files(self, since: str) -> list[str]:
         # Fejler, hvis commit'en ikke findes længere, fx efter en force-push. Så tjekkes al koden igen.

@@ -1,47 +1,66 @@
 ---
 name: code-review
-description: Use when someone asks whether the code solves a user story, meets acceptance criteria, passes test cases or meets the business requirements.
+description: Checks whether the code meets a user story's acceptance criteria and the business requirements, and writes one status line per requirement. Use when someone asks whether the code solves a user story, passes its test cases or meets the requirements.
 ---
 
 # How we review code
 
-There are two sources of requirements, and the code is checked against both:
-- **Test criteria**: the user story and its acceptance criteria, from `search_requirements`. They say what the test team checks.
-- **Business requirements (kravspec)**: requirements with ids like US-001 and so on, from `search_specification`. They say what the business ordered.
+A **requirement** is either an acceptance criterion or a business requirement. The code is checked against both:
+- **Acceptance criteria** (AC1, AC2 ...): the user story's Acceptkriterier, from `search_requirements`. They say what the test team checks.
+- **Business requirements** (ids like KRAV-REG-03): the kravspec, from `search_specification`. They say what the business ordered.
 
-First find the requirements and the code. Never guess:
-- Look up the user story with `search_requirements`. The data is in Danish, so search with the user story id (e.g. US-002) and Danish words from the title.
-- **Pick the right user story.** Use the one whose id and title match the question.
-- Look up the business requirements with `search_specification`, using the user story id and Danish words. Keep every requirement whose "Dækker" line names this user story and whose file is for the same area (e.g. `regninger.xlsx` for Regninger or similar, it may even be 'min profil.xlsx' and so on.).
-- Load how the team that owns the code builds its solutions with `load_skill` (e.g. `architecture-web`). The system prompt names the team.
-- Find the relevant files with `list_code_files`, and read them with `read_code_file`. Read the route, template, service and manager that belong to the task, not only one file.
-- Look at the latest changes with `list_recent_changes`. A recent change in a file the task depends on (e.g. a controller that calls services and so on) can break it, even if the file's name doesn't match the task. Judge the code as it is based on the architecture (e.g. modules) after those changes. If the question is about the latest change or fix, start here.
+## 1. Find the requirements and the code
 
-Only judge against the requirements you found and the team's way of coding. Never invent a requirement, a criterion or a file:line. If `search_specification` finds no requirement for the user story, say so.
+Never guess what the requirements or the code say. Do these steps in order:
+1. Find the area the question is about, e.g. Regninger, Profil or Overblik. Each area numbers its user stories from US-001, so an id alone is not enough: every block from `search_requirements` starts with `Område:`. Look up the user story with `search_requirements`, using the area, the id (e.g. US-002) and Danish words from its title. Use only the user story whose area, id and title match the question.
+2. Look up the business requirements with `search_specification`, using the user story id and Danish words. Keep every business requirement whose "Dækker" line names this user story and whose file covers the same area.
+3. Look at the newest commits: they are in the question, or use `list_recent_changes`. A change in a file the task depends on (e.g. a manager the service calls) can break it, even if the file's name doesn't match the task.
+4. Find the files with `list_code_files`, and read them with `read_code_file`: the controller, view (`.cshtml`), service, model and manager that belong to the task, and the files changed in the newest commits.
 
-## Write the assessment, not the answer
+Only judge against the requirements you found and the team's way of coding below. Never invent a requirement or a file:line.
 
-Your answer is an assessment, not text for a person. It is the same whoever asks: afterwards it is turned into an answer for IT or a product person, so never write for a reader here.
+### Is the question clear enough?
+Before you assess, decide if you know what the user wants checked.
+- **Clear**: the question names a user story, or a page or feature that only one user story covers, or it asks about the latest changes and the newest commits all belong to one feature. Then assess it.
+- **Broad**: the question asks about everything, e.g. "Hvilke tests mangler at blive løst?" or "alle tests". That is clear too: assess every user story in the area it names, or else in the areas the newest commits change. Put the user story id in front of each AC, e.g. `US-002 AC1`, so lines from different user stories can be told apart.
+- **Unclear**: the question could mean several things, or you would have to guess what to check, e.g. "Virker det?", "Er regningerne ok?" or "Diaco siger, de seneste ændringer virker. Gør de det?" when his commits touch more than one feature. Then don't assess yet.
 
-Give every user story and every acceptance criterion exactly one line with one status. Call the acceptance criteria AC1, AC2 and so on, with the number they have in the user story's Acceptkriterier, and use each AC number in exactly one line:
-- `MET`: code you have read does what the requirement says. When the requirement names an exact value (a file name, a text, a format or a status word), the value in the code must be the same, character for character. A text "Paid" where the requirement says "Betalt", or a name `report_1.csv` where it says `export_1.csv`, is `NOT_MET`.
-- `NOT_MET`: code you have read does it differently, or nothing in the code does it. A format, a sort order, an error message or a log call can be seen in the code, so it is never `CANT_TELL`. Formatting is done where the value is shown (the view), so read the view before you decide.
+When it is unclear, first look (the newest commits, `search_requirements`) so you can make a good guess. Then write only one line: `QUESTION:` followed by your best guess as a question to the user, in plain Danish, like a colleague would ask. Say what you think they mean, why you think so, and the most likely alternative. No code words, file names or AC numbers; a user story is named by its title. For example:
+`QUESTION: Jeg tror, du spørger, om regningsoversigten stadig virker, fordi Diacos seneste ændring er i forbindelsen til regningssystemet. Skal jeg tjekke det, eller mener du hans ændring af profilsiden?`
+
+Ask at most once. If the earlier conversation already has your question, the user's answer settles it: "ja" or similar means your guess, otherwise use what they wrote. Then assess, and never ask again.
+
+## 2. Give each requirement one status
+
+- `MET`: code you have read does what the requirement says. When the requirement names an exact value (a text, a file name, a format or a status word), the code must use the same value, character for character. A translation or another name is `NOT_MET`.
+- `NOT_MET`: code you have read does it differently, or nothing in the code does it. A format, a sort order, an error message or a log call can be seen in the code, so it is never `CANT_TELL`. Formatting can happen in the service, the view model or the view, so read all of them before you decide.
 - `CANT_TELL`: only when it depends on something outside the code, such as speed, another system or real data.
 
-Add a `RISK` line for each serious way the code differs from how the team builds (the architecture skill), at most 3.
+Add a `RISK` line for each serious way the code differs from how the team codes, at most 3.
 If `search_specification` found no business requirement for the user story, add a line with only `NO_SPEC`.
 
-Each line has six parts separated by `|`, in English:
-`STATUS | ids | what the requirement asks | what the code does | file.py:line | how to fix`
+## 3. Write the assessment
 
-- **What the code does** is technical and exact: the method, the expression or the value, in backticks, e.g. ``{{ invoice.amount }}`` is printed without a format.
-- **How to fix** is the concrete code change, e.g. use ``{{ invoice.amount | amount }}``. Leave it empty for `MET`. For `CANT_TELL`, say what would show it (a test, a log, another repo).
+Before you write, check:
+- [ ] Every AC number from the user story has exactly one line.
+- [ ] Every business requirement you kept has exactly one line. If it says the same as an AC, both ids share one line.
+- [ ] Every file:line is in a file you have read.
+
+Your text is an assessment, not an answer: it is the same whoever asks, and another step writes the answer for the reader. ALWAYS use exactly this format, one line per requirement, seven parts separated by `|`. The status word stays in English; the rest is in Danish:
+`STATUS | ids | what the requirement asks | why, in plain words | what the code does | file.cs:line | how to fix`
+
+- **Why, in plain words** is for a reader who never sees code, such as the communication team. Say what the customer sees or can't do, and the cause in everyday words. If a recent commit caused it, name its author and what they changed, in plain words. No code words: no file, class, method, variable, value in backticks, null, session, exception or parse. One sentence. For `MET`, write what the customer gets.
+- **What the code does** is technical and exact: the method, the expression or the value, in backticks.
+- **How to fix** is the concrete code change. Leave it empty for `MET`. For `CANT_TELL`, say what would show it (a test, a log, another repo).
+
+When one cause breaks several requirements (e.g. the page fails to load), every line still gets its own status, but they share the same why.
 
 For example:
 ```
-NOT_MET | KRAV-REG-04, AC7 | Dates are shown as dd-mm-yyyy | `{{ invoice.invoice_date }}` is printed in ISO format | web/templates/invoices.html:8 | Use `{{ invoice.invoice_date | date }}`
-CANT_TELL | AC9 | The page loads within 2 seconds | `get_overview()` calls the billing system once per contract | core/billing/services/billing_service.py:30 | Measure with a load test against the test environment
-RISK | - | Business logic belongs in a service | `overview()` reads `session["contracts"]` and filters invoices itself | web/billing_routes.py:27 | Move the filtering to `BillingService` in core/billing/services and inject it
+NOT_MET | KRAV-REG-04, AC7 | Datoer vises som dd-mm-åååå | Kunden ser datoen som 2026-03-01 i stedet for 01-03-2026, fordi datoen vises, som den kommer fra regningssystemet | `@row.InvoiceDate` udskriver den rå værdi i ISO-format | Views/Partials/BillingTableBody.cshtml:8 | Formatér i mappingen med `date.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)`
+NOT_MET | AC1 | Kunden kan se sine regninger | Siden med regninger kan ikke åbne, fordi Katjas ændring af forbindelsen til regningssystemet i går fjernede den del, siden henter regningerne med | `GetInvoices()` findes ikke længere i `XellentManager`, så `BillingService` fejler | Core/Billing/Services/BillingService.cs:30 | Genindfør `GetInvoices()` i `XellentManager` eller kald den nye metode
+CANT_TELL | AC9 | Siden indlæses på under 2 sekunder | Det afhænger af, hvor hurtigt regningssystemet svarer, og det kan ikke ses i koden | `GetBillingOverview()` kalder regningssystemet én gang pr. kontrakt | Core/Billing/Services/BillingService.cs:30 | Mål det med en belastningstest mod testmiljøet
+RISK | - | Forretningslogik hører til i en service | Ændringer på regningssiden tager længere tid og går lettere i stykker | `Index()` læser sessionen og filtrerer selv fakturaerne | Controllers/BillingController.cs:27 | Flyt filtreringen til `IBillingService` i Core/Billing/Services og injicér den
 ```
 
-If a KRAV and an acceptance criterion say the same thing, write one line with both ids. Only use a file:line you have read. Never put a `|` inside a part. Write nothing else: no verdict, no introduction, no headings.
+Never put a `|` inside a part. Write nothing else: no verdict, no introduction, no headings.

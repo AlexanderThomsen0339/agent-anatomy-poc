@@ -2,6 +2,7 @@
 import settings
 from Agent.application.agent_service import AgentService
 from Agent.application.answer_writer import AnswerWriter
+from Agent.application.router import Router
 from Agent.infrastructure.brains.mistral_brain import MistralBrain
 from MCP.api.build import build_ot_service, build_service as build_tools
 from MCP.application.tool_service import ToolService
@@ -9,8 +10,12 @@ from Skills.api.build import build_service as build_skills
 from Skills.api.skill_tool import LoadSkillTool
 
 
-def build_agents() -> dict[str, AgentService]:
-    """Én agent pr. rolle. Rollen får kun værktøjerne til de hold, den ser (ROLE_TEAMS i settings.py)."""
+def build_agents() -> tuple[dict[str, AgentService], AgentService]:
+    """Én agent pr. rolle, plus agenten til opslag uden kode.
+
+    Rollen får kun værktøjerne til de hold, den ser (ROLE_TEAMS i settings.py).
+    Opslagsagenten får kun søgningen i testprotokollerne og kravene, så den aldrig rører repoet.
+    """
     # 2: BYG AGENTERNE: Her samles alle lag. Det sker én gang, når serveren starter.
 
     # 3: SKILLS: Fortsæt i Skills/api/build.py.
@@ -28,16 +33,23 @@ def build_agents() -> dict[str, AgentService]:
         # 9: SAML: Værktøjerne til rollens hold lægges i én ToolService, og systemprompten skrives til de samme hold.
         tools, prompts = [], []
         if settings.TEAM in teams:
-            # Kodetjek: krav, kravspec, kode og load_skill. Holdet fortæller agenten, hvilken skill
-            # der beskriver, hvordan koden skal være bygget. audience-skills skjules: rollen bruges først,
-            # når svaret skrives (AnswerWriter), aldrig i vurderingen.
-            tools += list(code_tools.tools.values()) + [LoadSkillTool(skills)]
-            prompts.append(
+            # Kodetjek: krav, kravspec og kode. code-review og holdets architecture-skill skal bruges i hvert
+            # kodetjek, så koden sætter dem ind i systemprompten i stedet for at lade agenten vælge at hente dem.
+            # audience-skills skjules: rollen bruges først, når svaret skrives (AnswerWriter), aldrig i vurderingen.
+            # load_skill gives kun, hvis der er andre skills, agenten selv kan vælge.
+            tools += list(code_tools.tools.values())
+            architecture = f"architecture-{settings.TEAM}"
+            system = (
                 settings.SYSTEM_PROMPT
-                + f"\nThe code belongs to IT's {settings.TEAM} team, which {settings.TEAMS[settings.TEAM]} "
-                + f"Check it against how that team codes, in the skill architecture-{settings.TEAM}."
-                + "\n\nSkills:\n" + skills.catalog(hide="audience-")
+                + f"\nThe code belongs to IT's {settings.TEAM} team, which {settings.TEAMS[settings.TEAM]}"
+                + "\n\n" + skills.load("code-review").instructions
+                + "\n\n" + skills.load(architecture).instructions
             )
+            hide = ("audience-", "code-review", architecture)
+            if any(not s.name.startswith(hide) for s in skills.list_skills()):
+                tools.append(LoadSkillTool(skills))
+                system += "\n\nIf a task fits a skill, load it with load_skill before you start.\nSkills:\n" + skills.catalog(hide=hide)
+            prompts.append(system)
         if settings.DOCUMENT_TEAM in teams:
             # Opslag i OT's dokumenter: kun søgningen, og agenten svarer direkte.
             tools += list(ot_tools.tools.values())
@@ -52,10 +64,13 @@ def build_agents() -> dict[str, AgentService]:
                 "A. Check whether the code solves a task:\n" + prompts[0]
                 + "\n\nB. Look something up in OT's documents. Then answer directly, and do not write an assessment:\n" + prompts[1]
             )
-        return AgentService(brain, ToolService(tools), system, max_steps=settings.MAX_STEPS)
+        return AgentService(brain, ToolService(tools), system + settings.LANGUAGE_NOTE, max_steps=settings.MAX_STEPS)
 
     # Agenterne er klar. Tilbage til main() i Agent/api/web.py (trin 10).
-    return {role: build_agent(teams) for role, teams in settings.ROLE_TEAMS.items()}
+    agents = {role: build_agent(teams) for role, teams in settings.ROLE_TEAMS.items()}
+    docs_tools = [code_tools.tools[name] for name in ("list_requirements", "search_requirements", "search_specification")]
+    docs = AgentService(brain, ToolService(docs_tools), settings.DOCS_PROMPT + settings.LANGUAGE_NOTE, max_steps=settings.DOCS_MAX_STEPS)
+    return agents, docs
 
 
 def build_writer() -> AnswerWriter:
@@ -63,4 +78,10 @@ def build_writer() -> AnswerWriter:
     # Den får rollens skill (audience-<rolle>) fra Skills-laget, men ingen værktøjer.
     skills = build_skills()
     brain = MistralBrain(model=settings.MISTRAL_MODEL, base_url=settings.MISTRAL_BASE_URL)
-    return AnswerWriter(brain, lambda role: skills.load(f"audience-{role}").instructions)
+    return AnswerWriter(brain, lambda role: skills.load(f"audience-{role}").instructions, settings.LANGUAGE_NOTE)
+
+
+def build_router() -> Router:
+    # Det første skridt for hvert spørgsmål (trin 11b): småsnak, opslag uden kode eller kodetjek.
+    brain = MistralBrain(model=settings.MISTRAL_MODEL, base_url=settings.MISTRAL_BASE_URL)
+    return Router(brain, settings.LANGUAGE_NOTE)

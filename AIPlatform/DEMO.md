@@ -1,6 +1,6 @@
 # AI Platform POC – demo
 
-En AI-agent, der svarer på **"Løser vores kode opgaven?"**. Den slår user storyen, testcasene og forretningens krav op, læser udviklerens kode direkte fra Azure DevOps (den rigtige branch eller PR) og giver en dom: **Solved**, **Partly solved** eller **Not solved**, med præcis hvad der mangler.
+En AI-agent, der svarer på **"Løser vores kode opgaven?"**. Den slår user storyen, testcasene og forretningens krav op, læser udviklerens kode direkte fra Azure DevOps (den rigtige branch eller PR) og giver en dom: **Solved**, **Delvist løst** eller **Ikke løst**, med præcis hvad der mangler.
 
 Svaret skrives til den, der spørger: en fra produkt/kommunikation får almindeligt sprog, IT får fil og linje. Vedligehold kan i samme løsning søge i OT-holdets dokumenter.
 
@@ -42,7 +42,7 @@ flowchart LR
     RC[("📁 POC'ens kopi<br/>af repoet")]
 
     AS --> T1 & T2 & T3 & T4
-    AS -->|load_skill| S1 & S2
+    AS -->|i systemprompten| S1 & S2
     AW --> S3
     T1 --> X
     T2 --> K
@@ -110,10 +110,10 @@ sequenceDiagram
     AW->>G: Skriv svaret til IT
     G-->>AW: Svar
     AW-->>W: Dom + svar
-    W-->>U: Partly solved. 4 of 5 requirements met.
+    W-->>U: Delvist løst. 4 of 5 requirements met.
 ```
 
-**Det, publikum ser på siden:** hvert skridt kommer live ("🔎 Looking up the test cases", "📄 Reading billing_routes.py"), og til sidst kommer to foldede bokse (*Sources* og *Assessment*) og selve svaret.
+**Det, publikum ser på siden:** hvert skridt kommer live ("🔎 Slår testcases op", "📄 Læser BillingService.cs") i en boks, der foldes sammen, når svaret kommer som en chatboble med dommen som et farvet mærke og to foldede bokse (*Kilder* og *Vurdering pr. krav*).
 
 ---
 
@@ -188,9 +188,9 @@ Agenten skriver ikke et svar, men en **vurdering**: én linje pr. krav. Dommen t
 ```mermaid
 flowchart LR
     A["Vurdering fra agenten<br/>MET / NOT_MET / CANT_TELL / RISK<br/>én linje pr. krav"] --> CLEAN["Ryd op<br/>(fjern ✅, der citerer<br/>samme kode som en ❌)"]
-    CLEAN --> V["Dom tælles af koden<br/>'Partly solved. 4 of 5 met.'"]
+    CLEAN --> V["Dom tælles af koden<br/>'Delvist løst. 4 of 5 met.'"]
     V --> ROLE{"Rolle"}
-    ROLE -->|Product / communication| P["audience-product<br/>Højst 8 linjer, almindeligt sprog,<br/>kun det, der mangler"]
+    ROLE -->|Produkt / kommunikation| P["audience-product<br/>Kort svar i hele sætninger,<br/>hvad kunden oplever og hvorfor"]
     ROLE -->|IT| I["audience-it<br/>Fil:linje, kode, rettelse,<br/>arkitektur, hvad først"]
     V -.->|alt opfyldt| N["Kun dommen +<br/>'Nothing is missing.'"]
 ```
@@ -218,7 +218,7 @@ Rollen i dropdownen bestemmer, hvilke værktøjer agenten får. AI'en vælger de
 ```mermaid
 flowchart LR
     subgraph Roller
-        P["Product / communication"]
+        P["Produkt / kommunikation"]
         I["IT"]
         V["Vedligehold"]
     end
@@ -240,7 +240,7 @@ flowchart LR
 
 | Rolle | Ser | Får |
 |---|---|---|
-| Product / communication | Web | Kodetjek, kort svar i almindeligt sprog |
+| Produkt / kommunikation | Web | Kodetjek, kort svar i almindeligt sprog |
 | IT | Web og OT | Kodetjek med fil:linje, og opslag i OT's dokumenter. Agenten afgør ud fra spørgsmålet, hvilken slags det er |
 | Vedligehold | OT | Kun søgning i OT's dokumenter (signalliste og PDF'er), svar direkte |
 
@@ -252,12 +252,12 @@ flowchart LR
 
 | Komponent | Fil | Hvad den gør |
 |---|---|---|
-| Web-side | `api/web.py` | Siden i browseren. Modtager spørgsmål og rolle, vælger branch, viser hvert skridt live, *Sources*- og *Assessment*-boksene og svaret. Gemmer vurderinger, så samme kode får samme svar. |
+| Web-side | `api/web.py` | Siden i browseren. Modtager spørgsmål og rolle, vælger branch, viser hvert skridt live, *Kilder*- og *Vurdering pr. krav*-boksene og svaret. Gemmer vurderinger, så samme kode får samme svar. |
 | Samling | `api/build.py` | Bygger én agent pr. rolle med præcis de værktøjer, rollens hold giver. Det eneste sted, der kender alle lag. |
 | AgentService | `application/agent_service.py` | Løkken: tænk, handl, se. Stopper ved et svar eller efter 20 skridt. |
 | AnswerWriter | `application/answer_writer.py` | Læser vurderingen, rydder op i modstridende linjer og skriver svaret til rollen med rollens skill. Får ingen værktøjer, så den kan ikke ændre vurderingen. |
 | GeminiBrain | `infrastructure/brains/gemini_brain.py` | Den eneste fil, der kender Google Gemini. Et skift til en anden model er en ny fil her. |
-| Modeller | `domain/models.py` | Decision, Step, Finding, Assessment. Dommen (Solved/Partly/Not solved) regnes ud her. |
+| Modeller | `domain/models.py` | Decision, Step, Finding, Assessment. Dommen (Løst/Delvist/Ikke løst) regnes ud her. |
 
 ### MCP-laget (`MCP/`) – agentens værktøjer
 
@@ -299,10 +299,10 @@ Hver kilde har sit eget indeks, så fx de 20.000 signaler ikke skubber kravene u
 |---|---|
 | `code-review` | Hvordan koden vurderes: slå krav op, læs koden, én linje pr. krav med status, aldrig gætte. |
 | `architecture-web` | Hvordan web-holdet koder: routes → services → managers, interfaces, dependency injection, kvalitet. Fast og uafhængig af projektet. |
-| `audience-product` | Svar til produkt/kommunikation: højst 8 linjer, almindeligt sprog, kun det, der mangler. |
+| `audience-product` | Svar til produkt/kommunikation: kort svar i hele sætninger som en kollega: svaret først, så hvad kunden oplever og hvorfor, og om testen kan gennemføres. |
 | `audience-it` | Svar til IT: fil:linje, koden, rettelsen, arkitektur og hvad der skal rettes først. |
 
-En skill er en mappe med en `SKILL.md`. Agenten ser kun navn og beskrivelse og henter selve teksten, når den har brug for den. Et nyt hold (fx FDAP) får sin egen `architecture-fdap` uden at ændre kode.
+En skill er en mappe med en `SKILL.md`. `code-review` og holdets `architecture-<hold>` skal bruges i hvert kodetjek, så koden sætter dem ind i systemprompten. Skills, agenten selv kan vælge, vises kun med navn og beskrivelse og hentes med `load_skill`, når der er brug for dem. Et nyt hold (fx FDAP) får sin egen `architecture-fdap` uden at ændre kode.
 
 ---
 
@@ -411,18 +411,18 @@ flowchart LR
 
 | # | Rolle | Spørgsmål | Forventet | Pointe |
 |---|---|---|---|---|
-| 1 | Product / communication | Does our code solve US-006 Skift kontrakt/adresse? | ✅ Solved | Et grønt svar i almindeligt sprog |
-| 2 | Product / communication | Does our code solve US-005 Download faktura? | Partly solved, filnavn mangler | Finder en konkret fejl |
+| 1 | Produkt / kommunikation | Does our code solve US-006 Skift kontrakt/adresse? | ✅ Løst | Et grønt svar i almindeligt sprog |
+| 2 | Produkt / kommunikation | Does our code solve US-005 Download faktura? | Delvist løst, filnavn mangler | Finder en konkret fejl |
 | 3 | IT | *samme spørgsmål* | Samme dom, nu med `web/billing_routes.py:35` og rettelse | Samme vurdering, skrevet til en udvikler (♻️ genbruges) |
-| 4 | IT | Does our code solve US-004 Vis betalingsstatus? | Partly solved, "Forfalden" mangler | Fanger et krav, der kun står i kravspec og testcase |
-| 5 | IT | Does our code solve US-003 Regninger er ikke længere tilgængelige? | Not solved | Rød dom |
+| 4 | IT | Does our code solve US-004 Vis betalingsstatus? | Delvist løst, "Forfalden" mangler | Fanger et krav, der kun står i kravspec og testcase |
+| 5 | IT | Does our code solve US-003 Regninger er ikke længere tilgængelige? | Ikke løst | Rød dom |
 | 6 | IT | Does our code solve US-007 Sikker og robust oplevelse? | Solved, med arkitektur-risici | Tjekker også *hvordan* koden er bygget |
 | 7 | IT | Does our code solve US-005 Download faktura? *(efter PR'en er lavet)* | 🔀 Checking pull request ..., Solved | Ser udviklerens arbejde, før det er merget |
 | 8 | Vedligehold | fx "Hvad er kølevandspumpe 2?" | Svar fra signalliste/PDF med kilde | Samme platform, anden afdeling |
 
 **Undervejs, vis:**
 - De live skridt: agenten slår op og læser selv.
-- *Sources*-boksen: præcis hvilke dokumenter, branch, commit og filer svaret bygger på.
+- *Kilder*-boksen: præcis hvilke dokumenter, branch, commit og filer svaret bygger på.
 - *Assessment*-boksen: én linje pr. krav, så dommen kan efterprøves.
 
 ---
@@ -436,4 +436,4 @@ flowchart LR
 - **Vurderinger gemmes kun i hukommelsen** og forsvinder ved genstart.
 - **Testcases og kravspec er eksempler** skrevet til demo-projektet.
 
-**Mulige næste skridt:** søgning på betydning (embeddings), opfølgende spørgsmål i samme samtale, Word-filer i OT-søgningen, og en arkitektur-skill pr. hold (fx FDAP).
+**Mulige næste skridt:** søgning på betydning (embeddings), Word-filer i OT-søgningen, og en arkitektur-skill pr. hold (fx FDAP).

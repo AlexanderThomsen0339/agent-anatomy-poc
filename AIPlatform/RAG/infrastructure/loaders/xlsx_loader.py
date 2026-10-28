@@ -14,6 +14,15 @@ from RAG.domain.models import Document
 # En række, der starter en ny blok: US-001, TC-011, US-00x, TC-00x osv.
 BLOCK_START = re.compile(r"^(US|TC)-", re.IGNORECASE)
 
+# Området står i filnavnet, fx test-protocol-regninger-mitaalborgforsyning.xlsx.
+AREA = re.compile(r"test-protocol-([^-.]+)", re.IGNORECASE)
+
+
+def area(file: Path) -> str:
+    """Området, en fil handler om, fx Regninger. Uden et kendt mønster bruges filnavnet."""
+    match = AREA.search(file.name)
+    return match.group(1).capitalize() if match else file.name.split(".")[0]
+
 
 def clean(value) -> str:
     """Gør en celle til én linje tekst. Linjeskift i cellen ville ellers dele blokken op."""
@@ -46,6 +55,11 @@ class XlsxLoader:
                 else:
                     text = self._form(rows)
 
+                # Hvorfor området på hver blok?
+                # Hver fil nummererer sine user stories og testcases fra 1, så US-001 findes både
+                # under Regninger og Profil. Med området på kan agenten se, hvilken US-001 det er.
+                name = area(file)
+                text = "\n\n".join(f"Område: {name}\n{block}" for block in text.split("\n\n"))
                 source = f"{file.name} › {sheet.title.strip()}"
                 documents.append(Document(source=source, text=text))
         return documents

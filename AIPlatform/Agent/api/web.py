@@ -3,6 +3,7 @@ Kør fra AIPlatform-mappen:
     python -m Agent.api.web
 """
 import hashlib
+import json
 import re
 from html import escape
 from pathlib import Path
@@ -10,7 +11,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import settings
-from Agent.api.build import build_agents, build_writer
+from Agent.api.build import build_agents, build_router, build_writer
+from Agent.application.router import CHAT, DOCS
 from Agent.application.answer_writer import parse_assessment
 from Agent.domain.models import AgentRun, Assessment, Step
 from MCP.api.build import build_checkout_service
@@ -19,7 +21,7 @@ from MCP.domain.models import Checkout
 PORT = 8000
 
 HEAD = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AI Platform POC</title>
 <style>
 /* Aalborg Forsynings farver (brand colours). Mørk tilstand følger styresystemet. */
@@ -28,81 +30,190 @@ HEAD = """<!doctype html>
   --secondary: #72b5a3; --secondary-light: #edf6f3;
   --accent: #e66f45; --accent-dark: #d45c36;
   --bg: #f7f9f8; --surface: #ffffff; --text: #17383b; --muted: #5b6f71; --border: #d8e3e1;
-  --hero: #005b63; --hero-text: #ffffff; --heading: #005b63;
-  --highlight: rgba(0, 91, 99, 0.08); --code-bg: #e6f1f1; --error: #c62828; --edge: #005b63;
+  --hero: #005b63; --hero-text: #ffffff; --heading: #005b63; --user: #e6f1f1;
+  --highlight: rgba(0, 91, 99, 0.06); --code-bg: #e6f1f1; --error: #c62828; --edge: #005b63;
+  --ok: #1e7d4f; --ok-bg: #e3f4ea; --part: #9a5a00; --part-bg: #fdf0dc; --bad: #b3261e; --bad-bg: #fbe5e3;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #17383b; --surface: #1d4448; --text: #ffffff; --muted: #b9cbc9; --border: rgba(114, 181, 163, 0.30);
-    --hero: #00464d; --heading: #72b5a3;
-    --highlight: rgba(114, 181, 163, 0.12); --code-bg: rgba(114, 181, 163, 0.20); --error: #ff8a80; --edge: #72b5a3;
+    --hero: #00464d; --heading: #72b5a3; --user: #245358;
+    --highlight: rgba(114, 181, 163, 0.10); --code-bg: rgba(114, 181, 163, 0.20); --error: #ff8a80; --edge: #72b5a3;
+    --ok: #8fe0b4; --ok-bg: rgba(143, 224, 180, 0.15); --part: #ffcf7d; --part-bg: rgba(255, 207, 125, 0.15);
+    --bad: #ffaaa3; --bad-bg: rgba(255, 170, 163, 0.15);
   }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 "Segoe UI", system-ui, sans-serif; }
-header { background: var(--hero); color: var(--hero-text); padding: 1.6em 1em 1.4em; }
-header div, main { max-width: 860px; margin: 0 auto; }
-header h1 { margin: 0; font-size: 1.6em; font-weight: 600; letter-spacing: .01em; }
-header p { margin: .2em 0 0; opacity: .85; }
-main { padding: 1.5em 1em 3em; }
-form { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.2em 1.4em; margin-bottom: 1.5em; }
-form p { margin: 0 0 .9em; }
-label { font-weight: 600; color: var(--heading); }
-select, textarea { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
-select { padding: .35em .6em; margin-left: .4em; font-weight: 400; }
-textarea { width: 100%; padding: .7em .8em; resize: vertical; }
-select:focus, textarea:focus { outline: 2px solid var(--secondary); outline-offset: 1px; border-color: var(--secondary); }
-button { font: inherit; font-weight: 600; color: #fff; background: var(--accent); border: 0; border-radius: 6px; padding: .55em 1.4em; cursor: pointer; }
-button:hover { background: var(--accent-dark); }
-h2 { color: var(--heading); font-size: 1.15em; margin: 1.6em 0 .6em; }
-.step { color: var(--muted); margin: .25em 0; padding: .2em .7em; border-left: 3px solid var(--secondary); background: var(--highlight); border-radius: 0 4px 4px 0; }
-.error { color: var(--error); border-left-color: var(--error); }
+header { background: var(--hero); color: var(--hero-text); padding: 1em 16px; }
+.bar { max-width: 860px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: .6em 1.2em; }
+.bar .title { flex: 1 1 auto; }
+header h1 { margin: 0; font-size: 1.35em; font-weight: 600; }
+header p { margin: 0; opacity: .85; font-size: .9em; }
+header form { margin: 0; }
+header label { font-size: .9em; }
+header select { font: inherit; font-size: .9em; color: var(--text); background: var(--surface); border: 0; border-radius: 6px; padding: .35em .5em; margin-left: .3em; }
+header a { color: var(--hero-text); font-size: .9em; text-decoration: none; border: 1px solid rgba(255,255,255,.5); border-radius: 6px; padding: .3em .7em; }
+header a:hover { background: rgba(255,255,255,.12); }
+main { max-width: 860px; margin: 0 auto; padding: 1.2em 16px 3em; }
+.welcome { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.1em 1.3em; margin-bottom: 1em; }
+.welcome h2 { margin: 0 0 .3em; color: var(--heading); font-size: 1.1em; }
+.welcome p { margin: 0 0 .8em; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: .5em; }
+.chip { font: inherit; font-size: .9em; color: var(--heading); background: var(--highlight); border: 1px solid var(--border); border-radius: 999px; padding: .35em .9em; cursor: pointer; }
+.chip:hover { border-color: var(--secondary); }
+.chips.reply { margin: .5em 0 0; }
+.msg { margin: .9em 0; }
+.msg .who { font-size: .8em; color: var(--muted); margin: 0 0 .2em; }
+.msg.user { display: flex; flex-direction: column; align-items: flex-end; }
+.msg.user .bubble { background: var(--user); border-radius: 14px 14px 4px 14px; padding: .55em 1em; max-width: 85%; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg.agent .bubble { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--edge); border-radius: 4px 14px 14px 14px; padding: .5em 1.2em; overflow-wrap: anywhere; }
+.msg.agent.asks .bubble { border-left-color: var(--accent); }
+.bubble p { margin: .5em 0; }
+.bubble ul { padding-left: 1.2em; margin: .4em 0; }
+.bubble li { margin: .35em 0; }
+code { background: var(--code-bg); border-radius: 4px; padding: .05em .35em; font-size: .9em; overflow-wrap: anywhere; }
+.verdict { display: inline-block; font-weight: 600; border-radius: 999px; padding: .2em .8em; margin: .6em 0 .2em; }
+.verdict.ok { color: var(--ok); background: var(--ok-bg); }
+.verdict.part { color: var(--part); background: var(--part-bg); }
+.verdict.bad { color: var(--bad); background: var(--bad-bg); }
+.count { color: var(--muted); margin-left: .4em; }
+details { margin: .5em 0; }
+summary { cursor: pointer; font-weight: 600; color: var(--heading); font-size: .9em; }
+.work { background: var(--highlight); border-radius: 8px; padding: .5em .9em; }
+.step { color: var(--muted); margin: .3em 0; font-size: .92em; }
+.step ul { margin: .2em 0; padding-left: 1.3em; }
+.error { color: var(--error); }
+.busy { color: var(--muted); font-size: .92em; }
+.busy::before { content: ""; display: inline-block; width: .8em; height: .8em; margin-right: .5em; border: 2px solid var(--secondary); border-top-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -1px; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .step a, .sources a { color: var(--heading); }
-.answer { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--edge); border-radius: 8px; padding: .6em 1.4em; }
-.answer li { margin: .35em 0; }
-.answer code, .sources code { background: var(--code-bg); border-radius: 4px; padding: .05em .35em; font-size: .9em; }
-.sources { color: var(--muted); font-size: .85em; margin-top: 1em; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .5em 1em; }
-.sources summary { cursor: pointer; font-weight: 600; color: var(--heading); }
-.sources code { word-break: break-all; }
+.sources { color: var(--muted); font-size: .85em; border-top: 1px solid var(--border); padding-top: .4em; }
+.sources ul { padding-left: 1.2em; }
+.table { overflow-x: auto; }
 .sources table { border-collapse: collapse; margin-top: .5em; }
-.sources td { padding: .35em .5em; vertical-align: top; border-top: 1px solid var(--border); }
+.sources td, .sources th { padding: .35em .5em; vertical-align: top; border-top: 1px solid var(--border); text-align: left; }
+.composer { position: sticky; bottom: 0; background: var(--bg); padding: .8em 0 .4em; margin-top: 1em; }
+.composer form { display: flex; gap: .5em; align-items: flex-end; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: .5em; }
+textarea { flex: 1; font: inherit; color: var(--text); background: transparent; border: 0; padding: .45em .5em; resize: none; min-height: 2.6em; }
+textarea:focus { outline: none; }
+.composer form:focus-within { border-color: var(--secondary); box-shadow: 0 0 0 2px rgba(114, 181, 163, 0.35); }
+.hint { font-size: .78em; color: var(--muted); margin: .3em .2em 0; }
+button.send { font: inherit; font-weight: 600; color: #fff; background: var(--accent); border: 0; border-radius: 8px; padding: .55em 1.2em; cursor: pointer; }
+button.send:hover { background: var(--accent-dark); }
+button.send:disabled { opacity: .6; cursor: progress; }
 pre { white-space: pre-wrap; background: var(--code-bg); padding: 1em; border-radius: 6px; }
 </style></head><body>
-<header><div><h1>AI Platform POC</h1><p>{use_case}</p></div></header>
+<header><div class="bar">
+<div class="title"><h1>AI Platform POC</h1><p>{use_case}</p></div>
+<form method="get" action="/"><label>{i_am} <select name="role" onchange="if (this.selectedOptions[0].dataset.use != '{use_case_key}') { this.form.q.value = ''; this.form.c.value = ''; } this.form.submit()">{roles}</select></label>{keep}</form>
+<a href="/?role={role}">{new_chat}</a>
+</div></header>
 <main>
-<form method="get" action="/">
-<p><label>I am <select name="role" onchange="if (this.selectedOptions[0].dataset.use != '{use_case_key}') this.form.q.value = ''; this.form.submit()">{roles}</select></label></p>
-<p><textarea name="q" rows="3" placeholder="{placeholder}">{question}</textarea></p>
-<p><button>{button}</button></p>
-</form>
 """
 
 
+# Lidt JavaScript til sidst på siden. Siden virker også uden.
+# Enter sender (Shift+Enter giver en ny linje), knappen låses, så man ikke sender to gange, og et eksempel kan klikkes.
+SCRIPT = """<script>
+for (const form of document.querySelectorAll(".composer form")) {
+  const box = form.querySelector("textarea"), send = form.querySelector("button");
+  box.addEventListener("keydown", e => { if (e.key == "Enter" && !e.shiftKey && box.value.trim()) { e.preventDefault(); form.requestSubmit(); } });
+  form.addEventListener("submit", e => { if (!box.value.trim()) { e.preventDefault(); return; } send.disabled = true; send.textContent = "{working}"; });
+}
+for (const chip of document.querySelectorAll(".chip")) {
+  chip.addEventListener("click", () => { const box = document.querySelector(".composer textarea"); box.value = chip.textContent; box.form.requestSubmit(); });
+}
+</script>"""
+
+
+# Alle tekster på siden, på hvert sprog. Sproget vælges med LANGUAGE i settings.py.
+# Hvorfor ét sted? Så kan siden skifte sprog uden at røre resten af koden, og en manglende oversættelse ses let.
+TEXTS = {
+    "da": {
+        "i_am": "Jeg er", "new_chat": "Ny samtale", "working": "Arbejder …", "or": " eller ",
+        "skill": "📘 Henter reglerne i {}", "search_requirements": "🔎 Slår testcases op: {}",
+        "list_requirements": "📋 Ser listen over alle tests igennem", "search_specification": "📋 Slår forretningens krav op: {}",
+        "list_code_files": "📂 Ser projektets filer igennem", "read_code_file": "📄 Læser {}",
+        "list_recent_changes": "🕓 Ser de seneste ændringer på branchen", "search_ot_documents": "🔎 Søger i OT's dokumenter: {}",
+        "failed": " (fejlede)",
+        "checking_pr": "Tjekker pull request", "no_pr": "Ingen åben pull request passer til spørgsmålet, så jeg tjekker",
+        "starting_from": "Starter fra de seneste ændringer på",
+        "code": "Kode:", "at_commit": "ved commit", "from_pr": "fra", "sources": "Kilder", "test_cases": "Testcases:",
+        "requirements": "Forretningens krav:", "none_found": "Ingen fundet", "documents_from": "Dokumenter fra {}-holdet i",
+        "works": "Virker", "see_it": "Se svaret til IT", "requirement": "Kravet", "why_fails": "Hvorfor det fejler",
+        "where": "Hvor", "fix": "Ret", "per_requirement": "Vurdering pr. krav", "ai_asks": "AI spørger",
+        "your_question": "Dit spørgsmål", "hint": "Enter sender · Shift+Enter giver en ny linje",
+        "welcome": "Hvad vil du vide?", "ask_about": "Spørg {}.", "written_for": "Svaret skrives til {}.", "eg": "Fx: {}",
+        "ask": "Spørg", "ask_more": "Spørg videre", "how": "Sådan finder jeg svaret",
+        "nothing_in_docs": "Jeg fandt ikke noget i testprotokollerne om det.", "lookup_failed": "Opslaget fejlede: {}",
+        "answer_for": "AI · svar til {}", "fetch_failed": "Kunne ikke hente koden, så den sidste kopi bruges: {}",
+        "reused": "Koden og kravene er ikke ændret, så det tidligere tjek bruges",
+        "checked_before": "Tjekket før på commit {}, så kun det, der er ændret siden, læses ({} {}):", "file": "fil", "files": "filer",
+        "not_finished": "<b>Ikke færdig.</b> Agenten nåede ikke frem til en vurdering. Prøv at spørge igen, gerne med user storyens id.",
+        "writing": "Skriver svaret", "yes_check": "Ja, tjek det", "reply_here": "Svar her", "reply": "Svar",
+        "error": "Fejl.", "try_again": "Prøv igen",
+        "teams": {
+            settings.TEAM: ("Kodetjek", "om koden løser en user story", ["Løser koden US-004?", "Er kravene til regninger overholdt?"]),
+            settings.DOCUMENT_TEAM: ("OT-dokumenter", "om noget i OT's dokumenter", ["Hvilket signal er Kedel Fyr Nødud i 800xA?"]),
+        },
+    },
+    "en": {
+        "i_am": "I am", "new_chat": "New chat", "working": "Working …", "or": " or ",
+        "skill": "📘 Loading the rules in {}", "search_requirements": "🔎 Looking up test cases: {}",
+        "list_requirements": "📋 Going through the list of all tests", "search_specification": "📋 Looking up the business requirements: {}",
+        "list_code_files": "📂 Going through the project's files", "read_code_file": "📄 Reading {}",
+        "list_recent_changes": "🕓 Looking at the latest changes on the branch", "search_ot_documents": "🔎 Searching OT's documents: {}",
+        "failed": " (failed)",
+        "checking_pr": "Checking pull request", "no_pr": "No open pull request matches the question, so I'm checking",
+        "starting_from": "Starting from the latest changes on",
+        "code": "Code:", "at_commit": "at commit", "from_pr": "from", "sources": "Sources", "test_cases": "Test cases:",
+        "requirements": "Business requirements:", "none_found": "None found", "documents_from": "Documents from the {} team in",
+        "works": "Works", "see_it": "See the answer for IT", "requirement": "Requirement", "why_fails": "Why it fails",
+        "where": "Where", "fix": "Fix", "per_requirement": "Assessment per requirement", "ai_asks": "AI asks",
+        "your_question": "Your question", "hint": "Enter sends · Shift+Enter adds a new line",
+        "welcome": "What do you want to know?", "ask_about": "Ask {}.", "written_for": "The answer is written for {}.", "eg": "E.g. {}",
+        "ask": "Ask", "ask_more": "Ask a follow-up", "how": "How I find the answer",
+        "nothing_in_docs": "I didn't find anything about that in the test protocols.", "lookup_failed": "The lookup failed: {}",
+        "answer_for": "AI · answer for {}", "fetch_failed": "Could not fetch the code, so the last copy is used: {}",
+        "reused": "The code and requirements haven't changed, so the earlier check is used",
+        "checked_before": "Checked before on commit {}, so only what changed since is read ({} {}):", "file": "file", "files": "files",
+        "not_finished": "<b>Not finished.</b> The agent didn't reach an assessment. Try asking again, ideally with the user story's id.",
+        "writing": "Writing the answer", "yes_check": "Yes, check it", "reply_here": "Reply here", "reply": "Reply",
+        "error": "Error.", "try_again": "Try again",
+        "teams": {
+            settings.TEAM: ("Code check", "whether the code solves a user story", ["Does the code solve US-004?", "Are the billing requirements met?"]),
+            settings.DOCUMENT_TEAM: ("OT documents", "about something in OT's documents", ["Which signal is Kedel Fyr Nødud in 800xA?"]),
+        },
+    },
+}
+T = TEXTS[settings.LANGUAGE]
+SCRIPT = SCRIPT.replace("{working}", T["working"])
+
 # Hvad hvert værktøj hedder for en bruger, der ikke kender værktøjerne.
 FRIENDLY = {
-    "load_skill": lambda a: f"📘 Loading the {a.get('name', '')} rules",
-    "search_requirements": lambda a: f"🔎 Looking up the test cases: {a.get('query', '')}",
-    "search_specification": lambda a: f"📋 Looking up the business requirements: {a.get('query', '')}",
-    "list_code_files": lambda a: "📂 Listing the project's files",
-    "read_code_file": lambda a: f"📄 Reading {a.get('path', '').replace(chr(92), '/').split('/')[-1]}",
-    "list_recent_changes": lambda a: "🕓 Looking at the latest changes on the branch",
-    "search_ot_documents": lambda a: f"🔎 Searching OT's documents: {a.get('query', '')}",
+    "load_skill": lambda a: T["skill"].format(a.get('name', '')),
+    "search_requirements": lambda a: T["search_requirements"].format(a.get('query', '')),
+    "list_requirements": lambda a: T["list_requirements"],
+    "search_specification": lambda a: T["search_specification"].format(a.get('query', '')),
+    "list_code_files": lambda a: T["list_code_files"],
+    "read_code_file": lambda a: T["read_code_file"].format(a.get('path', '').replace(chr(92), '/').split('/')[-1]),
+    "list_recent_changes": lambda a: T["list_recent_changes"],
+    "search_ot_documents": lambda a: T["search_ot_documents"].format(a.get('query', '')),
 }
 
-# Teksten på siden for hvert hold: overskrift og eksempel i feltet. En rolle, der ser flere hold, får dem alle.
-# Hvorfor? Vedligehold tjekker ikke kode, så "Does our code solve US-001?" ville forvirre.
-PAGE_TEXT = {
-    settings.TEAM: ("Code Check", "Does our code solve US-001?"),
-    settings.DOCUMENT_TEAM: ("OT documents", "Which signal is Kedel Fyr Nødud in 800xA?"),
-}
+# Teksten på siden for hvert hold: overskrift, hvad man kan spørge om, og eksempler, man kan klikke på.
+# En rolle, der ser flere hold, får dem alle.
+# Hvorfor? Vedligehold tjekker ikke kode, så "Løser koden US-004?" ville forvirre.
+PAGE_TEXT = T["teams"]
 
 
-def page_text(teams: list[str]) -> tuple[str, str, str]:
-    """Overskrift, eksempel og knap til siden for en rolle, der ser de givne hold."""
+def page_text(teams: list[str]) -> tuple[str, str, list[str]]:
+    """Overskrift, hvad man kan spørge om, og eksempler til siden for en rolle, der ser de givne hold."""
     heading = " · ".join(PAGE_TEXT[t][0] for t in teams)
-    placeholder = " Or: ".join(PAGE_TEXT[t][1] for t in teams)
-    button = "Check the code" if teams == [settings.TEAM] else "Ask"
-    return heading, placeholder, button
+    topics = T["or"].join(PAGE_TEXT[t][1] for t in teams)
+    examples = [e for t in teams for e in PAGE_TEXT[t][2]]
+    return heading, topics, examples
 
 
 def render_step(steps: list[Step]) -> str:
@@ -112,7 +223,7 @@ def render_step(steps: list[Step]) -> str:
         a, o = step.action, step.observation
         label = FRIENDLY.get(a.tool, lambda _: f"⚙️ {a.tool}")(a.arguments)
         css = "step error" if o.is_error else "step"
-        html += f'<div class="{css}">{escape(label)}{" (failed)" if o.is_error else ""}</div>'
+        html += f'<p class="{css}">{escape(label)}{T["failed"] if o.is_error else ""}</p>'
     return html
 
 
@@ -132,10 +243,32 @@ def render_checkout(checkout: Checkout) -> str:
     pr = checkout.pull_request
     if pr:
         return html + (
-            f'<p class="step">🔀 Checking pull request <a href="{escape(pr.url)}">{pr.id} "{escape(pr.title)}"</a> '
+            f'<p class="step">🔀 {T["checking_pr"]} <a href="{escape(pr.url)}">{pr.id} "{escape(pr.title)}"</a> '
             f'(<code>{escape(pr.branch)}</code> → {escape(settings.CODE_BRANCH)}), commit {escape(checkout.commit)}</p>'
         )
-    return html + f'<p class="step">🔀 No open pull request matches the question, so checking <code>{escape(checkout.branch)}</code> (commit {escape(checkout.commit)})</p>'
+    return html + f'<p class="step">🔀 {T["no_pr"]} <code>{escape(checkout.branch)}</code> (commit {escape(checkout.commit)})</p>'
+
+
+def render_changes(checkout: Checkout) -> str:
+    """Skridtet, der viser de seneste commits, agenten starter fra: kun besked og filer, ikke hele diff'en."""
+    commits = re.findall(r"^commit (\S+)\s+(\S+)\s+(.*)\n(.*)$", checkout.changes, re.MULTILINE)
+    if not commits:
+        return ""
+    items = "".join(f"<li><code>{escape(h)}</code> {escape(d)}, {escape(a)}: {escape(s)}</li>" for h, d, a, s in commits)
+    return f'<div class="step">🕓 {T["starting_from"]} <code>{escape(checkout.branch)}</code>:<ul>{items}</ul></div>'
+
+
+def changes_first(question: str, checkout: Checkout) -> str:
+    """Spørgsmålet med de seneste commits foran, så agenten altid starter fra det, der er ændret."""
+    return (
+        f"{question}\n\n"
+        f"These are the newest commits on {checkout.branch}, the latest changes, with the changed lines:\n\n{checkout.changes}\n\n"
+        "Start from these changes. Find out which page or feature the changed code belongs to (follow who calls it), "
+        "look up that feature's user stories and test cases, read the changed files and the code that uses them, "
+        "and judge whether the requirements are still met after the changes. "
+        "If the question names a user story, check that one, but still take the changes into account. "
+        "If it is unclear what the user wants checked, ask with your best guess, as the code-review rules say."
+    )
 
 
 def render_sources(steps: list[Step], checkout: Checkout | None = None) -> str:
@@ -161,18 +294,18 @@ def render_sources(steps: list[Step], checkout: Checkout | None = None) -> str:
         return f"<p>{label}</p><ul>{items}</ul>" if items else ""
 
     repo = code_repo(Path(settings.CODE_FOLDER))
-    code = f"<p>Code: <code>{escape(str(settings.CODE_FOLDER))}</code>"
+    code = f"<p>{T['code']} <code>{escape(str(settings.CODE_FOLDER))}</code>"
     code += f" (repo <code>{escape(repo)}</code>)" if repo else ""
     if checkout:
         # Hvilken branch og commit koden kom fra, og PR'en, hvis det var en PR's branch.
-        code += f", branch <code>{escape(checkout.branch)}</code> at commit <code>{escape(checkout.commit)}</code>"
+        code += f", branch <code>{escape(checkout.branch)}</code> {T['at_commit']} <code>{escape(checkout.commit)}</code>"
         if checkout.pull_request:
-            code += f', from <a href="{escape(checkout.pull_request.url)}">pull request {checkout.pull_request.id}</a>'
+            code += f', {T["from_pr"]} <a href="{escape(checkout.pull_request.url)}">pull request {checkout.pull_request.id}</a>'
     code += "</p>"
     return (
-        '<details class="sources"><summary>Sources</summary>'
-        + rows("Test cases:", Path(settings.DATA_FOLDER), test_files)
-        + rows("Business requirements:", Path(settings.SPEC_FOLDER), spec_files)
+        f'<details class="sources"><summary>{T["sources"]}</summary>'
+        + rows(T["test_cases"], Path(settings.DATA_FOLDER), test_files)
+        + rows(T["requirements"], Path(settings.SPEC_FOLDER), spec_files)
         + code
         + "".join(f"<li><code>{escape(f)}</code></li>" for f in code_files).join(("<ul>", "</ul>"))
         + "</details>"
@@ -185,22 +318,38 @@ def render_document_sources(steps: list[Step]) -> str:
     for step in steps:
         if step.action.tool == "search_ot_documents" and not step.observation.is_error:
             sheets |= set(re.findall(r"^\[(.+?)\]", step.observation.content, re.MULTILINE))
-    items = "".join(f"<li><code>{escape(s)}</code></li>" for s in sorted(sheets)) or "<li>None found</li>"
+    items = "".join(f"<li><code>{escape(s)}</code></li>" for s in sorted(sheets)) or f"<li>{T['none_found']}</li>"
     return (
-        '<details class="sources"><summary>Sources</summary>'
-        f"<p>Documents from the {escape(settings.DOCUMENT_TEAM.upper())} team in <code>{escape(str(settings.OT_FOLDER))}</code>:</p><ul>{items}</ul></details>"
+        f'<details class="sources"><summary>{T["sources"]}</summary>'
+        f"<p>{T['documents_from'].format(escape(settings.DOCUMENT_TEAM.upper()))} <code>{escape(str(settings.OT_FOLDER))}</code>:</p><ul>{items}</ul></details>"
     )
 
 
-def render_assessment(assessment: Assessment) -> str:
-    """Vurderingen, som begge roller bygger på, i en lukket boks under kilderne."""
+def render_assessment(assessment: Assessment, role: str) -> str:
+    """Vurderingen, som begge roller bygger på, i en lukket boks under kilderne.
+
+    IT ser hvorfor i koden, hvor og hvad der skal rettes. Produkt / kommunikation ser kun hvorfor, uden kode.
+    """
     icons = {"MET": "✅", "NOT_MET": "❌", "CANT_TELL": "❓", "RISK": "⚠️"}
-    rows = "".join(
-        f"<tr><td>{icons[f.status]}</td><td>{escape(f.ids)}</td><td>{escape(f.requirement)}</td>"
-        f"<td>{escape(f.code)}</td><td><code>{escape(f.where)}</code></td><td>{escape(f.fix)}</td></tr>"
-        for f in assessment.findings
-    )
-    return f'<details class="sources"><summary>Assessment</summary><table>{rows}</table></details>'
+    technical = role == "it"
+
+    def why(f) -> str:
+        if technical:
+            return f.code
+        if f.status == "MET":
+            return T["works"]
+        return f.why or T["see_it"]
+
+    def row(f) -> str:
+        cells = f"<td>{icons[f.status]}</td><td>{escape(f.ids)}</td><td>{escape(f.requirement)}</td><td>{escape(why(f))}</td>"
+        if technical:
+            cells += f"<td><code>{escape(f.where)}</code></td><td>{escape(f.fix)}</td>"
+        return f"<tr>{cells}</tr>"
+
+    head = f"<tr><th></th><th>Id</th><th>{T['requirement']}</th><th>{T['why_fails']}</th>"
+    head += f"<th>{T['where']}</th><th>{T['fix']}</th></tr>" if technical else "</tr>"
+    rows = "".join(row(f) for f in assessment.findings)
+    return f'<details class="sources"><summary>{T["per_requirement"]}</summary><div class="table"><table>{head}{rows}</table></div></details>'
 
 
 def fingerprint(steps: list[Step]) -> str:
@@ -244,6 +393,87 @@ def changes_question(question: str, earlier: str, commit: str, changed: list[str
     )
 
 
+# Hvor mange tidligere spørgsmål og svar agenten får med. Flere gør prompten lang uden at hjælpe.
+MAX_TURNS = 3
+
+# Sådan starter agenten sit svar, når den ikke ved, hvilken user story der menes (skillen code-review).
+CLARIFY = "QUESTION:"
+
+# Det, agenten får at vide, når den allerede har stillet sit ene spørgsmål i samtalen.
+ALREADY_ASKED = (
+    "\n\nYou already asked the user a clarifying question in this conversation, and the message above is their answer. "
+    "Do not ask again: write the assessment now. If they mean more than one user story (e.g. \"alle\"), assess all of them."
+)
+
+
+def read_conversation(raw: str) -> list[tuple[str, str]]:
+    """Den tidligere samtale fra det skjulte felt c: en liste af [spørgsmål, svar].
+
+    Hvorfor i siden og ikke på serveren?
+    Så husker serveren ingenting mellem to spørgsmål, og en genstart mister ikke en samtale.
+    Hver side har samtalen med i formularen og sender den med næste spørgsmål.
+    """
+    try:
+        turns = json.loads(raw) if raw else []
+        return [(str(q), str(a)) for q, a in turns][-MAX_TURNS:]
+    except (ValueError, TypeError):
+        return []
+
+
+def with_conversation(question: str, conversation: list[tuple[str, str]]) -> str:
+    """Spørgsmålet til agenten med den tidligere samtale foran, så "Den om billing" kan forstås."""
+    if not conversation:
+        return question
+    earlier = "\n".join(f"User: {q}\nYou: {a}" for q, a in conversation)
+    return f"Earlier in this conversation:\n{earlier}\n\nThe user now says: {question}\nRead it in the light of the earlier conversation."
+
+
+def render_user(question: str) -> str:
+    """Et spørgsmål fra brugeren som en boble til højre."""
+    return f'<div class="msg user"><div class="bubble">{escape(question)}</div></div>'
+
+
+def render_agent(html: str, who: str = "AI", css: str = "") -> str:
+    """Et svar fra agenten som en boble til venstre."""
+    return f'<div class="msg agent {css}"><div class="who">{escape(who)}</div><div class="bubble">{html}</div></div>'
+
+
+def render_conversation(conversation: list[tuple[str, str]]) -> str:
+    """Den tidligere samtale som bobler, så man kan se, hvad der allerede er sagt."""
+    def agent(a: str) -> str:
+        # Et opklarende spørgsmål står i samtalen med QUESTION: foran, så agenten kan se, at den allerede har spurgt.
+        if a.startswith(CLARIFY):
+            return render_agent(render_markdown(a[len(CLARIFY):].strip()), T["ai_asks"], "asks")
+        return render_agent(render_markdown(a))
+    return "".join(render_user(q) + agent(a) for q, a in conversation)
+
+
+def render_verdict(assessment: Assessment, answer: str) -> str:
+    """Dommen som et farvet mærke over svaret: grøn, når alt er opfyldt, orange for delvist og rød for ingenting."""
+    met = assessment.count("MET")
+    total = met + assessment.count("NOT_MET") + assessment.count("CANT_TELL")
+    css = "ok" if met == total else "bad" if met == 0 else "part"
+    word, _, rest = assessment.verdict.partition(". ")
+    body = answer[len(assessment.verdict):] if answer.startswith(assessment.verdict) else answer
+    return (
+        f'<span class="verdict {css}">{escape(word.strip("*"))}</span><span class="count">{escape(rest)}</span>'
+        + render_markdown(body)
+    )
+
+
+def render_composer(turns: list[tuple[str, str]], role: str, placeholder: str, button: str) -> str:
+    """Feltet nederst på siden. Samtalen indtil nu ligger i det skjulte felt c og sendes med næste spørgsmål."""
+    turns = turns[-MAX_TURNS:]
+    return (
+        '<div class="composer"><form method="get" action="/">'
+        f'<input type="hidden" name="role" value="{escape(role)}">'
+        f'<input type="hidden" name="c" value="{escape(json.dumps(turns, ensure_ascii=False)) if turns else ""}">'
+        f'<textarea name="q" rows="1" placeholder="{escape(placeholder)}" aria-label="{escape(T['your_question'])}" autofocus></textarea>'
+        f'<button class="send">{escape(button)}</button></form>'
+        f'<p class="hint">{T["hint"]}</p></div>'
+    )
+
+
 def render_markdown(text: str) -> str:
     """Den lille smule markdown, svaret bruger: fed, kode og punktlister."""
     def inline(line: str) -> str:
@@ -265,7 +495,7 @@ def render_markdown(text: str) -> str:
     return html + ("</ul>" if in_list else "")
 
 
-def make_handler(agents, writer, checkouts):
+def make_handler(agents, writer, checkouts, router=None, docs=None):
 
     # Hvorfor gemme vurderingen?
     # Skifter man rolle eller spørger igen om uændret kode, skal svaret bygge på den samme vurdering.
@@ -283,8 +513,12 @@ def make_handler(agents, writer, checkouts):
                 return
             query = parse_qs(url.query)
             question = query.get("q", [""])[0].strip()
+            # Den tidligere samtale, hvis spørgsmålet kommer fra feltet under et svar.
+            conversation = read_conversation(query.get("c", [""])[0]) if question else []
+            # Det, agenten og skribenten får: spørgsmålet med samtalen foran.
+            asked = with_conversation(question, conversation)
             # Rollen kommer fra dropdownen. Den står i adressen, så den er valgt igen ved næste spørgsmål.
-            # Skifter man til en rolle, der ser andre hold, tømmes feltet, fordi spørgsmålet måske ikke giver mening der.
+            # Skifter man til en rolle, der ser andre hold, starter en ny samtale, fordi spørgsmålet måske ikke giver mening der.
             role = query.get("role", [settings.DEFAULT_ROLE])[0]
             if role not in settings.ROLES:
                 role = settings.DEFAULT_ROLE
@@ -304,40 +538,93 @@ def make_handler(agents, writer, checkouts):
                 f'{" selected" if key == role else ""}>{escape(label)}</option>'
                 for key, label in settings.ROLES.items()
             )
-            heading, placeholder, button = page_text(teams)
+            # Skifter man rolle, sendes det samme spørgsmål og den samme samtale igen, så svaret til den anden rolle
+            # hentes med det samme, og vurderingen genbruges.
+            keep = (
+                f'<input type="hidden" name="q" value="{escape(question)}">'
+                f'<input type="hidden" name="c" value="{escape(json.dumps(conversation, ensure_ascii=False)) if conversation else ""}">'
+            )
+            heading, topics, examples = page_text(teams)
             self.write(
-                HEAD.replace("{roles}", roles).replace("{question}", escape(question))
-                .replace("{use_case_key}", "+".join(teams)).replace("{use_case}", heading).replace("{placeholder}", placeholder).replace("{button}", button)
+                HEAD.replace("{roles}", roles).replace("{keep}", keep).replace("{role}", escape(role))
+                .replace("{use_case_key}", "+".join(teams)).replace("{use_case}", heading)
+                .replace("{lang}", settings.LANGUAGE).replace("{i_am}", T["i_am"]).replace("{new_chat}", T["new_chat"])
             )
 
             if not question:
-                self.write("</main></body></html>")
+                # Ingen spørgsmål endnu: sig, hvad man kan spørge om, og vis eksempler, man kan klikke på.
+                chips = "".join(f'<button type="button" class="chip">{escape(e)}</button>' for e in examples)
+                self.write(
+                    f'<div class="welcome"><h2>{T["welcome"]}</h2><p>{escape(T["ask_about"].format(topics))} '
+                    f'{escape(T["written_for"].format(settings.ROLES[role]))}</p><div class="chips">{chips}</div></div>'
+                    + render_composer([], role, T["eg"].format(examples[0]), T["ask"]) + SCRIPT + "</main></body></html>"
+                )
                 return
+
+            self.write(render_conversation(conversation) + render_user(question))
+
+            # 11b: HVAD KRÆVER SPØRGSMÅLET? Ét kald uden værktøjer afgør det (Agent/application/router.py).
+            # Småsnak som "Hej, hvordan går det" svares med det samme. Et spørgsmål som "Hvilke tests er der?"
+            # slås op i testprotokollerne og kravene. Ingen af dem henter koden eller læser commits.
+            # Har agenten lige stillet et spørgsmål, er beskeden et svar på det og går direkte til kodetjekket.
+            asked_before = any(a.startswith(CLARIFY) for _, a in conversation)
+            route, answer = router.route(asked, topics) if router and checks_code and not asked_before else ("", "")
+            if route == CHAT:
+                turns = conversation + [(question, answer)]
+                self.write(render_agent(render_markdown(answer), "AI") + render_composer(turns, role, T["ask_more"], T["ask"]))
+                self.write(SCRIPT + "</main></body></html>")
+                return
+            if route == DOCS and docs:
+                self.write(f'<details class="work" id="work" open><summary>{T["how"]}</summary><p class="busy" id="busy">{T["working"]}</p>')
+                try:
+                    run = docs.run(f"{asked}\n\nThe reader is {settings.ROLES[role]}.", on_step=lambda s: self.write(render_step(s)))
+                    reply = run.answer.strip() or T["nothing_in_docs"]
+                except Exception as e:
+                    reply = T["lookup_failed"].format(repr(e))
+                    run = None
+                self.write('</details><script>work.open = false; busy.remove()</script>')
+                self.write(render_agent(render_markdown(reply) + (render_sources(run.steps) if run else ""), T["answer_for"].format(settings.ROLES[role])))
+                self.write(render_composer(conversation + [(question, reply)], role, T["ask_more"], T["ask"]) + SCRIPT + "</main></body></html>")
+                return
+            # Skridtene står i en boks, der er åben, mens agenten arbejder, og foldes sammen, når svaret er klar.
+            self.write(f'<details class="work" id="work" open><summary>{T["how"]}</summary>')
+            self.write(f'<p class="busy" id="busy">{T["working"]}</p>')
+            work_open = True
+
+            def close_work() -> None:
+                nonlocal work_open
+                if work_open:
+                    self.write('</details><script>work.open = false; busy.remove()</script>')
+                    work_open = False
 
             # Et kodetjek holder låsen, til svaret er skrevet, så et andet spørgsmål ikke skifter branch imens.
             holds_code = checks_code and checkouts is not None
             if holds_code:
                 checkouts.lock.acquire()
             checkout = None
+            turns = conversation
             try:
                 if holds_code:
                     # Vælg branch (en PR, der passer til spørgsmålet, ellers dev) og hent det nyeste, så en udvikler kan pushe og straks spørge.
                     # Det sker før fingeraftrykket herunder, så en anden branch eller en ændret fil giver et nyt tjek.
                     # Fortsæt i MCP/application/checkout_service.py.
                     try:
-                        checkout = checkouts.checkout(question)
-                        self.write(render_checkout(checkout))
+                        # Kun brugerens egne ord, så et id, agenten selv nævnte i sit spørgsmål, ikke vælger en PR.
+                        checkout = checkouts.checkout(" ".join([q for q, _ in conversation] + [question]))
+                        self.write(render_checkout(checkout) + render_changes(checkout))
                     except RuntimeError as e:
-                        self.write(f'<p class="step error">🔀 Could not fetch the code, so the last copy is used: {escape(str(e))}</p>')
+                        self.write(f'<p class="step error">🔀 {escape(T["fetch_failed"].format(e))}</p>')
 
                 # Samme spørgsmål med andre store/små bogstaver, mellemrum eller tegnsætning genbruger vurderingen,
                 # så længe koden og kravene er uændrede. Er en fil rettet, tjekkes koden igen.
-                key = " ".join(re.sub(r"[^\w\s-]", " ", question.lower()).split())
+                key = " ".join(re.sub(r"[^\w\s-]", " ", asked.lower()).split())
                 # Kun roller, der tjekker kode, kan genbruge en vurdering. Vedligehold har ingen.
                 cached = checked.get(key) if checks_code else None
-                if cached and cached[2] == fingerprint(cached[0].steps):
+                # En ny commit giver altid et nyt tjek, også hvis den ændrer en fil, agenten ikke læste sidst.
+                same_commit = not checkout or cached and cached[4] == checkout.commit
+                if cached and same_commit and cached[2] == fingerprint(cached[0].steps):
                     run, assessment = cached[0], cached[1]
-                    self.write('<p class="step">♻️ The code and requirements have not changed, so the earlier check is used</p>')
+                    self.write(f'<p class="step">♻️ {T["reused"]}</p>')
                 else:
                     # Hvorfor kun de seneste ændringer?
                     # Er koden tjekket før på samme branch, og er kravene uændrede, er det kun de nye commits, der kan ændre svaret.
@@ -347,14 +634,17 @@ def make_handler(agents, writer, checkouts):
                         changed = checkouts.changed_since(cached[4])
                         if changed and len(changed) <= MAX_CHANGED_FILES:
                             earlier = cached[0]
-                    self.write("<h2>What I am doing</h2>")
-                    task = question
+                    task = changes_first(asked, checkout) if checkout and checkout.changes.startswith("commit ") else asked
+                    if asked_before:
+                        # Hvorfor siger koden det, når skillen allerede gør?
+                        # En lille model spørger ellers igen og igen, selvom brugeren har svaret.
+                        task += ALREADY_ASKED
                     if earlier:
                         self.write(
-                            f'<p class="step">🔁 Checked before on commit {escape(cached[4])}, so only what changed since then is read ({len(changed)} {"file" if len(changed) == 1 else "files"}): '
+                            f'<p class="step">🔁 {escape(T["checked_before"].format(cached[4], len(changed), T["file"] if len(changed) == 1 else T["files"]))} '
                             + ", ".join(f"<code>{escape(f)}</code>" for f in changed) + "</p>"
                         )
-                        task = changes_question(question, earlier.answer, cached[4], changed)
+                        task = changes_question(asked, earlier.answer, cached[4], changed)
                     # 12: AGENTEN KØRER: Fortsæt i Agent/application/agent_service.py.
                     # 18: VIS SKRIDT: on_step kaldes efter hvert skridt, og render_step() sender det til browseren med det samme.
                     # Agenten får ikke rollen. Vurderingen skal være den samme, uanset hvem der spørger.
@@ -362,41 +652,56 @@ def make_handler(agents, writer, checkouts):
                     if earlier:
                         # Kilderne og fingeraftrykket skal dække al den kode, vurderingen bygger på, også den fra det tidligere tjek.
                         run = AgentRun(run.answer, earlier.steps + run.steps, run.finished)
-                    assessment = parse_assessment(run.answer) if run.finished and checks_code else None
+                    assessment = parse_assessment(run.answer, settings.LANGUAGE) if run.finished and checks_code else None
                     if assessment:
                         commit = (checkout.branch, checkout.commit) if checkout else ("", "")
                         checked[key] = (run, assessment, fingerprint(run.steps), *commit, requirements_fingerprint())
 
                 looked_up_ot = any(s.action.tool == "search_ot_documents" for s in run.steps)
-                if not assessment and run.finished and looked_up_ot:
+                # Det, der står i svaret, og som næste spørgsmål i samtalen får med.
+                reply, asks_back = run.answer, False
+                who = T["answer_for"].format(settings.ROLES[role])
+                if not assessment and run.finished and run.answer.strip().upper().startswith(CLARIFY):
+                    # Spørgsmålet var uklart, så agenten spørger med sit bedste gæt i stedet for at vurdere noget forkert.
+                    # Svaret sendes med samtalen i feltet herunder.
+                    reply, asks_back = run.answer.strip()[len(CLARIFY):].strip(), True
+                    close_work()
+                    self.write(render_agent(render_markdown(reply), T["ai_asks"], "asks"))
+                    reply = f"{CLARIFY} {reply}"
+                elif not assessment and run.finished and looked_up_ot:
                     # Et opslag i OT's dokumenter: der er ingen kode at vurdere, så agentens svar vises direkte.
-                    self.write(
-                        render_document_sources(run.steps)
-                        + f'<h2>Answer for {escape(settings.ROLES[role])}</h2>'
-                        + f'<div class="answer">{render_markdown(run.answer)}</div>'
-                    )
+                    close_work()
+                    self.write(render_agent(render_markdown(run.answer) + render_document_sources(run.steps), who))
                 elif not assessment:
                     # Agenten blev ikke færdig eller skrev ikke en vurdering. Vis det, den skrev.
-                    self.write(f'<h2>Not finished</h2>{render_sources(run.steps, checkout)}<div class="answer">{render_markdown(run.answer)}</div>')
+                    close_work()
+                    self.write(render_agent(
+                        f'<p class="error">{T["not_finished"]}</p>'
+                        + render_markdown(run.answer) + render_sources(run.steps, checkout), who
+                    ))
                 else:
                     # 20: OUTPUT: Vurderingen skrives om til et svar til rollen, laves om fra markdown til HTML og sendes. SLUT.
-                    # Kilderne og vurderingen står øverst i lukkede bokse, så de ikke fylder, men kan foldes ud.
-                    self.write('<p class="step">✍️ Writing the answer</p>')
-                    answer = writer.write(question, assessment, role)
-                    # Overskriften siger, hvem svaret er til. Skifter man rolle i dropdownen, hentes svaret til den anden rolle
-                    # med det samme, og vurderingen genbruges.
-                    self.write(
-                        render_sources(run.steps, checkout) + render_assessment(assessment)
-                        + f'<h2>Answer for {escape(settings.ROLES[role])}</h2>'
-                        + f'<div class="answer">{render_markdown(answer)}</div>'
-                    )
+                    # Dommen står som et farvet mærke øverst, og kilderne og vurderingen står i lukkede bokse under svaret.
+                    self.write(f'<p class="step">✍️ {T["writing"]}</p>')
+                    reply = writer.write(asked, assessment, role)
+                    close_work()
+                    self.write(render_agent(
+                        render_verdict(assessment, reply) + render_sources(run.steps, checkout) + render_assessment(assessment, role), who
+                    ))
+                turns = conversation + [(question, reply)]
+                if asks_back:
+                    # Agenten har gættet, hvad der menes. Ét klik siger ja til gættet.
+                    self.write(f'<div class="chips reply"><button type="button" class="chip">{T["yes_check"]}</button></div>')
+                self.write(render_composer(turns, role, T["reply_here"] if asks_back else T["ask_more"], T["reply"] if asks_back else T["ask"]))
             except Exception as e:
                 # Fejlen vises på siden, så demoen ikke bare hænger.
-                self.write(f'<h2 class="error">Error</h2><pre>{escape(repr(e))}</pre>')
+                close_work()
+                self.write(render_agent(f'<p class="error"><b>{T["error"]}</b></p><pre>{escape(repr(e))}</pre>', "AI", "asks"))
+                self.write(render_composer(turns, role, T["try_again"], T["ask"]))
             finally:
                 if holds_code:
                     checkouts.lock.release()
-            self.write("</main></body></html>")
+            self.write(SCRIPT + "</main></body></html>")
 
         def write(self, html: str) -> None:
             self.wfile.write(html.encode("utf-8"))
@@ -408,14 +713,15 @@ def make_handler(agents, writer, checkouts):
 def main():
     # 1: START: Her starter vi, når man kører "python -m Agent.api.web".
     # Agenten bygges én gang, så xlsx-filerne kun indlæses ved start. Fortsæt i Agent/api/build.py.
-    agents = build_agents()
+    agents, docs = build_agents()
     writer = build_writer()
+    router = build_router()
     # Branch-valget og repoet med koden, hvis den hentes fra et repo (CODE_REPO). Fortsæt i MCP/api/build.py.
     checkouts = build_checkout_service()
 
     # 10: VENT: Serveren er klar og venter på, at nogen stiller et spørgsmål på siden.
     # Hvert spørgsmål lander i Handler.do_GET() herover.
-    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agents, writer, checkouts))
+    server = ThreadingHTTPServer(("localhost", PORT), make_handler(agents, writer, checkouts, router, docs))
     print(f"AI Platform POC is running on http://localhost:{PORT} (Ctrl+C to stop)")
     server.serve_forever()
 

@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Platform POC</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700&family=Inter:wght@400;600&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+  body { margin: 0; padding: 24px 16px 64px; background: #1E2E30; color: #F5F6F2; font-family: Inter, Arial, sans-serif; }
+  h1.title { max-width: 1200px; margin: 0 auto 24px; font-family: Rubik, Arial, sans-serif; }
+  .slide { max-width: 1200px; margin: 0 auto 48px; }
+  .label { margin: 0 0 8px; font-size: 14px; color: #C9DEDC; }
+  .notes { margin: 12px 0 0; font-size: 15px; line-height: 1.5; color: #C9DEDC; }
+  .frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 8px; }
+  .canvas { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+  .canvas section { position: relative; box-sizing: border-box; width: 1920px; height: 1080px; overflow: hidden; }
+  .canvas section * { box-sizing: border-box; margin: 0; }
+  .canvas ul { padding-left: 1.2em; }
+  .canvas table { border-collapse: collapse; width: 100%; }
+  .canvas th, .canvas td { padding: 0.35em 0.6em; text-align: left; border-bottom: 1px solid #D5E0DE; }
+  .canvas x-shape, .canvas x-icon { display: block; flex: none; }
+  .canvas x-shape[kind="ellipse"], .canvas x-icon { border-radius: 50%; }
+  .canvas x-icon { border: 4px solid currentColor; }
+  .canvas x-shape[kind="arrow-right"] { clip-path: polygon(0 30%, 60% 30%, 60% 0, 100% 50%, 60% 100%, 60% 70%, 0 70%); }
+  .canvas x-shape[kind="arrow-down"] { clip-path: polygon(30% 0, 70% 0, 70% 60%, 100% 60%, 50% 100%, 0 60%, 30% 60%); }
+</style>
+</head>
+<body>
+<h1 class="title">AI Platform POC</h1>
+<div class="slide"><p class="label">Slide 1</p><div class="frame"><div class="canvas"><section id="cover" data-transition="fade" style="display:flex; flex-direction:column; gap:40px; justify-content:center; padding:128px; background:#0d4a4d">
+  <p style="font-family:Inter, Arial, sans-serif; font-size:28px; font-weight:600; letter-spacing:3px; text-transform:uppercase; color:#f2a27a">Aalborg Forsyning · Kommunikation og IT</p>
+  <h1 style="font-family:Rubik, Arial, sans-serif; font-size:160px; font-weight:700; line-height:1; color:#f5f6f2">AI Platform POC</h1>
+  <p style="width:1300px; font-family:Inter, Arial, sans-serif; font-size:44px; line-height:1.3; color:#c9dedc">Spørg, om koden løser opgaven, og få et kort svar i dit eget sprog.</p>
+  <x-shape kind="rect" style="position:absolute; bottom:128px; left:128px; width:160px; height:8px; background:#e2703a"></x-shape>
+  
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Velkommen. I dag handler det om, hvordan Kommunikation og IT kan få et hurtigt og fælles svar på spørgsmålet: Er det her færdigt, og kan det testes? Først problemet, så løsningen, lidt teknik, og til sidst en demo.</p></div><div class="slide"><p class="label">Slide 2</p><div class="frame"><div class="canvas"><section id="kommunikation" data-transition="fade" style="background:#F5F6F2;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:64px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Problemet · Kommunikation</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">„Er det færdigt, og kan vi teste det?“</h2>
+</div>
+<div style="display:flex;gap:32px">
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#FDFDFB;padding:48px;border:1px solid #D5E0DE;border-radius:20px">
+<x-icon name="Code" style="width:56px;height:56px;color:#0F6266"></x-icon>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:40px;font-weight:700;color:#0D4A4D">Koden er lukket land</h3>
+<p style="font-size:30px;line-height:1.4;color:#3D4F52">Status kræver, at man spørger en udvikler.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#FDFDFB;padding:48px;border:1px solid #D5E0DE;border-radius:20px">
+<x-icon name="Book" style="width:56px;height:56px;color:#0F6266"></x-icon>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:40px;font-weight:700;color:#0D4A4D">Testcases i Excel</h3>
+<p style="font-size:30px;line-height:1.4;color:#3D4F52">Hvad der skal testes, ligger ét sted. Hvad der er bygget, et andet.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#FDFDFB;padding:48px;border:1px solid #D5E0DE;border-radius:20px">
+<x-icon name="Clock" style="width:56px;height:56px;color:#0F6266"></x-icon>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:40px;font-weight:700;color:#0D4A4D">Man venter</h3>
+<p style="font-size:30px;line-height:1.4;color:#3D4F52">Test, driftsbesked eller kundeinformation sættes på pause.</p>
+</div>
+</div>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Kommunikation skal vide, hvad der er lavet på selvbetjeningen, og om det kan testes. Men koden kan de ikke læse, og testcasene ligger i Excel. Så de må spørge IT og vente. Tilpas gerne med et eksempel fra hverdagen.</p></div><div class="slide"><p class="label">Slide 3</p><div class="frame"><div class="canvas"><section id="it" data-transition="fade" style="background:#F5F6F2;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:64px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Problemet · IT</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">„Opfylder koden alle kravene?“</h2>
+</div>
+<div style="display:flex;gap:32px">
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#FDFDFB;padding:48px;border:1px solid #D5E0DE;border-radius:20px">
+<x-icon name="Chat" style="width:56px;height:56px;color:#0F6266"></x-icon>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:40px;font-weight:700;color:#0D4A4D">Afbrydelser</h3>
+<p style="font-size:30px;line-height:1.4;color:#3D4F52">Statusspørgsmål tager tid fra udviklingen.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#FDFDFB;padding:48px;border:1px solid #D5E0DE;border-radius:20px">
+<x-icon name="Search" style="width:56px;height:56px;color:#0F6266"></x-icon>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:40px;font-weight:700;color:#0D4A4D">Krav mod kode i hånden</h3>
+<p style="font-size:30px;line-height:1.4;color:#3D4F52">Hvert acceptkriterie skal holdes op mod koden manuelt.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#FDFDFB;padding:48px;border:1px solid #D5E0DE;border-radius:20px">
+<x-icon name="Users" style="width:56px;height:56px;color:#0F6266"></x-icon>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:40px;font-weight:700;color:#0D4A4D">To sprog</h3>
+<p style="font-size:30px;line-height:1.4;color:#3D4F52">Samme status skal forklares teknisk og i almindeligt sprog.</p>
+</div>
+</div>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> IT har det omvendte problem. De bliver spurgt om status, og for at svare skal de selv holde hvert krav og hver testcase op mod koden. Og svaret skal så oversættes til almindeligt sprog for Kommunikation.</p></div><div class="slide"><p class="label">Slide 4</p><div class="frame"><div class="canvas"><section id="spredt" data-transition="fade" style="background:#E6EEEC;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;justify-content:space-between;gap:48px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Kernen i problemet</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">Svaret ligger fire steder</h2>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:28px">
+<div style="display:flex;flex-direction:column;gap:16px;background:#FDFDFB;padding:40px;border-radius:20px">
+<x-icon name="Code" style="width:56px;height:56px;color:#0F6266"></x-icon>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:40px;font-weight:700;color:#0D4A4D">Koden</h3>
+<p style="font-size:28px;line-height:1.4;color:#3D4F52">Azure DevOps</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px;background:#FDFDFB;padding:40px;border-radius:20px">
+<x-icon name="Check" style="width:56px;height:56px;color:#0F6266"></x-icon>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:40px;font-weight:700;color:#0D4A4D">Testcases</h3>
+<p style="font-size:28px;line-height:1.4;color:#3D4F52">Excel-ark</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px;background:#FDFDFB;padding:40px;border-radius:20px">
+<x-icon name="Book" style="width:56px;height:56px;color:#0F6266"></x-icon>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:40px;font-weight:700;color:#0D4A4D">Kravspec</h3>
+<p style="font-size:28px;line-height:1.4;color:#3D4F52">Dokumenter</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px;background:#FDFDFB;padding:40px;border-radius:20px">
+<x-icon name="Users" style="width:56px;height:56px;color:#0F6266"></x-icon>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:40px;font-weight:700;color:#0D4A4D">Ændringer</h3>
+<p style="font-size:28px;line-height:1.4;color:#3D4F52">Git-historik</p>
+</div>
+</div>
+<p style="font-size:44px;line-height:1.3;color:#0D4A4D;font-weight:600">Ingen ser det hele på én gang.</p>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Det fælles problem: viden ligger fire steder. Koden i Azure DevOps, testcases i Excel, kravene i en kravspec og hvem der har ændret hvad i git. Det kræver en person at samle det. Det er det, vi vil lade AI'en gøre.</p></div><div class="slide"><p class="label">Slide 5</p><div class="frame"><div class="canvas"><section id="derfor" data-transition="fade" style="background:#E2703A;color:#1A1410;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;justify-content:center;gap:40px">
+<h1 style="font-family:'Rubik', Arial, sans-serif;font-size:150px;font-weight:700;line-height:1.05;color:#1A1410">Derfor kommer AI Platform.</h1>
+<p style="font-size:44px;line-height:1.3;color:#2B1B12;width:1400px">Én chat, hvor begge hold kan spørge, og hvor AI'en selv samler svaret.</p>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Derfor kommer AI Platform. Én chat til både Kommunikation og IT. AI'en gør det, en person ellers skulle gøre: slår kravene op, læser koden og svarer kort.</p></div><div class="slide"><p class="label">Slide 6</p><div class="frame"><div class="canvas"><section id="hvad" data-transition="fade" style="background:#F5F6F2;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:grid;grid-template-columns:1fr 820px;gap:72px;align-items:center">
+<div style="display:flex;flex-direction:column;gap:48px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">AI Platform</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">Én chat, ét kort svar</h2>
+</div>
+<div style="display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;gap:24px;align-items:start">
+<p style="font-family:'Rubik', Arial, sans-serif;font-size:44px;font-weight:700;color:#E2703A;width:48px">1</p>
+<div style="display:flex;flex-direction:column;gap:6px"><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:36px;font-weight:700;color:#0D4A4D">Spørg på dansk</h3><p style="font-size:28px;line-height:1.4;color:#3D4F52">Konkret eller løst. Er spørgsmålet uklart, spørger AI'en tilbage.</p></div>
+</div>
+<div style="display:flex;gap:24px;align-items:start">
+<p style="font-family:'Rubik', Arial, sans-serif;font-size:44px;font-weight:700;color:#E2703A;width:48px">2</p>
+<div style="display:flex;flex-direction:column;gap:6px"><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:36px;font-weight:700;color:#0D4A4D">Den slår selv op</h3><p style="font-size:28px;line-height:1.4;color:#3D4F52">Koden, testcasene og kravspec.</p></div>
+</div>
+<div style="display:flex;gap:24px;align-items:start">
+<p style="font-family:'Rubik', Arial, sans-serif;font-size:44px;font-weight:700;color:#E2703A;width:48px">3</p>
+<div style="display:flex;flex-direction:column;gap:6px"><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:36px;font-weight:700;color:#0D4A4D">Svar i dit sprog</h3><p style="font-size:28px;line-height:1.4;color:#3D4F52">Løst, Delvist løst eller Ikke løst, og hvad der mangler.</p></div>
+</div>
+</div>
+</div>
+<img src="billeder/side-chat.png" alt="AI Platform POC: IT spørger, AI'en svarer Delvist løst med fil og linje" style="width:820px;height:634px;object-fit:contain;border-radius:16px;border:1px solid #D5E0DE;box-shadow:0 16px 48px rgba(13,74,77,0.15)">
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Sådan ser det ud. Man vælger, om man er Kommunikation eller IT, og stiller sit spørgsmål. AI'en slår selv op i koden, testcasene og kravspec og giver en dom: Løst, Delvist løst eller Ikke løst. Her er det IT, der får fil og linje. Kommunikation får det samme svar i hele sætninger.</p></div><div class="slide"><p class="label">Slide 7</p><div class="frame"><div class="canvas"><section id="platform" data-transition="fade" style="background:#E6EEEC;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:44px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Hvorfor en platform?</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">Kernen er fælles. Resten er opsætning.</h2>
+<p style="font-size:30px;line-height:1.4;color:#3D4F52">Agent-løkken, værktøjerne og søgningen er skrevet én gang. Det, der gør den til Kommunikations eller IT's værktøj, er filer og indstillinger.</p>
+</div>
+<table style="font-family:'Inter', Arial, sans-serif;font-size:28px;color:#1E2E30">
+<tr style="background:#0D4A4D"><th style="width:30%;color:#F5F6F2">Udvid med</th><th style="width:32%;color:#F5F6F2">Sådan</th><th style="width:38%;color:#F5F6F2">Hvor i koden</th></tr>
+<tr style="background:#FDFDFB"><td>En ny rolle</td><td>Én linje i opsætningen</td><td>settings.py: ROLES og ROLE_TEAMS</td></tr>
+<tr><td>Svar til en ny målgruppe</td><td>En svar-instruks</td><td>Skills: audience-&lt;rolle&gt;</td></tr>
+<tr style="background:#FDFDFB"><td>Et nyt IT-hold</td><td>Holdets måde at kode på</td><td>Skills: architecture-&lt;hold&gt;</td></tr>
+<tr><td>Nye krav og testcases</td><td>Læg filerne i mappen</td><td>RAG/data: .xlsx og .md</td></tr>
+<tr style="background:#FDFDFB"><td>En anden sprogmodel</td><td>Én ny adapter</td><td>Porten AgentBrain</td></tr>
+</table>
+<p style="font-size:30px;line-height:1.3;font-weight:600;color:#0D4A4D">Kommunikation og IT deler i dag samme kerne.</p>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Hvorfor kalder vi det en platform? Fordi kernen er skrevet én gang: agent-løkken, værktøjerne og søgningen. Det, der gør den til et værktøj for Kommunikation eller for IT, er opsætning. En rolle er en linje i settings.py, som bestemmer, hvilke værktøjer rollen får. Hvordan der svares, står i en svar-instruks, en skill: audience-product svarer i hele sætninger, audience-it med fil og linje. Hvordan et IT-hold koder, står i architecture-web; et nyt hold får sin egen fil, uden at koden ændres. Nye krav og testcases lægges bare i mappen. Og sprogmodellen sidder bag en port, så Gemini kan skiftes ud.</p></div><div class="slide"><p class="label">Slide 8</p><div class="frame"><div class="canvas"><section id="cognia" data-transition="fade" style="background:#0D4A4D;color:#F5F6F2;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#F2A27A">Bygget på erfaring</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#F5F6F2">Cognia: min egen AI-platform</h2>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:24px;background:#16605F;padding:48px;border-radius:20px">
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:40px;font-weight:700;color:#F5F6F2">Mida og Cognia</h3>
+<p style="font-size:28px;line-height:1.4;color:#C9DEDC">Cognia er AI-platformen ved siden af min analyseplatform Mida. Brugerne kan starte pipelines og spørge ind til ændringer og data i Mida.</p>
+<div style="display:flex;gap:16px;flex-wrap:wrap">
+<p style="font-size:24px;font-weight:600;color:#0D4A4D;background:#F5F6F2;padding:8px 20px;border-radius:999px">Mida: siden april 2026</p>
+<p style="font-size:24px;font-weight:600;color:#1A1410;background:#F2A27A;padding:8px 20px;border-radius:999px">Cognia: siden juni 2026</p>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:20px;background:#F5F6F2;padding:48px;border-radius:20px">
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:40px;font-weight:700;color:#0D4A4D">Samme måde i POC'en</h3>
+<ul style="font-size:28px;line-height:1.5;color:#3D4F52">
+<li>Samme lag: LLM, RAG, MCP, Skills og Agent</li>
+<li>Samme idé: spørg på almindeligt sprog om ændringer, i data dér og i koden her</li>
+</ul>
+</div>
+</div>
+<p style="font-size:30px;line-height:1.4;color:#C9DEDC">POC'en er ikke et første forsøg. Den genbruger en arkitektur, jeg har bygget og brugt siden juni.</p>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Før jeg viser valgene, lidt om hvor arkitekturen kommer fra. Siden min eksamen i april har jeg bygget Mida, min egen analyseplatform. Fra juni byggede jeg Cognia ved siden af, så Midas brugere også fik AI: de kan starte pipelines og spørge ind til ændringer og data. AI Platform POC'en er bygget på samme måde: samme lag, og samme idé om at spørge på almindeligt sprog om, hvad der er ændret. Så det, I ser i dag, er ikke et første forsøg.</p></div><div class="slide"><p class="label">Slide 9</p><div class="frame"><div class="canvas"><section id="kilder" data-transition="fade" style="background:#0D4A4D;color:#F5F6F2;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#F2A27A">Hvorfor er den bygget sådan?</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#F5F6F2">Valgene bygger på to kilder</h2>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px">
+<div style="display:flex;flex-direction:column;gap:20px;background:#16605F;padding:48px;border-radius:20px">
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:48px;font-weight:700;color:#F5F6F2">Anthropic</h3>
+<p style="font-size:28px;line-height:1.4;color:#C9DEDC">Laver Claude og står bag standarderne MCP og Agent Skills.</p>
+<ul style="font-size:26px;line-height:1.5;color:#F5F6F2">
+<li>Building effective agents (2024)</li>
+<li>Introducing the Model Context Protocol (2024)</li>
+<li>Equipping agents with Agent Skills (2025)</li>
+</ul>
+</div>
+<div style="display:flex;flex-direction:column;gap:20px;background:#16605F;padding:48px;border-radius:20px">
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:48px;font-weight:700;color:#F5F6F2">IBM</h3>
+<p style="font-size:28px;line-height:1.4;color:#C9DEDC">Erfaring med agenter i store virksomheder: drift, styring og ansvar.</p>
+<ul style="font-size:26px;line-height:1.5;color:#F5F6F2">
+<li>Building and evaluating AI agents that work in the real world (2026)</li>
+<li>Agentic AI governance playbook (2026)</li>
+</ul>
+</div>
+</div>
+<p style="font-size:30px;line-height:1.4;color:#C9DEDC">De næste slides: et valg, hvad kilderne siger, og hvad jeg har gjort.</p>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Jeg har ikke bare bygget noget, der virker. Hvert valg bygger på det, to tunge kilder siger om agenter: Anthropic, som laver Claude og står bag standarderne MCP og Agent Skills, og IBM, som skriver om agenter i store virksomheder. På de næste slides tager jeg valgene et ad gangen: hvad siger kilderne, og hvad har jeg gjort.</p></div><div class="slide"><p class="label">Slide 10</p><div class="frame"><div class="canvas"><section id="valg-simpel" data-transition="fade" style="background:#F5F6F2;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Valg 1</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">Start simpelt</h2>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:24px">
+<p style="font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#0F6266">Det siger kilderne</p>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:36px 40px;border-left:6px solid #E2703A;border-radius:12px">
+<p style="font-size:32px;line-height:1.4;font-style:italic;color:#1E2E30">“We recommend finding the simplest solution possible, and only increasing complexity when needed.”</p>
+<p style="font-size:24px;color:#5A6B6E">Anthropic, Building effective agents</p>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:24px;background:#0D4A4D;padding:48px;border-radius:20px">
+<p style="font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#F2A27A">Det har jeg gjort</p>
+<ul style="font-size:30px;line-height:1.5;color:#F5F6F2">
+<li>Én agent med få værktøjer</li>
+<li>Søgning på ord i stedet for en vektordatabase</li>
+<li>Kører på én maskine, som spec'en kræver</li>
+<li>Nye mønstre kun, når et problem viser behovet</li>
+</ul>
+</div>
+</div>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Første valg: start simpelt. Anthropic siger det direkte: find den simpleste løsning, og gør den kun mere kompleks, når der er brug for det. Derfor er der én agent og ikke en hel hær af agenter. Søgningen er simpel ordsøgning i stedet for en vektordatabase. Den kører på én maskine. Og jeg har kun tilføjet nye mønstre, når et konkret problem viste, at der var brug for dem.</p></div><div class="slide"><p class="label">Slide 11</p><div class="frame"><div class="canvas"><section id="valg-kode-ai" data-transition="fade" style="background:#F5F6F2;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Valg 2</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">Koden styrer det faste, AI'en det uklare</h2>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:24px">
+<p style="font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#0F6266">Det siger kilderne</p>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:36px 40px;border-left:6px solid #E2703A;border-radius:12px">
+<p style="font-size:32px;line-height:1.4;font-style:italic;color:#1E2E30">“Deterministic systems anchor the process. Agentic systems enhance it.”</p>
+<p style="font-size:24px;color:#5A6B6E">IBM, Building and evaluating AI agents that work in the real world</p>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:24px;background:#0D4A4D;padding:48px;border-radius:20px">
+<p style="font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#F2A27A">Det har jeg gjort</p>
+<ul style="font-size:30px;line-height:1.5;color:#F5F6F2">
+<li>Koden vælger, hvilken branch der tjekkes</li>
+<li>Rollen bestemmer, hvilke værktøjer agenten får</li>
+<li>Koden tæller dommen ud fra vurderingen</li>
+<li>AI'en læser kode og krav og vurderer</li>
+</ul>
+</div>
+</div>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Andet valg: lad koden styre det, der har faste regler, og AI'en det, der kræver vurdering. IBM siger: de faste systemer forankrer processen, agenten forbedrer den. Derfor er det koden, der vælger branch, og rollen, der bestemmer værktøjerne, så samme spørgsmål altid tjekker samme kode. Og dommen Løst, Delvist løst eller Ikke løst tælles af koden. AI'en bruges til det, den er god til: at læse koden og kravene og vurdere dem.</p></div><div class="slide"><p class="label">Slide 12</p><div class="frame"><div class="canvas"><section id="valg-standarder" data-transition="fade" style="background:#F5F6F2;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Valg 3</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">Byg på åbne standarder</h2>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:24px">
+<p style="font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#0F6266">Det siger kilderne</p>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:32px 40px;border-left:6px solid #E2703A;border-radius:12px">
+<p style="font-size:30px;line-height:1.4;font-style:italic;color:#1E2E30">MCP: “replacing fragmented integrations with a single protocol.”</p>
+<p style="font-size:24px;color:#5A6B6E">Anthropic, Introducing the Model Context Protocol</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:32px 40px;border-left:6px solid #E2703A;border-radius:12px">
+<p style="font-size:30px;line-height:1.4;font-style:italic;color:#1E2E30">Skills: “organized folders of instructions, scripts, and resources that agents can discover and load dynamically.”</p>
+<p style="font-size:24px;color:#5A6B6E">Anthropic, Equipping agents with Agent Skills</p>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:24px;background:#0D4A4D;padding:48px;border-radius:20px">
+<p style="font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#F2A27A">Det har jeg gjort</p>
+<ul style="font-size:30px;line-height:1.5;color:#F5F6F2">
+<li>Værktøjerne ligger i et eget lag efter MCP's tankegang</li>
+<li>Holdets måde at kode på er en skill: en mappe med en SKILL.md</li>
+<li>Svaret til Kommunikation og til IT er hver sin skill</li>
+<li>Nyt hold eller ny målgruppe er en ny mappe, ikke ny kode</li>
+</ul>
+</div>
+</div>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Tredje valg: brug de standarder, branchen samles om, i stedet for at opfinde vores egne. MCP er Anthropics åbne standard for at give AI adgang til værktøjer og data, i stedet for en ny integration hver gang. Værktøjerne ligger derfor i et eget lag efter MCP's tankegang. Skills er mapper med instrukser, som agenten henter, når den skal bruge dem. Holdets måde at kode på og svarformen til Kommunikation og IT er skills. Et nyt hold er en ny mappe, ikke ny kode.</p></div><div class="slide"><p class="label">Slide 13</p><div class="frame"><div class="canvas"><section id="valg-synlighed" data-transition="fade" style="background:#F5F6F2;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Valg 4</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">Vis, hvordan svaret blev til</h2>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:24px">
+<p style="font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#0F6266">Det siger kilderne</p>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:32px 40px;border-left:6px solid #E2703A;border-radius:12px">
+<p style="font-size:30px;line-height:1.4;font-style:italic;color:#1E2E30">Prioritize “transparency by explicitly showing the agent's planning steps.”</p>
+<p style="font-size:24px;color:#5A6B6E">Anthropic, Building effective agents</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:32px 40px;border-left:6px solid #E2703A;border-radius:12px">
+<p style="font-size:30px;line-height:1.4;font-style:italic;color:#1E2E30">“Runtime visibility—not just uptime—is essential.”</p>
+<p style="font-size:24px;color:#5A6B6E">IBM, Building and evaluating AI agents that work in the real world</p>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:24px;background:#0D4A4D;padding:48px;border-radius:20px">
+<p style="font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#F2A27A">Det har jeg gjort</p>
+<ul style="font-size:30px;line-height:1.5;color:#F5F6F2">
+<li>Hvert skridt vises live: „Slår testcases op“, „Læser BillingService.cs“</li>
+<li>Kilder-boksen viser de filer og dokumenter, der er brugt</li>
+<li>Vurdering pr. krav kan efterprøves linje for linje</li>
+</ul>
+</div>
+</div>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Fjerde valg: man skal kunne se, hvordan svaret blev til. Anthropic siger, at agentens skridt skal vises. IBM siger, at det ikke er nok, at systemet kører; man skal kunne se, hvad det gør. Derfor vises hvert skridt live på siden, Kilder-boksen viser de filer, der er brugt, og vurderingen pr. krav kan efterprøves. Det er det, der gør, at man kan stole på svaret.</p></div><div class="slide"><p class="label">Slide 14</p><div class="frame"><div class="canvas"><section id="valg-graenser" data-transition="fade" style="background:#F5F6F2;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Valg 5</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">Agenten anbefaler, mennesket beslutter</h2>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:24px">
+<p style="font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#0F6266">Det siger kilderne</p>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:32px 40px;border-left:6px solid #E2703A;border-radius:12px">
+<p style="font-size:30px;line-height:1.4;font-style:italic;color:#1E2E30">“Assist agents recommend. Humans decide.”</p>
+<p style="font-size:24px;color:#5A6B6E">IBM, Building and evaluating AI agents that work in the real world</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:32px 40px;border-left:6px solid #E2703A;border-radius:12px">
+<p style="font-size:30px;line-height:1.4;font-style:italic;color:#1E2E30">“Set limits on access to workflows, APIs and enterprise systems.”</p>
+<p style="font-size:24px;color:#5A6B6E">IBM, Agentic AI governance playbook</p>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:24px;background:#0D4A4D;padding:48px;border-radius:20px">
+<p style="font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#F2A27A">Det har jeg gjort</p>
+<ul style="font-size:30px;line-height:1.5;color:#F5F6F2">
+<li>Kan kun læse koden, aldrig ændre den</li>
+<li>Kan ikke se uden for repoet</li>
+<li>Stopper efter højst 20 skridt</li>
+<li>Spørger tilbage, når spørgsmålet er uklart</li>
+<li>Dommen er en anbefaling; testen afgør</li>
+</ul>
+</div>
+</div>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Femte valg: agenten anbefaler, mennesket beslutter. IBM siger det kort: agenter anbefaler, mennesker beslutter. Og man skal sætte grænser for, hvad agenten har adgang til. Derfor kan den kun læse koden, aldrig ændre den, og den kan ikke se uden for repoet. Den stopper efter højst 20 skridt, som Anthropic også anbefaler med en fast grænse. Er spørgsmålet uklart, spørger den tilbage i stedet for at gætte. Og dommen er en anbefaling; det er testen og mennesket, der afgør.</p></div><div class="slide"><p class="label">Slide 15</p><div class="frame"><div class="canvas"><section id="lag" data-transition="fade" style="background:#F5F6F2;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:64px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Kodearkitektur</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">Fire lag, fire opgaver</h2>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:28px">
+<div style="display:flex;flex-direction:column;gap:16px;background:#FDFDFB;padding:36px;border:1px solid #D5E0DE;border-top:8px solid #0F6266;border-radius:16px">
+<x-icon name="Lightbulb" style="width:52px;height:52px;color:#0F6266"></x-icon>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:44px;font-weight:700;color:#0D4A4D">Agent</h3>
+<p style="font-size:28px;font-weight:600;color:#B8501F">Hjernen</p>
+<p style="font-size:26px;line-height:1.4;color:#3D4F52">Beslutter, hvad der skal slås op, og hvornår der er nok til et svar.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px;background:#FDFDFB;padding:36px;border:1px solid #D5E0DE;border-top:8px solid #0F6266;border-radius:16px">
+<x-icon name="Tool" style="width:52px;height:52px;color:#0F6266"></x-icon>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:44px;font-weight:700;color:#0D4A4D">MCP</h3>
+<p style="font-size:28px;font-weight:600;color:#B8501F">Hænderne</p>
+<p style="font-size:26px;line-height:1.4;color:#3D4F52">Værktøjer: søg i krav, læs kodefiler, vælg den rigtige branch.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px;background:#FDFDFB;padding:36px;border:1px solid #D5E0DE;border-top:8px solid #0F6266;border-radius:16px">
+<x-icon name="Database" style="width:52px;height:52px;color:#0F6266"></x-icon>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:44px;font-weight:700;color:#0D4A4D">RAG</h3>
+<p style="font-size:28px;font-weight:600;color:#B8501F">Hukommelsen</p>
+<p style="font-size:26px;line-height:1.4;color:#3D4F52">Testcases, kravspec og dokumenter, delt op og søgbare.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px;background:#FDFDFB;padding:36px;border:1px solid #D5E0DE;border-top:8px solid #0F6266;border-radius:16px">
+<x-icon name="Book" style="width:52px;height:52px;color:#0F6266"></x-icon>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:44px;font-weight:700;color:#0D4A4D">Skills</h3>
+<p style="font-size:28px;font-weight:600;color:#B8501F">Arbejdsinstrukser</p>
+<p style="font-size:26px;line-height:1.4;color:#3D4F52">Hvordan der vurderes, og hvordan der svares til hver rolle.</p>
+</div>
+</div>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Koden er delt i fire lag, hver med én opgave. Agenten er hjernen, der beslutter. MCP er hænderne, værktøjerne den kan kalde. RAG er hukommelsen med testcases og kravspec. Skills er arbejdsinstrukserne: hvordan der vurderes, og hvordan der svares til Kommunikation og til IT.</p></div><div class="slide"><p class="label">Slide 16</p><div class="frame"><div class="canvas"><section id="workflows" data-transition="fade" style="background:#F5F6F2;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:44px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Workflows og AI</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">En fast workflow med én agent i midten</h2>
+</div>
+<div style="display:flex;gap:24px;flex-wrap:wrap">
+<p style="font-size:26px;color:#0D4A4D;background:#FDFDFB;border:2px solid #0F6266;padding:10px 24px;border-radius:999px"><b>Workflow:</b> fast kode bestemmer vejen</p>
+<p style="font-size:26px;color:#1A1410;background:#F6C9AE;border:2px solid #E2703A;padding:10px 24px;border-radius:999px"><b>Agent:</b> AI'en bestemmer selv vejen</p>
+</div>
+<div style="display:flex;gap:16px;align-items:stretch">
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FDFDFB;border:2px solid #0F6266;padding:24px;border-radius:16px"><p style="font-size:24px;font-weight:600;color:#0F6266">1 · Kode</p><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:28px;font-weight:700;color:#0D4A4D">Rollen giver værktøjerne</h3></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FDFDFB;border:2px solid #0F6266;padding:24px;border-radius:16px"><p style="font-size:24px;font-weight:600;color:#0F6266">2 · Kode</p><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:28px;font-weight:700;color:#0D4A4D">Vælg branch: PR eller dev</h3></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FDFDFB;border:2px solid #0F6266;padding:24px;border-radius:16px"><p style="font-size:24px;font-weight:600;color:#0F6266">3 · Kode</p><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:28px;font-weight:700;color:#0D4A4D">Genbrug svaret eller læs kun ændringer</h3></div>
+<div style="flex:1.3;display:flex;flex-direction:column;gap:8px;background:#F6C9AE;border:2px solid #E2703A;padding:24px;border-radius:16px"><p style="font-size:24px;font-weight:600;color:#8A3A14">4 · Agent</p><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:28px;font-weight:700;color:#1A1410">Slår op, læser koden og vurderer hvert krav</h3></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FDFDFB;border:2px solid #0F6266;padding:24px;border-radius:16px"><p style="font-size:24px;font-weight:600;color:#0F6266">5 · Kode</p><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:28px;font-weight:700;color:#0D4A4D">Ryd op og tæl dommen</h3></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FBE6DA;border:2px dashed #E2703A;padding:24px;border-radius:16px"><p style="font-size:24px;font-weight:600;color:#8A3A14">6 · AI, fast trin</p><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:28px;font-weight:700;color:#1A1410">Skriv svaret til rollen</h3></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:26px;font-weight:600;color:#0D4A4D">Anthropics mønstre i POC'en</p>
+<div style="display:flex;gap:16px;flex-wrap:wrap">
+<p style="font-size:24px;color:#0D4A4D;background:#E6EEEC;padding:8px 20px;border-radius:999px"><b>Med:</b> augmented LLM</p>
+<p style="font-size:24px;color:#0D4A4D;background:#E6EEEC;padding:8px 20px;border-radius:999px"><b>Med:</b> agent-løkke</p>
+<p style="font-size:24px;color:#0D4A4D;background:#E6EEEC;padding:8px 20px;border-radius:999px"><b>Med:</b> prompt-kæde, vurdering så svar</p>
+<p style="font-size:24px;color:#0D4A4D;background:#E6EEEC;padding:8px 20px;border-radius:999px"><b>I kode:</b> routing via rollen</p>
+<p style="font-size:24px;color:#5A3A20;background:#FBE6DA;padding:8px 20px;border-radius:999px"><b>Næste:</b> evaluator-optimizer</p>
+<p style="font-size:24px;color:#4A5558;background:#ECECE8;padding:8px 20px;border-radius:999px"><b>Fravalgt:</b> parallelisering, orchestrator-workers</p>
+</div>
+</div>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Anthropic skelner mellem workflows, hvor fast kode bestemmer vejen, og agenter, hvor AI'en selv bestemmer. POC'en er en blanding: en fast workflow med én agent i midten. Fire af de seks trin er almindelig kode: rollen giver værktøjerne, koden vælger branch, et tidligere svar genbruges eller kun ændrede filer læses, og dommen tælles af koden. Kun trin 4 er en rigtig agent, der selv bestemmer, hvad den slår op og læser. Trin 6 bruger AI, men som et fast trin i kæden. Af Anthropics mønstre har vi augmented LLM, agent-løkken og prompt-kæden. Routing sker i koden via rollen. Evaluator-optimizer, hvor koden tjekker vurderingen og sender den tilbage, er næste skridt. Parallelisering og orchestrator-workers er fravalgt, fordi de gør det dyrere og mere komplekst, uden at vi har brug for det endnu.</p></div><div class="slide"><p class="label">Slide 17</p><div class="frame"><div class="canvas"><section id="skalering" data-transition="fade" style="background:#E6EEEC;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:44px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Skalering og næste skridt</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">Hvor svært er det at skalere?</h2>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:28px">
+<div style="display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:40px;border-top:10px solid #2E8B6E;border-radius:16px">
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:44px;font-weight:700;color:#0D4A4D">Nemt</h3>
+<p style="font-size:26px;font-weight:600;color:#2A6B57">Opsætning, ingen ny kode</p>
+<ul style="font-size:26px;line-height:1.5;color:#3D4F52">
+<li>Alt fra tabellen på slide 7</li>
+<li>Rolle, hold, krav eller model</li>
+</ul>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:40px;border-top:10px solid #D9A23A;border-radius:16px">
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:44px;font-weight:700;color:#0D4A4D">Mellem</h3>
+<p style="font-size:26px;font-weight:600;color:#8A6216">Ny kode, men et kendt sted</p>
+<ul style="font-size:26px;line-height:1.5;color:#3D4F52">
+<li>Frie spørgsmål uden dom</li>
+<li>Ændringer pr. person</li>
+<li>Wiki og systemdokumentation</li>
+<li>Se fejlen: billede af siden</li>
+<li>Søgning på betydning</li>
+</ul>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:40px;border-top:10px solid #C2502A;border-radius:16px">
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:44px;font-weight:700;color:#0D4A4D">Svært</h3>
+<p style="font-size:26px;font-weight:600;color:#A2401F">Drift, ikke kode</p>
+<ul style="font-size:26px;line-height:1.5;color:#3D4F52">
+<li>Fra egen maskine til server</li>
+<li>Login og adgang pr. bruger</li>
+<li>Betalt model eller egen Azure</li>
+<li>Flere spørgsmål samtidig</li>
+<li>Måling af svarkvalitet</li>
+</ul>
+</div>
+</div>
+<p style="font-size:28px;line-height:1.4;font-style:italic;color:#3D4F52">“In a prototype, minor inconsistencies are acceptable. In production, they are incidents.” IBM, Building and evaluating AI agents that work in the real world</p>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Hvor svært er det at skalere? Det nemme er opsætning, som vi så på slide 7: en ny rolle, et nyt IT-hold, nye krav eller en ny sprogmodel. Mellem er ny kode, men et sted, arkitekturen allerede har gjort plads til, og det er også vores næste skridt: frie spørgsmål som hvad er ændret siden i går, at finde en persons ændringer ud fra commits, nye værktøjer til wiki og systemdokumentation, at agenten åbner siden og tager et billede, hvis en ændring har ødelagt den, og søgning på betydning bag søge-porten. Det svære er ikke koden, men drift: at flytte den fra en maskine til en server, login og adgang pr. bruger, en betalt model eller en model i vores egen Azure, flere spørgsmål på samme tid, fordi den i dag kun tjekker ét ad gangen, og at måle, om svarene er rigtige. IBM siger det godt: i en prototype er små fejl i orden, i drift er de hændelser.</p></div><div class="slide"><p class="label">Slide 18</p><div class="frame"><div class="canvas"><section id="demo" data-transition="fade" style="background:#0D4A4D;color:#F5F6F2;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;justify-content:center;gap:40px">
+<x-icon name="Play" style="width:96px;height:96px;color:#E2703A"></x-icon>
+<h1 style="font-family:'Rubik', Arial, sans-serif;font-size:160px;font-weight:700;line-height:1.0;color:#F5F6F2">Demo</h1>
+<p style="font-size:44px;line-height:1.3;color:#C9DEDC;width:1300px">Konkrete og løse spørgsmål fra Kommunikation og IT.</p>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Nu skifter vi til browseren. Jeg stiller fire spørgsmål: et konkret og et løst fra Kommunikation, og det samme fra IT.</p></div><div class="slide"><p class="label">Slide 19</p><div class="frame"><div class="canvas"><section id="demo-sporgsmaal" data-transition="fade" style="background:#F5F6F2;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">Fire spørgsmål</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+<div style="display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:32px 40px;border:1px solid #D5E0DE;border-left:8px solid #0F6266;border-radius:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#0F6266">Kommunikation · konkret</p>
+<p style="font-size:30px;line-height:1.35;font-weight:600;color:#1E2E30">„Kan kunderne downloade deres faktura nu (US-005)?“</p>
+<p style="font-size:24px;line-height:1.4;color:#3D4F52">Forvent: dom og årsag i hele sætninger.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:32px 40px;border:1px solid #D5E0DE;border-left:8px solid #E2703A;border-radius:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#B8501F">Kommunikation · løst</p>
+<p style="font-size:30px;line-height:1.35;font-weight:600;color:#1E2E30">„Jeg har snakket med Diaco og mener, de seneste ændringer virker. Gør de det?“</p>
+<p style="font-size:24px;line-height:1.4;color:#3D4F52">Forvent: AI'en spørger tilbage med sit bedste gæt.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:32px 40px;border:1px solid #D5E0DE;border-left:8px solid #0F6266;border-radius:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#0F6266">IT · konkret</p>
+<p style="font-size:30px;line-height:1.35;font-weight:600;color:#1E2E30">„Løser vores kode US-004 Vis betalingsstatus?“</p>
+<p style="font-size:24px;line-height:1.4;color:#3D4F52">Forvent: Delvist løst, med fil, linje og rettelse.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:32px 40px;border:1px solid #D5E0DE;border-left:8px solid #E2703A;border-radius:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#B8501F">IT · løst</p>
+<p style="font-size:30px;line-height:1.35;font-weight:600;color:#1E2E30">„Løser koden testen?“</p>
+<p style="font-size:24px;line-height:1.4;color:#3D4F52">Forvent: „Mener du US-004 eller US-005?“</p>
+</div>
+</div>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Spørgsmålene er forslag. Udskift dem med dem, du har forkørt. Pointen: konkrete spørgsmål giver en dom med det samme. Løse spørgsmål får AI'en til at spørge tilbage med sit bedste gæt, ligesom en kollega ville. Samme vurdering til begge roller, kun sproget er forskelligt.</p></div><div class="slide"><p class="label">Slide 20</p><div class="frame"><div class="canvas"><section id="afslutning" data-transition="fade" style="background:#0D4A4D;color:#F5F6F2;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;justify-content:center;gap:48px">
+<p style="font-size:28px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#F2A27A">Tilbage til spørgsmålet</p>
+<h1 style="font-family:'Rubik', Arial, sans-serif;font-size:110px;font-weight:700;line-height:1.05;color:#F5F6F2">„Er det færdigt, og kan vi teste det?“</h1>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px">
+<div style="display:flex;flex-direction:column;gap:12px;background:#16605F;padding:40px;border-radius:20px">
+<p style="font-size:26px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#C9DEDC">Før</p>
+<p style="font-size:36px;line-height:1.35;color:#F5F6F2">Spørg en udvikler, og vent på svar.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#F5F6F2;padding:40px;border-radius:20px">
+<p style="font-size:26px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#B8501F">Nu</p>
+<p style="font-size:36px;line-height:1.35;color:#0D4A4D">Spørg AI Platform, og få svaret med kilder på 1 til 2 minutter.</p>
+</div>
+</div>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Vi startede med spørgsmålet fra Kommunikation: er det færdigt, og kan vi teste det? Før skulle man spørge en udvikler og vente. Nu kan både Kommunikation og IT spørge AI Platform selv og få et svar med kilder på et par minutter.</p></div><div class="slide"><p class="label">Slide 21</p><div class="frame"><div class="canvas"><section id="tak" data-transition="fade" style="display:flex; flex-direction:column; gap:40px; justify-content:center; padding:128px; background:#0d4a4d">
+  <h1 style="font-family:Rubik, Arial, sans-serif; font-size:160px; font-weight:700; line-height:1; color:#f5f6f2">Spørgsmål?</h1>
+  <x-shape kind="rect" style="position:absolute; bottom:128px; left:128px; width:160px; height:8px; background:#e2703a"></x-shape>
+  
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Tak for nu. Har I et spørgsmål, så lad os stille det til AI Platform live.</p></div><div class="slide"><p class="label">Slide 22 · backup</p><div class="frame"><div class="canvas"><section id="anthropic" data-transition="fade" style="background:#0D4A4D;color:#F5F6F2;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#F2A27A">Byggestenen</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#F5F6F2">En sprogmodel med værktøjer, viden og instrukser</h2>
+<p style="font-size:30px;line-height:1.4;font-style:italic;color:#C9DEDC">“The basic building block of agentic systems is an LLM enhanced with augmentations such as retrieval, tools, and memory.” Anthropic, Building effective agents</p>
+</div>
+<div style="display:flex;gap:40px;align-items:center">
+<div style="display:flex;flex-direction:column;gap:20px;width:640px">
+<div style="display:flex;gap:24px;align-items:center;background:#16605F;padding:20px 32px;border-radius:16px"><x-icon name="Tool" style="width:48px;height:48px;color:#F2A27A"></x-icon><div style="display:flex;flex-direction:column;gap:4px"><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:36px;font-weight:700;color:#F5F6F2">Værktøjer</h3><p style="font-size:26px;color:#C9DEDC">Søg krav, læs kode, vælg branch</p></div></div>
+<div style="display:flex;gap:24px;align-items:center;background:#16605F;padding:20px 32px;border-radius:16px"><x-icon name="Database" style="width:48px;height:48px;color:#F2A27A"></x-icon><div style="display:flex;flex-direction:column;gap:4px"><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:36px;font-weight:700;color:#F5F6F2">Viden (RAG)</h3><p style="font-size:26px;color:#C9DEDC">Slå op, før der svares</p></div></div>
+<div style="display:flex;gap:24px;align-items:center;background:#16605F;padding:20px 32px;border-radius:16px"><x-icon name="Book" style="width:48px;height:48px;color:#F2A27A"></x-icon><div style="display:flex;flex-direction:column;gap:4px"><h3 style="font-family:'Rubik', Arial, sans-serif;font-size:36px;font-weight:700;color:#F5F6F2">Instrukser (Skills)</h3><p style="font-size:26px;color:#C9DEDC">Hvordan der vurderes og svares</p></div></div>
+</div>
+<x-shape kind="arrow-right" style="width:120px;height:60px;background:#E2703A"></x-shape>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#F5F6F2;padding:56px;border-radius:24px">
+<x-icon name="Lightbulb" style="width:64px;height:64px;color:#B8501F"></x-icon>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:56px;font-weight:700;color:#0D4A4D">Sprogmodellen</h3>
+<p style="font-size:30px;line-height:1.4;color:#3D4F52">I dag Google Gemini. Kan skiftes til fx Claude uden at røre resten.</p>
+</div>
+</div>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Arkitekturen følger Anthropics artikel Building effective agents. Grundideen er den udvidede sprogmodel: en model, der kan slå op i viden, bruge værktøjer og følge faste instrukser. RAG betyder bare, at den slår op, før den svarer, så den ikke finder på. Start simpelt, og byg kun mere på, når det giver værdi.</p></div><div class="slide"><p class="label">Slide 23 · backup</p><div class="frame"><div class="canvas"><section id="arkitektur" data-transition="fade" style="background:#F5F6F2;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Pattern: porte og adaptere</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">Hver del kan skiftes ud</h2>
+</div>
+<table style="font-family:'Inter', Arial, sans-serif;font-size:32px;color:#1E2E30">
+<tr style="background:#0D4A4D"><th style="width:30%;color:#F5F6F2">Port</th><th style="width:32%;color:#F5F6F2">I dag</th><th style="width:38%;color:#F5F6F2">Kan skiftes til</th></tr>
+<tr><td>Hjerne</td><td>Google Gemini</td><td>Claude eller en model i egen Azure</td></tr>
+<tr style="background:#E6EEEC"><td>Søgning</td><td>Søgning på ord</td><td>Søgning på betydning</td></tr>
+<tr><td>Kode</td><td>Kopi af Azure-repoet</td><td>Andre repoer</td></tr>
+<tr style="background:#E6EEEC"><td>Pull requests</td><td>Azure DevOps</td><td>GitHub</td></tr>
+</table>
+<p style="font-size:36px;line-height:1.3;font-weight:600;color:#0D4A4D">Resten af koden mærker intet til skiftet.</p>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Arkitekturen er porte og adaptere. Kernen taler kun med små faste grænseflader. Bag hver grænseflade sidder en adapter, som kan skiftes. I dag er hjernen Gemini, fordi den er gratis til en POC. I drift kan det være Claude eller en model i vores egen Azure, uden at resten af koden ændres.</p></div><div class="slide"><p class="label">Slide 24 · backup</p><div class="frame"><div class="canvas"><section id="flow" data-transition="fade" style="background:#E6EEEC;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;justify-content:space-between;gap:48px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Flowet</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">Et spørgsmål fra start til slut</h2>
+</div>
+<div style="display:flex;gap:16px;align-items:stretch">
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:28px;border-radius:16px">
+<p style="font-family:'Rubik', Arial, sans-serif;font-size:30px;font-weight:700;color:#E2703A">1</p>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:30px;font-weight:700;color:#0D4A4D">Spørgsmål</h3>
+<p style="font-size:24px;line-height:1.4;color:#3D4F52">Med rollen: Kommunikation eller IT.</p>
+</div>
+<x-shape kind="arrow-right" style="width:40px;height:24px;align-self:center;background:#0F6266"></x-shape>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:28px;border-radius:16px">
+<p style="font-family:'Rubik', Arial, sans-serif;font-size:30px;font-weight:700;color:#E2703A">2</p>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:30px;font-weight:700;color:#0D4A4D">Vælg kode</h3>
+<p style="font-size:24px;line-height:1.4;color:#3D4F52">Åben pull request, ellers dev.</p>
+</div>
+<x-shape kind="arrow-right" style="width:40px;height:24px;align-self:center;background:#0F6266"></x-shape>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#0D4A4D;padding:28px;border-radius:16px">
+<p style="font-family:'Rubik', Arial, sans-serif;font-size:30px;font-weight:700;color:#F2A27A">3</p>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:30px;font-weight:700;color:#F5F6F2">Agent-løkke</h3>
+<p style="font-size:24px;line-height:1.4;color:#C9DEDC">Tænk, handl, se. Gentag til der er nok.</p>
+</div>
+<x-shape kind="arrow-right" style="width:40px;height:24px;align-self:center;background:#0F6266"></x-shape>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:28px;border-radius:16px">
+<p style="font-family:'Rubik', Arial, sans-serif;font-size:30px;font-weight:700;color:#E2703A">4</p>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:30px;font-weight:700;color:#0D4A4D">Vurdering</h3>
+<p style="font-size:24px;line-height:1.4;color:#3D4F52">Én linje pr. krav. Koden tæller dommen.</p>
+</div>
+<x-shape kind="arrow-right" style="width:40px;height:24px;align-self:center;background:#0F6266"></x-shape>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FDFDFB;padding:28px;border-radius:16px">
+<p style="font-family:'Rubik', Arial, sans-serif;font-size:30px;font-weight:700;color:#E2703A">5</p>
+<h3 style="font-family:'Rubik', Arial, sans-serif;font-size:30px;font-weight:700;color:#0D4A4D">Svar</h3>
+<p style="font-size:24px;line-height:1.4;color:#3D4F52">Skrevet til rollen, kort og klart.</p>
+</div>
+</div>
+<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+<p style="font-size:26px;color:#3D4F52">Mønstre fra Anthropic:</p>
+<p style="font-size:26px;font-weight:600;color:#0D4A4D;background:#FDFDFB;padding:10px 24px;border-radius:999px">Augmented LLM</p>
+<p style="font-size:26px;font-weight:600;color:#0D4A4D;background:#FDFDFB;padding:10px 24px;border-radius:999px">Agent-løkke</p>
+<p style="font-size:26px;font-weight:600;color:#0D4A4D;background:#FDFDFB;padding:10px 24px;border-radius:999px">Prompt-kæde: vurdering, så svar</p>
+</div>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Sådan går et spørgsmål igennem. Først vælger koden, hvilken branch der skal tjekkes: en åben pull request, ellers dev. Så kører agent-løkken: AI'en tænker, kalder et værktøj, ser resultatet og gentager. Den skriver én linje pr. krav, og det er koden, ikke AI'en, der tæller dommen. Til sidst skrives svaret til rollen. Det er tre af mønstrene fra Anthropics artikel.</p></div><div class="slide"><p class="label">Slide 25 · backup</p><div class="frame"><div class="canvas"><section id="mermaid" data-transition="fade" style="background:#F5F6F2;color:#1E2E30;font-family:'Inter', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:56px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B8501F">Dokumentation</p>
+<h2 style="font-family:'Rubik', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#0D4A4D">Diagrammer som tekst: Mermaid</h2>
+</div>
+<div style="display:flex;gap:56px;align-items:center">
+<div style="flex:1;display:flex;flex-direction:column;gap:24px">
+<div style="background:#14292B;padding:40px 48px;border-radius:16px">
+<p style="font-family:'JetBrains Mono', 'Courier New', monospace;font-size:28px;line-height:1.6;color:#C9DEDC">flowchart TD<br>&#160;&#160;U[Bruger] --&gt; W[Web-side]<br>&#160;&#160;W --&gt; A[Agent]<br>&#160;&#160;A --&gt; T[Værktøjer]<br>&#160;&#160;T --&gt; R[(Viden)]</p>
+</div>
+<p style="font-size:30px;line-height:1.4;color:#3D4F52">Diagrammerne ligger i repoet og wikien ved siden af koden. De ændres sammen med den, så de passer.</p>
+</div>
+<x-shape kind="arrow-right" style="width:100px;height:50px;background:#E2703A"></x-shape>
+<div style="width:520px;display:flex;flex-direction:column;gap:8px;align-items:center">
+<p style="width:360px;font-size:28px;font-weight:600;text-align:center;color:#0D4A4D;background:#FDFDFB;border:2px solid #0F6266;border-radius:12px;padding:10px 20px">Bruger</p>
+<x-shape kind="arrow-down" style="width:24px;height:28px;background:#0F6266"></x-shape>
+<p style="width:360px;font-size:28px;font-weight:600;text-align:center;color:#0D4A4D;background:#FDFDFB;border:2px solid #0F6266;border-radius:12px;padding:10px 20px">Web-side</p>
+<x-shape kind="arrow-down" style="width:24px;height:28px;background:#0F6266"></x-shape>
+<p style="width:360px;font-size:28px;font-weight:600;text-align:center;color:#F5F6F2;background:#0D4A4D;border:2px solid #0D4A4D;border-radius:12px;padding:10px 20px">Agent</p>
+<x-shape kind="arrow-down" style="width:24px;height:28px;background:#0F6266"></x-shape>
+<p style="width:360px;font-size:28px;font-weight:600;text-align:center;color:#0D4A4D;background:#FDFDFB;border:2px solid #0F6266;border-radius:12px;padding:10px 20px">Værktøjer</p>
+<x-shape kind="arrow-down" style="width:24px;height:28px;background:#0F6266"></x-shape>
+<p style="width:360px;font-size:28px;font-weight:600;text-align:center;color:#0D4A4D;background:#FDFDFB;border:2px solid #0F6266;border-radius:999px;padding:10px 20px">Viden</p>
+</div>
+</div>
+
+</section>
+</div></div><p class="notes"><b>Talenoter:</b> Al dokumentation af arkitekturen er skrevet i Mermaid: diagrammer som almindelig tekst. Til venstre koden, til højre det diagram, den bliver til. Fordi det er tekst, ligger det i repoet og wikien og ændres sammen med koden. Flowet, vi lige så, er tegnet på samme måde i DEMO.md.</p></div>
+<script>
+  // Skalerer hvert 1920x1080-slide ned til bredden af siden.
+  function fit() {
+    document.querySelectorAll(".frame").forEach(function (frame) {
+      frame.firstElementChild.style.transform = "scale(" + frame.clientWidth / 1920 + ")";
+    });
+  }
+  window.addEventListener("resize", fit);
+  fit();
+</script>
+</body>
+</html>

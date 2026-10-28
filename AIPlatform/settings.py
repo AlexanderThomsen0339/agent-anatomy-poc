@@ -23,7 +23,7 @@ MISTRAL_BASE_URL = "http://localhost:11434/v1"
 
 # 2. RAG
 # Mappen med user stories og testcases (.xlsx), som search_requirements søger i.
-DATA_FOLDER = ROOT / "RAG" / "data"
+DATA_FOLDER = ROOT / "RAG" / "data" / "test-protocols"
 
 # Mappen med forretningens kravspec (.md), som search_specification søger i.
 # Hvert krav har et id som KRAV-REG-03 og en linje "Dækker:" med de user stories og testcases, det hører til.
@@ -75,7 +75,7 @@ SKILLS_FOLDER = ROOT / "Skills" / "data" / "skills"
 # IT's hold, og hvad hvert hold laver. Agenterne får beskrivelsen, så de ved, hvis kode eller dokumenter de ser på.
 # Hvorfor her? IT har flere hold, og hver rolle ser ét eller flere af dem (ROLE_TEAMS herunder).
 TEAMS = {
-    "web": "builds Mit Aalborg Forsyning in Python (Flask). Its code is checked against the user stories, test cases and kravspec.",
+    "web": "builds Mit Aalborg Forsyning in .NET (C#, ASP.NET Core). Its code is checked against the user stories, test cases and kravspec.",
     "ot": "runs the plant's control systems (OT) and makes their documents, such as the signal list.",
 }
 
@@ -88,20 +88,19 @@ TEAM = "web"
 # Holdet, der laver dokumenterne i OT_FOLDER, som search_ot_documents søger i.
 DOCUMENT_TEAM = "ot"
 
-# Rollerne, man kan vælge på siden. Nøglen står i adressen, værdien er det, brugeren ser i dropdownen.
+# Rollerne, man kan vælge på siden. Nøglen står i adressen, værdien er det, brugeren ser i dropdownen (på hvert sprog).
 # Et kodetjek skrives om til rollen med skillen audience-<rolle>, så en rolle, der ser TEAM, skal have sådan en skill.
 # Hvorfor? En udvikler vil have kode og file:line, mens en fra kommunikation vil vide, hvad kunden oplever.
-ROLES = {
-    "product": "Product / communication",
-    "it": "IT",
-    "maintenance": "Vedligehold",
+ROLE_NAMES = {
+    "da": {"product": "Produkt / kommunikation", "it": "IT", "maintenance": "Vedligehold"},
+    "en": {"product": "Product / communication", "it": "IT", "maintenance": "Maintenance"},
 }
 DEFAULT_ROLE = "product"
 
 # Hvilke hold hver rolle ser. Det er det, der bestemmer, hvilken agent en rolle får:
 # TEAM giver krav og kode (kodetjek), DOCUMENT_TEAM giver OT's dokumenter (search_ot_documents).
 # Hvorfor? IT dækker både web og OT, så IT ser begge. Vedligehold ser kun OT's dokumenter,
-# og Product / communication kun web's kode. AI'en vælger ikke selv; den får kun værktøjerne til rollens hold.
+# og Produkt / kommunikation kun web's kode. AI'en vælger ikke selv; den får kun værktøjerne til rollens hold.
 ROLE_TEAMS = {
     "product": ["web"],
     "it": ["web", "ot"],
@@ -109,25 +108,58 @@ ROLE_TEAMS = {
 }
 
 
-# 5. Agent
+# 5. Sprog
+# Sproget på siden og i svarene: "da" (dansk) eller "en" (engelsk).
+# Hvorfor en indstilling? Brugerne er danske, men siden skal kunne vises på engelsk, fx til et skærmbillede.
+# Den kan også sættes uden at rette filen: AIPLATFORM_LANGUAGE=en python -m Agent.api.web
+LANGUAGE = os.environ.get("AIPLATFORM_LANGUAGE", "da")
+if LANGUAGE not in ROLE_NAMES:
+    LANGUAGE = "da"
+ROLES = ROLE_NAMES[LANGUAGE]
+
+# Det, der sættes sidst på hver instruktion, når sproget er engelsk.
+# Hvorfor sidst? Skills og prompts siger "Danish" mange steder. Den sidste instruktion vinder,
+# så de kan forblive som de er, og dansk virker præcis som før.
+ENGLISH_NOTE = (
+    "\n\nLANGUAGE: Write everything the user reads in English, even where the instructions above say Danish: "
+    "answers, questions to the user, and the requirement and why parts of an assessment. "
+    "The test protocols and requirements are in Danish: keep searching with Danish words, but translate titles and requirements "
+    "into English when you write them. Ids, file names, code and the status words stay as they are. "
+    "Use these headings instead of the Danish ones: Missing, Can't tell, Architecture, Fix first, and write Fix: instead of Ret:."
+)
+LANGUAGE_NOTE = ENGLISH_NOTE if LANGUAGE == "en" else ""
+
+
+# 6. Agent
 # Grænsen for antal skridt. Beskytter mod en agent, der kører i ring.
 # Et kodetjek skal både søge krav og kravspec, hente to skills, liste filer og læse flere filer, så den er sat højere end i originalen.
 MAX_STEPS = 20
 
-# Instruktionen til kodetjek, for roller der ser TEAM. Kataloget over skills sættes på i Agent/api/build.py.
+# Instruktionen til kodetjek, for roller der ser TEAM. Skillsne code-review og architecture-<TEAM> sættes på i Agent/api/build.py.
 SYSTEM_PROMPT = (
-    "You help people check whether the code solves the task. The reader may not be a developer, "
-    "so answer in plain English and keep technical details in references. Always answer in English.\n"
+    "You check whether the code solves a task, and write an assessment by the code-review rules. "
+    "You never write the answer for the person asking: another step turns your assessment into that answer.\n"
     "The tasks are user stories and test cases for Mit Aalborg Forsyning, found with search_requirements. "
-    "They are written in Danish, so search with ids and Danish words.\n"
-    "The business requirements (kravspec) are found with search_specification. They say what the business ordered, "
-    "and the test cases say what the test team checks. Check the code against both.\n"
+    "The business requirements (kravspec) are found with search_specification. Both are written in Danish.\n"
     "You see the developer's code with list_code_files and read_code_file, and the newest commits with list_recent_changes. "
-    "You can only read the code, never change it.\n"
-    "Never guess: look up the requirements and read the code before you answer. "
-    "If a requirement is not written down anywhere, say it is not documented instead of inventing one.\n"
-    "If a task fits a skill, load it with load_skill before you start."
+    "You can only read the code, never change it."
 )
+
+# Instruktionen til opslag i testprotokollerne og kravene, når et spørgsmål ikke kræver koden (Router: DOCS).
+DOCS_PROMPT = (
+    "You answer questions about the test protocols for Mit Aalborg Forsyning (user stories, acceptance criteria and test cases: "
+    "list_requirements lists them all, search_requirements finds the details of one) and the business requirements (kravspec, found with search_specification). Both are in Danish.\n"
+    "Each area (Regninger, Profil, Overblik) numbers its user stories from US-001, so always name the area with the id.\n"
+    "You never see the code, so never say whether the code meets a test. If the user wants that, tell them they can ask, "
+    "e.g. \"Virker Vis regningsoversigt?\".\n"
+    "Answer in Danish, short and friendly, like a colleague.\n"
+    "When asked which tests or user stories there are, call list_requirements and include every one of them: never leave one out. "
+    "Group them by area (Regninger, Profil, Overblik), then one line per sheet with the number of tests and their titles. "
+    "Otherwise answer in at most 15 lines. Never invent a test, user story or requirement."
+)
+
+# Grænsen for antal skridt for et opslag uden kode.
+DOCS_MAX_STEPS = 6
 
 # Instruktionen til opslag i OT's dokumenter, for roller der ser DOCUMENT_TEAM. Agenten svarer direkte, uden vurdering.
 OT_PROMPT = (
