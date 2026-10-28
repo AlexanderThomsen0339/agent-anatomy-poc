@@ -1,4 +1,5 @@
 """Router: afgør, hvor meget et spørgsmål kræver, før der hentes kode eller slås op."""
+from Agent.application.answer_writer import shorten
 from Agent.domain.ports import AgentBrain
 
 # De tre veje. CHAT svares her, DOCS slås op i testprotokollerne og kravene, CHECK er et kodetjek.
@@ -44,4 +45,5 @@ class Router:
             return CHECK, ""
         if word.startswith(DOCS):
             return DOCS, ""
-        return CHAT, text.removeprefix(CHAT).lstrip(":").strip()
+        # Instruktionen siger én til tre sætninger. En lille model skriver mere, så koden skærer resten væk.
+        return CHAT, shorten(text.removeprefix(CHAT).lstrip(":").strip(), sentences=3)

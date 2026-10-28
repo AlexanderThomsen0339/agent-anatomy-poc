@@ -9,6 +9,21 @@ STATUSES = ("MET", "NOT_MET", "CANT_TELL", "RISK")
 # Det, svaret siger, når alt er opfyldt, på hvert sprog.
 NOTHING_MISSING = {"da": "Intet mangler.", "en": "Nothing is missing."}
 LOCATION = re.compile(r"^`?[\w./\\-]+\.\w+(:\d+)?`?$")
+# Hvor langt svaret højst må være. Skillsne siger det også, men en lille lokal model overholder det ikke,
+# så koden skærer resten væk. Produkt / kommunikation tælles i sætninger, IT i linjer.
+MAX_SENTENCES = {"product": 5}
+MAX_LINES = {"it": 12}
+
+
+def shorten(text: str, sentences: int = 0, lines: int = 0) -> str:
+    """Svaret skåret ned til højst så mange hele sætninger eller ikke-tomme linjer."""
+    if sentences:
+        parts = re.split(r"(?<=[.!?])\s+", " ".join(text.split()))
+        text = " ".join(parts[:sentences])
+    if lines:
+        kept = [line for line in text.splitlines() if line.strip()]
+        text = "\n".join(kept[:lines])
+    return text
 
 
 def parse_assessment(text: str, language: str = "da") -> Assessment | None:
@@ -81,4 +96,5 @@ class AnswerWriter:
             + self.language_note
         )
         text = self.brain.decide(system, prompt, [], []).text.strip()
+        text = shorten(text, MAX_SENTENCES.get(role, 0), MAX_LINES.get(role, 0))
         return assessment.verdict + "\n\n" + text

@@ -17,8 +17,12 @@ ROOT = Path(__file__).resolve().parent
 # Hentes med: ollama pull mistral:7b-instruct-v0.3-q4_K_M
 MISTRAL_MODEL = "mistral:7b-instruct-v0.3-q4_K_M"
 
-# Hvor Ollama lytter. Ollamas OpenAI-kompatible endpoint, ikke Mistrals eget (betalt) API.
-MISTRAL_BASE_URL = "http://localhost:11434/v1"
+# Hvor Ollama lytter.
+MISTRAL_BASE_URL = "http://localhost:11434"
+
+# Hvor meget tekst (tokens) modellen må se på én gang. Sendes med hvert kald, så `ollama serve` er nok.
+# Systemprompten fylder ca. 4.000, og commits, krav og kode kommer oveni. Mistral 7B kan højst 32.768.
+MISTRAL_CONTEXT = 32768
 
 
 # 2. RAG
@@ -127,13 +131,26 @@ ENGLISH_NOTE = (
     "into English when you write them. Ids, file names, code and the status words stay as they are. "
     "Use these headings instead of the Danish ones: Missing, Can't tell, Architecture, Fix first, and write Fix: instead of Ret:."
 )
-LANGUAGE_NOTE = ENGLISH_NOTE if LANGUAGE == "en" else ""
+# Det samme for dansk. Gemini svarede dansk uden, men en lille lokal model falder tilbage til engelsk,
+# især i opfølgende svar, fordi reglerne er på engelsk. Derfor siges det til sidst i hver instruktion.
+DANISH_NOTE = (
+    "\n\nLANGUAGE: Write everything the user reads in Danish, also in follow-up answers and even when the "
+    "instructions, the commits or the code are in English. Ids, file names, code and the status words stay as they are."
+)
+LANGUAGE_NOTE = ENGLISH_NOTE if LANGUAGE == "en" else DANISH_NOTE
 
 
 # 6. Agent
 # Grænsen for antal skridt. Beskytter mod en agent, der kører i ring.
 # Et kodetjek skal både søge krav og kravspec, hente to skills, liste filer og læse flere filer, så den er sat højere end i originalen.
 MAX_STEPS = 20
+
+# Lader koden søge kravene og læse de ændrede filer, før modellen tænker første gang (first_steps i Agent/api/web.py).
+# Hvorfor? En lille lokal model springer ellers værktøjerne over og gætter ud fra commits alene.
+FIRST_STEPS = True
+# Højst så mange af de filer, de nyeste commits ændrede, læses på forhånd, og kun kodefiler.
+FIRST_FILES = 3
+FIRST_FILE_TYPES = (".cs", ".cshtml", ".razor", ".js", ".ts", ".py")
 
 # Instruktionen til kodetjek, for roller der ser TEAM. Skillsne code-review og architecture-<TEAM> sættes på i Agent/api/build.py.
 SYSTEM_PROMPT = (
