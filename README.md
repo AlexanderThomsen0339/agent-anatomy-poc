@@ -1,241 +1,100 @@
-# Agent Anatomy POC
+# AI Platform POC
 
-Et proof of concept, der bygger AI-stakken op **ét lag ad gangen**, så man kan se, hvad hver del gør, hvorfor den findes, og hvordan delene spiller sammen.
+A developer asks: *"Does our code solve this user story?"* An AI agent looks up the user story, its acceptance criteria and the business requirements, reads the developer's code, and assesses each requirement with a `file:line` reference. The answer is then written for whoever asks: a product person or IT.
 
-Udgangspunktet er infografikken *"Your AI Stack, Explained Like a Human Body"*:
+The presentation of the POC for Kommunikation and IT is in [harness/Praesentation](harness/Praesentation/README.md). For a full architecture walkthrough, a demo script and a glossary — all tied to the `evaluation` skill's quality gates — see [harness/EVALUATION-GUIDE.md](harness/EVALUATION-GUIDE.md).
 
-| # | Lag | I kroppen | Hvad det gør |
-|---|---|---|---|
-| 1 | **LLM** | Hjernen | Forstår, skriver og ræsonnerer. Kender kun det, den lærte under træningen. |
-| 2 | **RAG** | Hjerne + bibliotek | Slår op i vores egne dokumenter før svaret |
-| 3 | **MCP** | Nervesystemet | Ét standardstik til værktøjer, data og systemer |
-| 4 | **Skills** | Muskelhukommelse | Genbrugelig know-how, der kun hentes, når den skal bruges |
-| 5 | **Agent** | Hjerne + hænder | Planlægger selv skridtene og bruger værktøjer til at handle |
+## Run the demo
 
-Hvert lag bygger kun på lagene under sig, og hvert lag kan prøves af for sig.
-
-## Hvad hvert lag tilføjer
-
-```mermaid
-flowchart LR
-    L1["1. LLM<br/>kan svare"] --> L2["2. RAG<br/>kan svare ud fra<br/>vores dokumenter"]
-    L2 --> L3["3. MCP<br/>har værktøjer<br/>til rådighed"]
-    L3 --> L4["4. Skills<br/>ved, hvordan vi<br/>gør tingene"]
-    L4 --> L5["5. Agent<br/>bruger det hele<br/>af sig selv"]
-
-    classDef top fill:#FAECE7,stroke:#993C1D,color:#712B13
-    class L5 top
-```
-
-Hvert lag lukker et hul, laget før havde:
-
-| Lag | Hullet, det lukker | Baseline, der viser hullet |
-|---|---|---|
-| 1. LLM | – | Spørg om noget i vores dokumenter: modellen kan ikke vide det |
-| 2. RAG | Modellen kender ikke vores viden | Ordsøgningen kan ikke se, at "ferie" og "feriedage" hænger sammen |
-| 3. MCP | Modellen kan ikke regne sikkert, se klokken eller selv slå op | Værktøjerne står klar, men ingen bruger dem af sig selv |
-| 4. Skills | Modellen ved ikke, hvordan *vi* skriver mails, referater og rykkere | Skillene står klar, men ingen henter dem af sig selv |
-| 5. Agent | Ingen binder det hele sammen | – |
-
-## Hvordan lagene bruger hinanden
-
-```mermaid
-flowchart TD
-    AG["5. Agent<br/>AgentService"] --> BR["Hjernen<br/>ClaudeBrain"]
-    AG --> TS["3. MCP<br/>ToolService"]
-    TS --> T1["get_time"]
-    TS --> T2["calculate"]
-    TS --> T3["search_docs"]
-    TS --> T4["load_skill"]
-    T3 --> RAG["2. RAG<br/>SearchIndex"]
-    T4 --> SK["4. Skills<br/>SkillService"]
-    RAGQ["2. RAG<br/>QueryService"] --> LLM["1. LLM<br/>LLMService"]
-    RAGQ --> RAG
-    BR --> CL[("Claude")]
-    LLM --> CL
-
-    classDef model fill:#FAECE7,stroke:#993C1D,color:#712B13
-    class CL model
-```
-
-- **RAG** bruger LLM-laget til at svare.
-- **MCP** bruger RAG-lagets indeks i `search_docs`.
-- **Skills** gør sig tilgængelig som et værktøj i MCP-lagets stik (`load_skill`).
-- **Agent** samler værktøjerne og skillene og lader Claude bestemme, hvad der skal bruges hvornår.
-
-Intet lag kender lagene over sig.
-
-## Samme arkitektur i alle lag
-
-Alle fem lag er bygget efter **ports & adapters** (også kaldet hexagonal arkitektur), med de samme fem mapper:
-
-| Mappe | Svarer på | Indhold |
-|---|---|---|
-| `domain/` | *Hvad handler laget om?* | Modeller og porte (kontrakter). Ingen teknik. |
-| `application/` | *Hvordan forløber det?* | Services, der bruger portene |
-| `infrastructure/` | *Hvordan bliver det faktisk gjort?* | Adaptere, der opfylder portene med rigtig teknologi |
-| `api/` | *Hvordan bruger man laget udefra?* | Kommandolinje og andre indgange. Her vælges adapterne. |
-| `config/` | *Hvilke indstillinger?* | Model, mapper, grænser |
-
-Afhængighederne peger altid ind mod `domain/`:
-
-```mermaid
-flowchart LR
-    API["api/"] --> APP["application/"]
-    APP --> DOM["domain/"]
-    INF["infrastructure/"] --> DOM
-    API -. vælger .-> INF
-
-    classDef core fill:#E1F5EE,stroke:#0F6E56,color:#085041
-    class DOM core
-```
-
-Det er det, der gør det muligt at skifte model, dokumentkilde, søgning eller værktøjer ved at tilføje én fil i `infrastructure/`, uden at røre resten.
-
-## Analogierne
-
-Hvert lag har sin egen analogi, som går igen i lagets README-filer:
-
-| Lag | Analogi | `domain/` | `application/` | `infrastructure/` | `api/` |
-|---|---|---|---|---|---|
-| LLM | En restaurant | Sedlen, tallerkenen og lugen | Tjeneren | Kokkene | Hoveddøren og chefen |
-| RAG | Et bibliotek | Kartotekskortene | Bibliotekaren | Reolerne, saksen og kartoteket | Skranken og lederen |
-| MCP | Et hus med stikkontakter | Stikkontakt-standarden | Eltavlen med sikringer | Apparaterne | Stikkontakterne og elektrikeren |
-| Skills | En musiker med en nodemappe | Formatet for et nodeark | Musikerens vane | Reolen med noder | Døren til øvelokalet |
-| Agent | En håndværker på en opgave | Logbogen | Arbejdsgangen | Hovederne: mester og lærling | Værkstedsdøren og formanden |
-
-## Struktur
-
-```
-agent-anatomy-poc/
-├── README.md                Denne fil
-├── requirements.txt
-├── LLM/                     1. Hjernen
-│   ├── domain/              Message, Response, LLMProvider
-│   ├── application/         LLMService
-│   ├── infrastructure/      AnthropicProvider, FakeProvider
-│   ├── api/                 cli.py
-│   └── config/
-├── RAG/                     2. Biblioteket
-│   ├── domain/              Document, Chunk, SearchResult, Answer + porte
-│   ├── application/         IngestService, QueryService
-│   ├── infrastructure/      MarkdownLoader, ParagraphChunker, KeywordIndex
-│   ├── api/                 cli.py
-│   ├── config/
-│   └── data/docs/           bibliotek.md, ferie.md, onboarding.md, it.md
-├── MCP/                     3. Nervesystemet
-│   ├── domain/              ToolSpec, ToolCall, ToolResult, Tool
-│   ├── application/         ToolService
-│   ├── infrastructure/      get_time, calculate, search_docs
-│   ├── api/                 build.py, cli.py, mcp_server.py
-│   └── config/
-├── Skills/                  4. Muskelhukommelsen
-│   ├── domain/              SkillSummary, Skill, SkillRepository
-│   ├── application/         SkillService
-│   ├── infrastructure/      FileSkillRepository
-│   ├── api/                 build.py, cli.py, skill_tool.py
-│   ├── config/
-│   └── data/skills/         mail, referat, rykker
-└── Agent/                   5. Hjerne + hænder
-    ├── domain/              Decision, Action, Observation, Step, AgentRun, AgentBrain
-    ├── application/         AgentService
-    ├── infrastructure/      ClaudeBrain, ScriptedBrain
-    ├── api/                 build.py, cli.py
-    └── config/
-```
-
-Hver lag-mappe har en `README.md`, og det samme har hver af dens undermapper.
-
-## Kom i gang
-
-Kræver Python 3.10 eller nyere. Alle kommandoer køres fra roden af projektet.
+Python 3.12+ (the page uses newer f-string syntax). Run everything from the repo root.
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Uden API-nøgle
+1. The agent thinks with a local Mistral model through [Ollama](https://ollama.com):
+   ```bash
+   ollama pull mistral:7b-instruct-v0.3-q4_K_M
+   ollama serve
+   ```
+   `settings.py` points at Ollama's default address (`http://localhost:11434`); no API key is needed.
+2. The code to check comes from the Azure DevOps repo in `CODE_REPO` in `settings.py`. The page clones it into `repos/code` when it starts. Before every code check it picks the branch and fetches the latest, so a developer can push and ask straight away: if an open pull request into `dev` has the question's user story id (e.g. US-005) in its title or branch name, its branch is checked, otherwise `dev`. The first step on the page says which branch and pull request it checks. If the same question was checked before on the same branch and the requirements are unchanged, only the files changed since that commit are read, and the earlier assessment is updated (at most 20 changed files, otherwise all the code is checked again). You need git installed. Set `CODE_REPO = ""` to read a folder on your computer instead (`CODE_FOLDER`).
+3. Put an Azure DevOps Personal Access Token with read access to Code in `local_secrets.py` (ignored by git):
+   ```python
+   AZURE_DEVOPS_PAT = "your-token"
+   ```
+4. Start the page:
+   ```bash
+   python web.py
+   ```
+5. Open http://localhost:8000 and ask a question.
 
-Alt kan prøves uden nøgle. Hvor en model skulle svare, står en falsk model i stedet, men alt andet er ægte.
+The page and the answers are in Danish. To show them in English (e.g. for a screenshot), set `LANGUAGE = "en"` in `settings.py`, or start the page with `AIPLATFORM_LANGUAGE=en python web.py`. The page texts are in `TEXTS` in `web.py`, the verdict words in `VERDICT_WORDS` in `agent.py`, and the AI gets `ENGLISH_NOTE` from `settings.py` at the end of every instruction. The test protocols and requirements stay Danish; the AI translates what it quotes.
 
-```bash
-# 1. LLM: falsk svar, men hele kæden kører
-python -m LLM.api.cli "Hvad er en LLM?" --fake
+## Questions to ask
 
-# 2. RAG: søgningen er ægte, kun svaret er falsk
-python -m RAG.api.cli "Hvad koster det at aflevere en bog for sent?" --fake
+The code is the demo project *Mit Aalborg Forsyning – Regninger* on the Dev branch of the Azure DevOps repo AI platform POC.
 
-# 3. MCP: værktøjerne er ægte og bruger ingen model
-python -m MCP.api.cli list
-python -m MCP.api.cli call calculate a=12 b=5 operation=multiply
-python -m MCP.api.cli call search_docs query="lånerkort"
+- Does our code solve US-005 Download faktura?
+- Does our code solve US-004 Vis betalingsstatus?
+- Does our code solve US-003 Regninger er ikke længere tilgængelige?
+- Does our code solve US-001 Vis regningsoversigt?
 
-# 4. Skills: ingen model involveret
-python -m Skills.api.cli catalog
-python -m Skills.api.cli show rykker
+The page is a chat in Danish. The question is a bubble, each step shows live in *Sådan finder jeg svaret* (folded away when the answer is ready), and the answer is a bubble with the verdict as a coloured badge, a folded *Kilder* box with the test documents, requirement files and code folder (and its git repo) the agent actually used, and a folded *Vurdering pr. krav* box with every requirement's status. The field at the bottom sends with Enter, and *Ny samtale* starts over. The agent assesses the code once per question, the same whoever asks: one line per requirement (met, not met, can't tell) plus risks. The verdict (**Løst**, **Delvist løst** or **Ikke løst**, "X af Y krav er opfyldt") is counted from that list by the code, not written by the AI. A dropdown above the question says who is asking, and the answer is written from the assessment for that role; switching role on the same question reuses the assessment. *Produkt / kommunikation* gets a short reply in plain Danish, in whole sentences like a colleague: it answers the question first, then says what the customer experiences and why, who changed what if a recent commit caused it, and whether the test can be passed. No ids or code; those are in the table. *IT* gets a technical answer with file:line, what can't be told from the code, architecture deviations and what to fix first.
 
-# 5. Agent: lærlingen følger et manuskript, men værktøjskaldene er ægte
-python -m Agent.api.cli --fake
-```
+A question can be followed up. Under each answer is a field for the next question, and the page sends the earlier questions and answers with it (at most 3, in a hidden field `c`, so the server remembers nothing). If the agent can't tell which user story is meant, it doesn't guess: it writes `QUESTION:` and a short question that lists the user stories that could fit (rule in `code-review`), the page shows it under *The agent asks*, and the answer, e.g. "Den om billing", comes back with the conversation.
 
-### Med API-nøgle
+The test protocols (`harness/data/test-protocols/`, one xlsx per area: Regninger, Profil and Overblik; each numbers its user stories from US-001, so every block is tagged with its *Område*) are examples written for the demo project. The business requirements spec lives in `harness/data/kravspec/` (`SPEC_FOLDER` in `settings.py`) — add your own `.md` file there; each requirement needs an id like `KRAV-REG-03` and a `Dækker:` line naming the user stories it covers.
 
-Kræver en nøgle fra [platform.claude.com](https://platform.claude.com/settings/keys). API-forbrug betales separat fra et Claude-abonnement.
+Which teams a role sees is set in `ROLE_TEAMS` in `settings.py`, and the code gives each role an agent with only those teams' tools; the AI doesn't choose. Both *Produkt / kommunikation* and *IT* see the `web` team's code; only the audience skill used to write the final answer differs between them.
 
-```powershell
-# PowerShell
-$env:ANTHROPIC_API_KEY = "sk-ant-..."
-```
+## Code layout
 
-```bash
-# macOS / Linux
-export ANTHROPIC_API_KEY="sk-ant-..."
-```
+Everything that runs lives in a handful of files at the repo root; everything that isn't code (skills, sample data, docs, the presentation) lives under `harness/`.
 
-```bash
-python -m LLM.api.cli "Hvor mange feriedage har man hos os?"
-python -m RAG.api.cli "Hvor mange feriedage har man hos os?"
-python -m Agent.api.cli "Hvornår har biblioteket åbent om lørdagen?"
-```
+| File | What it holds |
+|---|---|
+| `web.py` | The page: HTTP server, HTML, routes a question to chat, a docs lookup or a code check, and renders the answer. Entry point (`python web.py`). |
+| `build.py` | The composition root: wires the brain, tools and skills into one agent per role (`ROLE_TEAMS`), plus the docs-only agent and the code checkout service. |
+| `agent.py` | The agent loop (`AgentService`: think → act → see), the router that classifies a question (chat / docs / code check), `AnswerWriter` (writes the answer for a role from the assessment), the assessment model (`Finding`, `Assessment`, the verdict) and `MistralBrain`, the only place that talks to Ollama. |
+| `tools.py` | The tool contracts (`ToolSpec`, `ToolCall`, `ToolResult`), `ToolService` (calls a tool by name) and `CheckoutService` (picks which branch a code check sees). |
+| `tools_impl.py` | The tools themselves: `search_requirements`, `list_requirements`, `search_specification`, `list_code_files`, `read_code_file`, `list_recent_changes`, `search_ot_documents`. |
+| `repository.py` | `GitRepository` (clones/fetches the code to check) and `AzurePullRequestFinder` (finds an open PR matching a user story id). |
+| `rag.py` | Loads and searches the documents: `XlsxLoader`/`MarkdownLoader`/`PdfLoader`/`XlsxTableLoader` read the files, `ParagraphChunker` splits them into chunks, `KeywordIndex` searches them. |
+| `skills.py` | Reads skills from `harness/skills/*/SKILL.md` and exposes them as a catalog plus `load_skill`, the tool an agent uses to fetch one. |
+| `settings.py` | All configuration in one place: the model, folders, teams, roles and prompts. |
 
-Kør det samme spørgsmål gennem lag 1, 2 og 5 og sammenlign. Det er hele pointen med POC'en.
+| Folder | What's in it |
+|---|---|
+| `harness/skills/` | The skills: `code-review`, `architecture-web`, `audience-product`, `audience-it`, `vocabulary`, `evaluation`. |
+| `harness/data/` | Sample data: `test-protocols/` (xlsx test cases). Add your own `kravspec/*.md` here with the business requirements. |
+| `harness/diagrams/` | The architecture diagram shown during a demo. |
+| `harness/Praesentation/` | The slide deck used to present the POC. |
+| `harness/test-results/` | Saved example sessions. |
 
-### MCP-serveren
+## Configuration
 
-Lag 3 kan også startes som en rigtig MCP-server, som fx Claude Desktop eller en IDE kan forbinde til:
+Everything is in `settings.py`:
 
-```bash
-python -m MCP.api.mcp_server
-```
+| Setting | What it does |
+|---|---|
+| `MISTRAL_MODEL`, `MISTRAL_BASE_URL`, `MISTRAL_CONTEXT` | Which local model thinks (via Ollama), where Ollama listens, and how much text it can see per call. |
+| `DATA_FOLDER`, `SPEC_FOLDER` | The xlsx test cases and the kravspec `.md` files. |
+| `SEARCH_K` | How many results a search returns. |
+| `CODE_REPO`, `CODE_BRANCH` | The git repo with the code to check, and the branch to check when no open pull request into it matches the question (`dev`, following IT's feature branch → `dev` → `main` rule). It is cloned at start and fetched again before every code check. Empty `CODE_REPO` reads `CODE_FOLDER` as it is. |
+| `AZURE_DEVOPS_PAT` | The token git and the pull request search use to read `CODE_REPO`. Read from `local_secrets.py`, or from the `AZURE_DEVOPS_PAT` environment variable. It is sent as a header to git and never stored in the clone. |
+| `CODE_FOLDER` | Where the code tools read the code: the clone of `CODE_REPO` (`repos/code`, ignored by git), or your own folder. The code tools can't see outside it. |
+| `SKILLS_FOLDER` | The skill folders (`harness/skills`). |
+| `TEAMS`, `TEAM` | The team whose code is checked (`web`), its description, and so which `architecture-<team>` skill it is checked against. |
+| `ROLES`, `DEFAULT_ROLE` | The roles in the dropdown. A role needs an `audience-<key>` skill. |
+| `ROLE_TEAMS` | Which teams each role sees, and so which tools its agent gets. |
+| `MAX_STEPS`, `SYSTEM_PROMPT`, `DOCS_PROMPT` | The step limit, and the instructions for a code check and for a docs-only lookup. |
 
-Kræver `mcp>=2`, som er med i `requirements.txt`.
+How the code is reviewed is in `harness/skills/code-review/SKILL.md`, and the answer formats are in `audience-product/SKILL.md` and `audience-it/SKILL.md`.
 
-## Hvad kræver hvad
+## Limitations
 
-| Lag | Uden nøgle | Med nøgle | Ekstra pakker |
-|---|---|---|---|
-| 1. LLM | `--fake` | Rigtigt svar | `anthropic` |
-| 2. RAG | Ægte søgning, falsk svar | Rigtigt svar ud fra dokumenterne | `anthropic` |
-| 3. MCP | Alt | Bruges ikke | `mcp` kun til `mcp_server.py` |
-| 4. Skills | Alt | Bruges ikke | Ingen |
-| 5. Agent | Lærlingen med manuskript | Claude tager beslutningerne | `anthropic` |
-
-## Udvid POC'en
-
-| Jeg vil... | Så gør jeg... | Lag |
-|---|---|---|
-| Bruge en anden model | Ny provider i `LLM/infrastructure/providers/` og ny hjerne i `Agent/infrastructure/brains/` | 1, 5 |
-| Tilføje viden | Læg `.md`-filer i `RAG/data/docs/` | 2 |
-| Søge smartere | Ny `embedding_index.py` i `RAG/infrastructure/index/` | 2 |
-| Give agenten et nyt værktøj | Ny fil i `MCP/infrastructure/tools/`, sæt det i i `MCP/api/build.py` | 3 |
-| Lære agenten en ny fremgangsmåde | Ny mappe med en `SKILL.md` i `Skills/data/skills/` | 4 |
-
-Nye værktøjer, skills og dokumenter er automatisk med i agenten.
-
-## Kendte begrænsninger og bevidste valg
-
-- **Ordsøgningen i RAG er simpel med vilje.** Den finder kun hele, ens ord. Det er baseline for en smartere søgning.
-- **Agenten har sin egen port til hjernen** (`AgentBrain`), fordi `LLMProvider` i lag 1 kun kan tekst. Det betyder, at `ClaudeBrain` taler med Anthropic ved siden af lag 1. Se `Agent/README.md` for hvorfor, og hvordan det kan samles senere.
-- **RAG-indekset ligger i hukommelsen** og bygges forfra ved hver kørsel. Med få dokumenter mærkes det ikke.
-- **Der er ingen tests.** De er fravalgt i POC'en for at holde fokus på lagene.
-- **Kommentarer og README-filer er på dansk**, mens navne i koden er på engelsk, som det er normalt.
+- **Keyword search.** It only matches whole words, and the requirements are in Danish, so the agent searches with ids and Danish words.
+- **Every file name on every step.** `list_code_files` returns all files, which is slow on a large solution.
+- **Local model.** Mistral 7B through Ollama is free and private, but slower and less reliable than a hosted frontier model, so the code double-checks its output (parsing the assessment format, dropping contradictions) rather than trusting it outright.
+- **Saved assessments live in memory.** Restarting the server forgets them, so the next question is checked from scratch. A new file the agent didn't read last time doesn't change the fingerprint.

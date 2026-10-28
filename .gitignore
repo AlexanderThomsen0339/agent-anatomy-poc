@@ -1,4 +1,4 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 .venv/
@@ -7,6 +7,7 @@ venv/
 # Nøgler og lokale indstillinger
 .env
 *.env
+local_secrets.py
 
 # Editorer og styresystemer
 .vscode/
@@ -18,6 +19,5 @@ Thumbs.db
 logs/
 *.log
 
-# OT's dokumenter beskriver et rigtigt anlæg og skal ikke i git
-AIPlatform/RAG/data/ot/*
-!AIPlatform/RAG/data/ot/README.md
+# Kopien af kodens repo (CODE_REPO). POC'en kloner den selv.
+repos/

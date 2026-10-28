@@ -1,2 +1,1 @@
-﻿anthropic
-mcp>=2
+openpyxl
