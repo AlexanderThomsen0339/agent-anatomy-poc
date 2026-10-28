@@ -2,6 +2,7 @@
 Kør fra AIPlatform-mappen:
     python -m Agent.api.web
 """
+import base64
 import hashlib
 import json
 import re
@@ -48,6 +49,8 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 "Se
 header { background: var(--hero); color: var(--hero-text); padding: 1em 16px; }
 .bar { max-width: 860px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: .6em 1.2em; }
 .bar .title { flex: 1 1 auto; }
+/* Logoet står på en hvid plade, så det kan ses på den mørke top. */
+.logo { height: 2.8em; background: #fff; border-radius: 6px; padding: .3em .5em; }
 header h1 { margin: 0; font-size: 1.35em; font-weight: 600; }
 header p { margin: 0; opacity: .85; font-size: .9em; }
 header form { margin: 0; }
@@ -105,12 +108,24 @@ button.send:disabled { opacity: .6; cursor: progress; }
 pre { white-space: pre-wrap; background: var(--code-bg); padding: 1em; border-radius: 6px; }
 </style></head><body>
 <header><div class="bar">
-<div class="title"><h1>AI Platform POC</h1><p>{use_case}</p></div>
+{logo}<div class="title"><h1>AI Platform POC</h1><p>{use_case}</p></div>
 <form method="get" action="/"><label>{i_am} <select name="role" onchange="if (this.selectedOptions[0].dataset.use != '{use_case_key}') { this.form.q.value = ''; this.form.c.value = ''; } this.form.submit()">{roles}</select></label>{keep}</form>
 <a href="/?role={role}">{new_chat}</a>
 </div></header>
 <main>
 """
+
+
+def logo_html() -> str:
+    """Logoet som et billede inde i siden (data-URI), så serveren ikke skal kunne sende filer. Tomt, hvis filen mangler."""
+    if not settings.LOGO_FILE.exists():
+        return ""
+    kind = "svg+xml" if settings.LOGO_FILE.suffix == ".svg" else "png"
+    data = base64.b64encode(settings.LOGO_FILE.read_bytes()).decode()
+    return f'<img class="logo" src="data:image/{kind};base64,{data}" alt="Aalborg Forsyning">'
+
+
+HEAD = HEAD.replace("{logo}", logo_html())
 
 
 # Lidt JavaScript til sidst på siden. Siden virker også uden.
@@ -150,12 +165,18 @@ TEXTS = {
         "answer_for": "AI · svar til {}", "fetch_failed": "Kunne ikke hente koden, så den sidste kopi bruges: {}",
         "reused": "Koden og kravene er ikke ændret, så det tidligere tjek bruges",
         "checked_before": "Tjekket før på commit {}, så kun det, der er ændret siden, læses ({} {}):", "file": "fil", "files": "filer",
-        "not_finished": "<b>Ikke færdig.</b> Agenten nåede ikke frem til en vurdering. Prøv at spørge igen, gerne med user storyens id.",
+        "not_finished": "<b>Ikke færdig.</b> Agenten nåede ikke frem til en vurdering. Prøv at spørge igen, gerne med den side eller funktion, det handler om.",
         "writing": "Skriver svaret", "yes_check": "Ja, tjek det", "reply_here": "Svar her", "reply": "Svar",
         "error": "Fejl.", "try_again": "Prøv igen",
         "teams": {
-            settings.TEAM: ("Kodetjek", "om koden løser en user story", ["Løser koden US-004?", "Er kravene til regninger overholdt?"]),
-            settings.DOCUMENT_TEAM: ("OT-dokumenter", "om noget i OT's dokumenter", ["Hvilket signal er Kedel Fyr Nødud i 800xA?"]),
+            settings.TEAM: ("Kodetjek", "om det, der er lavet, virker og kan gå igennem testene"),
+            settings.DOCUMENT_TEAM: ("OT-dokumenter", "om noget i OT's dokumenter"),
+        },
+        # Eksemplerne pr. rolle, skrevet sådan som holdet selv spørger. Ingen user story-id'er: man skal ikke kende dem.
+        "examples": {
+            "product": ["Kan kunderne se deres regninger på testsiden?", "Hvad er der lavet om siden i går?"],
+            "it": ["Kan testene gennemføres efter de seneste ændringer?", "Hvilke krav mangler at blive løst?"],
+            "maintenance": ["Hvilket signal er Kedel Fyr Nødud i 800xA?"],
         },
     },
     "en": {
@@ -178,12 +199,17 @@ TEXTS = {
         "answer_for": "AI · answer for {}", "fetch_failed": "Could not fetch the code, so the last copy is used: {}",
         "reused": "The code and requirements haven't changed, so the earlier check is used",
         "checked_before": "Checked before on commit {}, so only what changed since is read ({} {}):", "file": "file", "files": "files",
-        "not_finished": "<b>Not finished.</b> The agent didn't reach an assessment. Try asking again, ideally with the user story's id.",
+        "not_finished": "<b>Not finished.</b> The agent didn't reach an assessment. Try asking again, ideally naming the page or feature it is about.",
         "writing": "Writing the answer", "yes_check": "Yes, check it", "reply_here": "Reply here", "reply": "Reply",
         "error": "Error.", "try_again": "Try again",
         "teams": {
-            settings.TEAM: ("Code check", "whether the code solves a user story", ["Does the code solve US-004?", "Are the billing requirements met?"]),
-            settings.DOCUMENT_TEAM: ("OT documents", "about something in OT's documents", ["Which signal is Kedel Fyr Nødud in 800xA?"]),
+            settings.TEAM: ("Code check", "whether what was built works and can pass the tests"),
+            settings.DOCUMENT_TEAM: ("OT documents", "about something in OT's documents"),
+        },
+        "examples": {
+            "product": ["Can customers see their bills on the test site?", "What has changed since yesterday?"],
+            "it": ["Can the tests be passed after the latest changes?", "Which requirements are still not met?"],
+            "maintenance": ["Which signal is Kedel Fyr Nødud in 800xA?"],
         },
     },
 }
@@ -202,18 +228,16 @@ FRIENDLY = {
     "search_ot_documents": lambda a: T["search_ot_documents"].format(a.get('query', '')),
 }
 
-# Teksten på siden for hvert hold: overskrift, hvad man kan spørge om, og eksempler, man kan klikke på.
-# En rolle, der ser flere hold, får dem alle.
-# Hvorfor? Vedligehold tjekker ikke kode, så "Løser koden US-004?" ville forvirre.
+# Teksten på siden for hvert hold: overskrift og hvad man kan spørge om. En rolle, der ser flere hold, får dem alle.
+# Eksemplerne, man kan klikke på, følger rollen (T["examples"]), så IT og kommunikation får hver deres.
 PAGE_TEXT = T["teams"]
 
 
-def page_text(teams: list[str]) -> tuple[str, str, list[str]]:
-    """Overskrift, hvad man kan spørge om, og eksempler til siden for en rolle, der ser de givne hold."""
+def page_text(teams: list[str], role: str) -> tuple[str, str, list[str]]:
+    """Overskrift, hvad man kan spørge om, og eksempler til siden for rollen, der ser de givne hold."""
     heading = " · ".join(PAGE_TEXT[t][0] for t in teams)
     topics = T["or"].join(PAGE_TEXT[t][1] for t in teams)
-    examples = [e for t in teams for e in PAGE_TEXT[t][2]]
-    return heading, topics, examples
+    return heading, topics, T["examples"][role]
 
 
 def render_step(steps: list[Step]) -> str:
@@ -544,7 +568,7 @@ def make_handler(agents, writer, checkouts, router=None, docs=None):
                 f'<input type="hidden" name="q" value="{escape(question)}">'
                 f'<input type="hidden" name="c" value="{escape(json.dumps(conversation, ensure_ascii=False)) if conversation else ""}">'
             )
-            heading, topics, examples = page_text(teams)
+            heading, topics, examples = page_text(teams, role)
             self.write(
                 HEAD.replace("{roles}", roles).replace("{keep}", keep).replace("{role}", escape(role))
                 .replace("{use_case_key}", "+".join(teams)).replace("{use_case}", heading)
