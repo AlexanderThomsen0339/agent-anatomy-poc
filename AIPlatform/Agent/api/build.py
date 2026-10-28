@@ -1,13 +1,21 @@
 """Samler Agent-laget: hjernen, alle værktøjer og skills."""
 import settings
 from Agent.application.agent_service import AgentService
+from Agent.application.answer_writer import parse_assessment
 from Agent.application.answer_writer import AnswerWriter
+from Agent.domain.models import Step
 from Agent.application.router import Router
 from Agent.infrastructure.brains.mistral_brain import MistralBrain
 from MCP.api.build import build_ot_service, build_service as build_tools
 from MCP.application.tool_service import ToolService
 from Skills.api.build import build_service as build_skills
 from Skills.api.skill_tool import LoadSkillTool
+
+
+def usable(answer: str, steps: list[Step]) -> bool:
+    """Kan siden bruge kodetjekkets svar? Vurderingslinjer, et spørgsmål (QUESTION: i web.py) eller et opslag i OT's dokumenter."""
+    looked_up_ot = any(s.action.tool == "search_ot_documents" for s in steps)
+    return looked_up_ot or answer.strip().upper().startswith("QUESTION:") or parse_assessment(answer) is not None
 
 
 def build_agents() -> tuple[dict[str, AgentService], AgentService]:
@@ -64,7 +72,12 @@ def build_agents() -> tuple[dict[str, AgentService], AgentService]:
                 "A. Check whether the code solves a task:\n" + prompts[0]
                 + "\n\nB. Look something up in OT's documents. Then answer directly, and do not write an assessment:\n" + prompts[1]
             )
-        return AgentService(brain, ToolService(tools), system + settings.LANGUAGE_NOTE, max_steps=settings.MAX_STEPS)
+        # Kun et kodetjek har et format, der kan tjekkes. Et rent OT-opslag svarer frit.
+        checks_code = settings.TEAM in teams
+        return AgentService(
+            brain, ToolService(tools), system + settings.LANGUAGE_NOTE, max_steps=settings.MAX_STEPS,
+            accept=usable if checks_code else None, reminder=settings.FORMAT_REMINDER,
+        )
 
     # Agenterne er klar. Tilbage til main() i Agent/api/web.py (trin 10).
     agents = {role: build_agent(teams) for role, teams in settings.ROLE_TEAMS.items()}

@@ -145,6 +145,17 @@ SYSTEM_PROMPT = (
     "You can only read the code, never change it."
 )
 
+# Det, agenten får at vide, hvis dens svar hverken er vurderingslinjer eller et spørgsmål (én gang pr. kodetjek).
+# En lille lokal model skriver ofte fri tekst i stedet for formatet, og så kan siden ikke læse en dom ud af svaret.
+FORMAT_REMINDER = (
+    "\n\nYour last answer could not be read, because it did not follow the code-review format. Do it again:\n"
+    "1. If you have not found the user story yet, call search_requirements (and search_specification) first.\n"
+    "2. Then write ONLY the assessment lines, one per requirement, seven parts separated by |:\n"
+    "STATUS | ids | requirement | why in plain words | what the code does | file:line | how to fix\n"
+    "STATUS is MET, NOT_MET, CANT_TELL or RISK. No other text, no headings, no summary.\n"
+    "If the question is too unclear to assess, write QUESTION: and your question instead."
+)
+
 # Instruktionen til opslag i testprotokollerne og kravene, når et spørgsmål ikke kræver koden (Router: DOCS).
 DOCS_PROMPT = (
     "You answer questions about the test protocols for Mit Aalborg Forsyning (user stories, acceptance criteria and test cases: "

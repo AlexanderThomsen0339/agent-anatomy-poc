@@ -9,18 +9,32 @@ from MCP.domain.models import ToolCall
 
 class AgentService:
 
-    def __init__(self, brain: AgentBrain, tools: ToolService, system: str, max_steps: int = 8):
+    def __init__(
+        self,
+        brain: AgentBrain,
+        tools: ToolService,
+        system: str,
+        max_steps: int = 8,
+        accept: Callable[[str, list[Step]], bool] | None = None,
+        reminder: str = "",
+    ):
         # Vi får hjernen og værktøjerne udefra.
         self.brain = brain
         self.tools = tools
         self.system = system
         self.max_steps = max_steps
+        # Hvorfor accept og reminder?
+        # Kan svaret ikke bruges (accept siger nej), får agenten én chance mere med reminder sat på opgaven.
+        # Det hjælper en lille model, der glemmer formatet. Uden accept er løkken som før.
+        self.accept = accept
+        self.reminder = reminder
 
     def run(self, question: str, on_step: Callable[[list[Step]], None] | None = None) -> AgentRun:
         """Løs opgaven. on_step kaldes efter hvert skridt, så man kan følge med."""
         # 12: AGENTEN KØRER: En løkke, der gentages, indtil Gemini har et svar (højst MAX_STEPS gange).
         history: History = []
         steps: list[Step] = []
+        reminded = False
 
         for _ in range(self.max_steps):
             # 13: TÆNK: Gemini ser spørgsmålet, alt hidtil og værktøjerne og beslutter, hvad der skal ske.
@@ -30,6 +44,12 @@ class AgentService:
 
             # 14: FÆRDIG? Beder Gemini ikke om flere værktøjer, er teksten svaret. Hop til trin 19.
             if decision.is_final:
+                if self.accept and not reminded and not self.accept(decision.text, steps):
+                    # Svaret kan ikke bruges. Det fjernes, og agenten prøver igen med påmindelsen og alt, den har set.
+                    history.pop()
+                    question += self.reminder
+                    reminded = True
+                    continue
                 # 19: SVAR: Løkken slutter. Tilbage til do_GET() i Agent/api/web.py (trin 20).
                 return AgentRun(decision.text, steps)
 
