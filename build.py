@@ -1,11 +1,20 @@
 """Samler alt: hjernen, alle værktøjer og skills."""
 import settings
-from agent import AgentService, AnswerWriter, MistralBrain, Router, Step, parse_assessment
+from agent import AgentService, AnswerWriter, Router, Step, parse_assessment
 from rag import IngestService, KeywordIndex, MarkdownLoader, ParagraphChunker, XlsxLoader
 from repository import AzurePullRequestFinder, GitRepository
 from skills import FileSkillRepository, LoadSkillTool, SkillService
 from tools import CheckoutService, ToolService
 from tools_impl import CodeChangesTool, CodeListTool, CodeReadTool, RequirementsListTool, RequirementsSearchTool, SpecificationSearchTool
+
+
+def make_brain():
+    """Hjernen, BRAIN i settings.py peger på. Kun den valgte hjernes kode importeres."""
+    if settings.BRAIN == "mistral":
+        from agent import MistralBrain
+        return MistralBrain(settings.MISTRAL_MODEL, settings.MISTRAL_BASE_URL, settings.MISTRAL_CONTEXT)
+    from gemini_brain import GeminiBrain
+    return GeminiBrain(model=settings.GEMINI_MODEL, api_key=settings.GEMINI_API_KEY, thinking=settings.GEMINI_THINKING)
 
 
 def usable(answer: str, steps: list[Step]) -> bool:
@@ -66,8 +75,8 @@ def build_agents() -> tuple[dict[str, AgentService], AgentService]:
     skills = build_skill_service()
     code_tools = build_tool_service()
 
-    # Hjernen, der taler med lokal Mistral gennem Ollama.
-    brain = MistralBrain(settings.MISTRAL_MODEL, settings.MISTRAL_BASE_URL, settings.MISTRAL_CONTEXT)
+    # Hjernen, der taler med Gemini eller lokal Mistral (BRAIN i settings.py).
+    brain = make_brain()
 
     def build_agent() -> AgentService:
         # Kodetjek: krav, kravspec og kode. code-review og holdets architecture-skill skal bruges i hvert
@@ -101,11 +110,11 @@ def build_writer() -> AnswerWriter:
     # Skribenten, der laver vurderingen om til et svar til den valgte rolle.
     # Den får rollens skill (audience-<rolle>) fra Skills, men ingen værktøjer.
     skills = build_skill_service()
-    brain = MistralBrain(settings.MISTRAL_MODEL, settings.MISTRAL_BASE_URL, settings.MISTRAL_CONTEXT)
+    brain = make_brain()
     return AnswerWriter(brain, lambda role: skills.load(f"audience-{role}").instructions, settings.LANGUAGE_NOTE)
 
 
 def build_router() -> Router:
     # Det første skridt for hvert spørgsmål: småsnak, opslag uden kode eller kodetjek.
-    brain = MistralBrain(settings.MISTRAL_MODEL, settings.MISTRAL_BASE_URL, settings.MISTRAL_CONTEXT)
+    brain = make_brain()
     return Router(brain, settings.LANGUAGE_NOTE)

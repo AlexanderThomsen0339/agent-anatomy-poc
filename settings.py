@@ -14,7 +14,27 @@ HARNESS = ROOT / "harness"
 
 
 # 1. Model
-# Den lokale Mistral-model, der tænker i agenten, kørt gennem Ollama.
+# Hvilken hjerne tænker: "gemini" (Google, kræver en nøgle) eller "mistral" (lokal gennem Ollama).
+BRAIN = "gemini"
+
+# Gemini-modellen, der tænker i agenten.
+GEMINI_MODEL = "gemini-3.5-flash-lite"
+
+# Hvor meget Gemini tænker, før den svarer: "minimal", "low", "medium" eller "high".
+# Mere tænkning giver grundigere svar, men hvert skridt tager længere tid.
+# Sæt den til "", hvis modellen ikke kender niveauerne (fx gemini-2.5).
+GEMINI_THINKING = "low"
+
+# Nøglen til Gemini. Skriv den i local_secrets.py ved siden af denne fil:
+#     GEMINI_API_KEY = "your-key"
+# Den fil ignoreres af git, så nøglen aldrig kommer med i et commit.
+# Findes filen ikke, læses nøglen fra miljøvariablen GEMINI_API_KEY.
+try:
+    from local_secrets import GEMINI_API_KEY
+except ImportError:
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+
+# Den lokale Mistral-model, når BRAIN = "mistral", kørt gennem Ollama.
 # Hentes med: ollama pull mistral:7b-instruct-v0.3-q4_K_M
 MISTRAL_MODEL = "mistral:7b-instruct-v0.3-q4_K_M"
 
@@ -130,7 +150,8 @@ MAX_STEPS = 20
 
 # Lader koden søge kravene og læse de ændrede filer, før modellen tænker første gang (first_steps i web.py).
 # Hvorfor? En lille lokal model springer ellers værktøjerne over og gætter ud fra commits alene.
-FIRST_STEPS = True
+# Gemini slår selv op, så den får det kun med BRAIN = "mistral". Sæt den til True for at prøve det med Gemini.
+FIRST_STEPS = BRAIN == "mistral"
 # Højst så mange af de filer, de nyeste commits ændrede, læses på forhånd, og kun kodefiler.
 FIRST_FILES = 3
 FIRST_FILE_TYPES = (".cs", ".cshtml", ".razor", ".js", ".ts", ".py")

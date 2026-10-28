@@ -12,12 +12,11 @@ Python 3.12+ (the page uses newer f-string syntax). Run everything from the repo
 pip install -r requirements.txt
 ```
 
-1. The agent thinks with a local Mistral model through [Ollama](https://ollama.com):
-   ```bash
-   ollama pull mistral:7b-instruct-v0.3-q4_K_M
-   ollama serve
+1. The agent thinks with Google Gemini (`BRAIN = "gemini"` in `settings.py`). Get a key from Google AI Studio and put it in `local_secrets.py` (ignored by git), or in the `GEMINI_API_KEY` environment variable:
+   ```python
+   GEMINI_API_KEY = "your-key"
    ```
-   `settings.py` points at Ollama's default address (`http://localhost:11434`); no API key is needed.
+   To use a local Mistral model through [Ollama](https://ollama.com) instead, set `BRAIN = "mistral"`, then run `ollama pull mistral:7b-instruct-v0.3-q4_K_M` and `ollama serve`.
 2. The code to check comes from the Azure DevOps repo in `CODE_REPO` in `settings.py`. The page clones it into `repos/code` when it starts. Before every code check it picks the branch and fetches the latest, so a developer can push and ask straight away: if an open pull request into `dev` has the question's user story id (e.g. US-005) in its title or branch name, its branch is checked, otherwise `dev`. The first step on the page says which branch and pull request it checks. If the same question was checked before on the same branch and the requirements are unchanged, only the files changed since that commit are read, and the earlier assessment is updated (at most 20 changed files, otherwise all the code is checked again). You need git installed. Set `CODE_REPO = ""` to read a folder on your computer instead (`CODE_FOLDER`).
 3. Put an Azure DevOps Personal Access Token with read access to Code in `local_secrets.py` (ignored by git):
    ```python
@@ -57,6 +56,7 @@ Everything that runs lives in a handful of files at the repo root; everything th
 | `web.py` | The page: HTTP server, HTML, routes a question to chat, a docs lookup or a code check, and renders the answer. Entry point (`python web.py`). |
 | `build.py` | The composition root: wires the brain, tools and skills into one agent per role (`ROLE_TEAMS`), plus the docs-only agent and the code checkout service. |
 | `agent.py` | The agent loop (`AgentService`: think → act → see), the router that classifies a question (chat / docs / code check), `AnswerWriter` (writes the answer for a role from the assessment), the assessment model (`Finding`, `Assessment`, the verdict) and `MistralBrain`, the only place that talks to Ollama. |
+| `gemini_brain.py` | `GeminiBrain`, the only place that talks to Google Gemini. |
 | `tools.py` | The tool contracts (`ToolSpec`, `ToolCall`, `ToolResult`), `ToolService` (calls a tool by name) and `CheckoutService` (picks which branch a code check sees). |
 | `tools_impl.py` | The tools themselves: `search_requirements`, `list_requirements`, `search_specification`, `list_code_files`, `read_code_file`, `list_recent_changes`, `search_ot_documents`. |
 | `repository.py` | `GitRepository` (clones/fetches the code to check) and `AzurePullRequestFinder` (finds an open PR matching a user story id). |
@@ -78,6 +78,8 @@ Everything is in `settings.py`:
 
 | Setting | What it does |
 |---|---|
+| `BRAIN` | Which brain thinks: `"gemini"` (default) or `"mistral"` (local through Ollama). |
+| `GEMINI_MODEL`, `GEMINI_THINKING` | Which Gemini model thinks, and how much it thinks per step. |
 | `MISTRAL_MODEL`, `MISTRAL_BASE_URL`, `MISTRAL_CONTEXT` | Which local model thinks (via Ollama), where Ollama listens, and how much text it can see per call. |
 | `DATA_FOLDER`, `SPEC_FOLDER` | The xlsx test cases and the kravspec `.md` files. |
 | `SEARCH_K` | How many results a search returns. |
