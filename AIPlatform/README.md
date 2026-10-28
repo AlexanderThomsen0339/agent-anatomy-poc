@@ -469,6 +469,7 @@ Everything is in `settings.py`:
 
 | Setting | What it does |
 |---|---|
+| `BRAIN` | Which brain thinks: `"gemini"` (default, needs `GEMINI_API_KEY`) or `"mistral"` (local through Ollama, `MISTRAL_*` settings). |
 | `GEMINI_MODEL`, `GEMINI_THINKING` | Which Gemini model thinks, and how much it thinks per step. |
 | `GEMINI_API_KEY` | Read from `local_secrets.py`, or from the `GEMINI_API_KEY` environment variable if that file doesn't exist. |
 | `DATA_FOLDER`, `SPEC_FOLDER` | The xlsx test cases and the kravspec `.md` files that RAG loads. |

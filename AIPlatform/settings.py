@@ -13,7 +13,27 @@ ROOT = Path(__file__).resolve().parent
 
 
 # 1. Model
-# Den lokale Mistral-model, der tænker i agenten, kørt gennem Ollama.
+# Hvilken hjerne tænker: "gemini" (Google, kræver en nøgle) eller "mistral" (lokal gennem Ollama).
+BRAIN = "gemini"
+
+# Gemini-modellen, der tænker i agenten.
+GEMINI_MODEL = "gemini-3.5-flash-lite"
+
+# Hvor meget Gemini tænker, før den svarer: "minimal", "low", "medium" eller "high".
+# Mere tænkning giver grundigere svar, men hvert skridt tager længere tid.
+# Sæt den til "", hvis modellen ikke kender niveauerne (fx gemini-2.5).
+GEMINI_THINKING = "low"
+
+# Nøglen til Gemini. Skriv den i local_secrets.py ved siden af denne fil:
+#     GEMINI_API_KEY = "your-key"
+# Den fil ignoreres af git, så nøglen aldrig kommer med i et commit.
+# Findes filen ikke, læses nøglen fra miljøvariablen GEMINI_API_KEY.
+try:
+    from local_secrets import GEMINI_API_KEY
+except ImportError:
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+
+# Den lokale Mistral-model, når BRAIN = "mistral", kørt gennem Ollama.
 # Hentes med: ollama pull mistral:7b-instruct-v0.3-q4_K_M
 MISTRAL_MODEL = "mistral:7b-instruct-v0.3-q4_K_M"
 
@@ -147,19 +167,21 @@ LANGUAGE_NOTE = ENGLISH_NOTE if LANGUAGE == "en" else DANISH_NOTE
 # Grænsen for antal skridt. Beskytter mod en agent, der kører i ring.
 # Koden slår kravene op og læser de ændrede filer på forhånd (FIRST_STEPS), så der skal færre skridt til.
 # Hvert skridt sender hele samtalen til Mistral igen, så færre skridt er også meget hurtigere på en Mac mini.
-MAX_STEPS = 8
+# Gemini kan klare flere skridt, så den får 20 som på main.
+MAX_STEPS = 20 if BRAIN == "gemini" else 8
 
 # Lader koden søge kravene og læse de ændrede filer, før modellen tænker første gang (first_steps i Agent/api/web.py).
 # Hvorfor? En lille lokal model springer ellers værktøjerne over og gætter ud fra commits alene.
-FIRST_STEPS = True
+# Gemini slår selv op, så den får det ikke. Sæt den til True for at prøve det med Gemini.
+FIRST_STEPS = BRAIN == "mistral"
 # Højst så mange af de filer, de nyeste commits ændrede, læses på forhånd, og kun kodefiler.
 FIRST_FILES = 2
 
 # Hvor meget af en kodefil og af de nyeste commits modellen får, i tegn (ca. 3-4 tegn pr. token).
 # Hvorfor så lidt? Alt skal være inden for MISTRAL_CONTEXT. Ellers smider Ollama det ældste væk (reglerne),
-# og hvert skridt bliver meget langsommere, fordi den må læse alt forfra. Gemini kunne klare 20.000 og 15.000.
-READ_MAX_CHARS = 8_000
-CHANGES_MAX_CHARS = 6_000
+# og hvert skridt bliver meget langsommere, fordi den må læse alt forfra. Gemini kan klare 20.000 og 15.000.
+READ_MAX_CHARS = 20_000 if BRAIN == "gemini" else 8_000
+CHANGES_MAX_CHARS = 15_000 if BRAIN == "gemini" else 6_000
 FIRST_FILE_TYPES = (".cs", ".cshtml", ".razor", ".js", ".ts", ".py")
 
 # Instruktionen til kodetjek, for roller der ser TEAM. Skillsne code-review og architecture-<TEAM> sættes på i Agent/api/build.py.

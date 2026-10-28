@@ -83,6 +83,18 @@ class GeminiBrain:
                 print(f"Gemini: kvoten pr. minut er brugt, venter {wait:.0f} sekunder og prøver igen.")
                 time.sleep(wait)
 
+    @staticmethod
+    def _own_calls(decision: Decision) -> types.Content:
+        # Kald, koden selv har lavet før første skridt (FIRST_STEPS), har intet svar fra Gemini at sende tilbage.
+        # Gemini 3 kræver en signatur på hvert værktøjskald, så de får den, Google beskriver til netop det.
+        return types.Content(role="model", parts=[
+            types.Part(
+                function_call=types.FunctionCall(id=a.id, name=a.tool, args=a.arguments),
+                thought_signature=b"skip_thought_signature_validator",
+            )
+            for a in decision.actions
+        ])
+
     def _to_contents(self, question: str, history: History) -> list[types.Content]:
         contents = [types.Content(role="user", parts=[types.Part(text=question)])]
         names: dict[str, str] = {}
@@ -91,7 +103,7 @@ class GeminiBrain:
             if isinstance(item, Decision):
                 for action in item.actions:
                     names[action.id] = action.tool
-                contents.append(self.raw[id(item)])
+                contents.append(self.raw.get(id(item)) or self._own_calls(item))
             else:
                 # Resultaterne sendes tilbage med værktøjets navn, som Gemini parrer dem med.
                 observations: list[Observation] = item
