@@ -39,6 +39,7 @@ The original code was creating an empty list for the contracts, but the new chan
 
 `csharp
 
+
 invoiceResponse = null;
 
 `
