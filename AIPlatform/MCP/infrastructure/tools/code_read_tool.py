@@ -22,7 +22,7 @@ class CodeReadTool:
         input_schema={
             "type": "object",
             "properties": {
-                "path": {"type": "string", "description": "Filens sti, fx Core/Billing/Services/BillingService.cs"},
+                "path": {"type": "string", "description": "Filens sti, fx src/telefon.py"},
             },
             "required": ["path"],
         },

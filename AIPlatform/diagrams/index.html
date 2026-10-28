@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Platform POC — Communication Flow</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #f7f9f8;
+    --surface: #ffffff;
+    --ink: #17383b;
+    --ink-muted: #5b6f71;
+    --border: #d8e3e1;
+
+    --lifeline: #8aa6a3;
+    --box-fill: #e6f1f1;
+    --box-border: #0f6e56;
+
+    --accent: #e66f45;
+    --accent-soft: rgba(230, 111, 69, 0.12);
+
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17383b;
+      --surface: #1d4448;
+      --ink: #ffffff;
+      --ink-muted: #b9cbc9;
+      --border: rgba(114, 181, 163, 0.30);
+
+      --lifeline: #5c827c;
+      --box-fill: rgba(114, 181, 163, 0.16);
+      --box-border: #72b5a3;
+
+      --accent: #f0905f;
+      --accent-soft: rgba(240, 144, 95, 0.16);
+
+      color-scheme: dark;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    padding: 48px 20px 64px;
+  }
+
+  .page { max-width: 1220px; margin: 0 auto; }
+
+  .eyebrow {
+    font-family: "IBM Plex Sans Condensed", ui-sans-serif, sans-serif;
+    font-weight: 600;
+    font-size: 12.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .eyebrow::before { content: ""; width: 8px; height: 8px; background: var(--accent); }
+
+  h1 {
+    font-family: "IBM Plex Sans Condensed", ui-sans-serif, sans-serif;
+    font-weight: 700;
+    font-size: clamp(26px, 4vw, 38px);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+  }
+
+  .lede {
+    max-width: 72ch;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--ink-muted);
+    margin: 0 0 36px;
+  }
+  .lede code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.9em;
+    background: var(--box-fill);
+    border: 1px solid var(--border);
+    padding: 0.05em 0.35em;
+    color: var(--ink);
+  }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 28px clamp(10px, 3vw, 34px) 10px; }
+  figure { margin: 0; }
+  .diagram-scroll { overflow-x: auto; padding-bottom: 4px; }
+  .diagram-scroll svg { display: block; width: 100%; height: auto; min-width: 760px; }
+
+  figcaption {
+    font-size: 14px;
+    color: var(--ink-muted);
+    line-height: 1.6;
+    padding: 20px 4px 28px;
+    border-top: 1px solid var(--border);
+    margin-top: 22px;
+  }
+  figcaption strong { color: var(--ink); font-weight: 600; }
+  figcaption ul { margin: 10px 0 0; padding-left: 20px; }
+  figcaption li { margin: 4px 0; }
+  figcaption code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.92em; background: var(--box-fill); border-radius: 4px; padding: 0.05em 0.35em; }
+
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 10px 28px;
+    padding: 4px 4px 26px;
+  }
+  .legend-item { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--ink-muted); line-height: 1.45; }
+  .legend-item strong { color: var(--ink); font-weight: 600; }
+  .legend-mark { flex: none; width: 34px; height: 14px; margin-top: 3px; }
+
+  .footnote { font-family: "IBM Plex Sans Condensed", sans-serif; font-size: 12px; color: var(--ink-muted); text-align: center; margin: 28px 0 0; letter-spacing: 0.02em; }
+
+  .svg-head-name { font-family: "IBM Plex Sans", sans-serif; font-weight: 600; font-size: 13px; fill: var(--ink); }
+  .svg-head-sub { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 10px; fill: var(--ink-muted); }
+  .svg-msg-label { font-family: "IBM Plex Sans", sans-serif; font-weight: 500; font-size: 12px; fill: var(--ink); }
+  .svg-frame-kw { font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 700; font-size: 11px; fill: var(--box-border); }
+  .svg-frame-guard { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11px; font-style: italic; fill: var(--ink-muted); }
+  .svg-note-text { font-family: "IBM Plex Sans", sans-serif; font-size: 11.5px; fill: var(--ink); }
+  .svg-banner-text { font-family: "IBM Plex Sans", sans-serif; font-weight: 600; font-size: 12.5px; fill: var(--ink); }
+
+  .lifeline { stroke: var(--lifeline); stroke-width: 1.4; stroke-dasharray: 4 4; }
+  .head-box { fill: var(--box-fill); stroke: var(--box-border); stroke-width: 1.4; rx: 6; }
+  .msg-call { stroke: var(--ink); stroke-width: 1.6; fill: none; }
+  .msg-return { stroke: var(--ink-muted); stroke-width: 1.4; fill: none; stroke-dasharray: 5 3; }
+  .label-bg { fill: var(--bg); opacity: 0.94; }
+  .frame-box { fill: none; stroke: var(--box-border); stroke-width: 1.2; stroke-dasharray: 6 4; }
+  .frame-tab { fill: var(--box-fill); stroke: var(--box-border); stroke-width: 1.2; }
+  .note-box { fill: var(--box-fill); stroke: var(--box-border); stroke-width: 1.2; }
+  .banner-box { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.3; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <p class="eyebrow">AI Platform POC &middot; system design</p>
+  <h1>Chat Question to Platform Answer</h1>
+  <p class="lede">
+    What actually happens between the moment someone types a question into the chat box and the
+    moment the answer appears. The surprise is in the transport: there is no WebSocket, no
+    Server-Sent Events, no polling &mdash; the browser does one ordinary form submission, and
+    everything that looks "live" is HTML being appended to that same still-open HTTP response
+    while the agent works underneath it.
+  </p>
+
+  <div class="card">
+    <figure>
+      <div class="diagram-scroll">
+        <svg viewBox="0 0 1220 1090" role="img" aria-label="Sequence diagram: the browser submits one GET form request to web.py, which keeps the HTTP response open without a Content-Length header. Inside that single response, web.py starts AgentService, which loops calling MistralBrain, which calls Ollama running the local Mistral model; when the model asks for a tool, AgentService calls the MCP tool runner and feeds the result back in, writing a progress line to the still-open browser connection after every step. When the model stops requesting tools, AgentService exits the loop, a second Mistral call rewrites the assessment for the asking role, and web.py writes the final answer and closes the connection.">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" />
+            </marker>
+          </defs>
+
+          <!-- ================= LIFELINE HEADERS ================= -->
+          <!-- x centers: Browser 95, web.py 301, AgentService 507, MCP Tools 713, MistralBrain 919, Ollama 1125 -->
+          <g>
+            <rect class="head-box" x="15" y="50" width="160" height="46" />
+            <text class="svg-head-name" x="95" y="70" text-anchor="middle">Browser</text>
+            <text class="svg-head-sub" x="95" y="86" text-anchor="middle">chat UI (HTML form)</text>
+          </g>
+          <g>
+            <rect class="head-box" x="221" y="50" width="160" height="46" />
+            <text class="svg-head-name" x="301" y="70" text-anchor="middle">web.py</text>
+            <text class="svg-head-sub" x="301" y="86" text-anchor="middle">Agent/api/web.py</text>
+          </g>
+          <g>
+            <rect class="head-box" x="427" y="50" width="160" height="46" />
+            <text class="svg-head-name" x="507" y="70" text-anchor="middle">AgentService</text>
+            <text class="svg-head-sub" x="507" y="86" text-anchor="middle">agent loop</text>
+          </g>
+          <g>
+            <rect class="head-box" x="633" y="50" width="160" height="46" />
+            <text class="svg-head-name" x="713" y="70" text-anchor="middle">MCP Tools</text>
+            <text class="svg-head-sub" x="713" y="86" text-anchor="middle">search · read code</text>
+          </g>
+          <g>
+            <rect class="head-box" x="839" y="50" width="160" height="46" />
+            <text class="svg-head-name" x="919" y="70" text-anchor="middle">MistralBrain</text>
+            <text class="svg-head-sub" x="919" y="86" text-anchor="middle">brain adapter</text>
+          </g>
+          <g>
+            <rect class="head-box" x="1045" y="50" width="160" height="46" />
+            <text class="svg-head-name" x="1125" y="70" text-anchor="middle">Ollama</text>
+            <text class="svg-head-sub" x="1125" y="86" text-anchor="middle">localhost:11434</text>
+          </g>
+
+          <!-- ================= LIFELINES ================= -->
+          <line class="lifeline" x1="95" y1="96" x2="95" y2="1050" />
+          <line class="lifeline" x1="301" y1="96" x2="301" y2="1050" />
+          <line class="lifeline" x1="507" y1="96" x2="507" y2="1050" />
+          <line class="lifeline" x1="713" y1="96" x2="713" y2="1050" />
+          <line class="lifeline" x1="919" y1="96" x2="919" y2="1050" />
+          <line class="lifeline" x1="1125" y1="96" x2="1125" y2="1050" />
+
+          <!-- ================= m0: Browser -> web.py ================= -->
+          <line class="msg-call" x1="95" y1="140" x2="295" y2="140" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="100" y="122" width="150" height="16" />
+          <text class="svg-msg-label" x="105" y="135">GET /?q=&amp;role=</text>
+
+          <!-- ================= m1: web.py -> Browser ================= -->
+          <line class="msg-return" x1="301" y1="180" x2="101" y2="180" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="105" y="162" width="150" height="16" />
+          <text class="svg-msg-label" x="110" y="175">200 OK (chunked)</text>
+
+          <!-- ================= m2: web.py -> Browser ================= -->
+          <line class="msg-return" x1="301" y1="220" x2="101" y2="220" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="105" y="202" width="150" height="16" />
+          <text class="svg-msg-label" x="110" y="215">write: page shell</text>
+
+          <!-- ================= banner: the mechanism worth noticing ================= -->
+          <rect class="banner-box" x="30" y="238" width="1160" height="48" rx="6" />
+          <text class="svg-banner-text" x="610" y="258" text-anchor="middle">One streamed HTTP response: every write below lands on this same still-open connection</text>
+          <text class="svg-banner-text" x="610" y="276" text-anchor="middle">&#8212; not a WebSocket, not polling. The open socket itself is the "live" channel.</text>
+
+          <!-- ================= note: git fetch (code-check only) ================= -->
+          <rect class="note-box" x="170" y="300" width="340" height="34" rx="4" />
+          <text class="svg-note-text" x="340" y="321" text-anchor="middle">code-check questions: git fetch + checkout branch first</text>
+
+          <!-- ================= m3: web.py -> AgentService ================= -->
+          <line class="msg-call" x1="301" y1="372" x2="501" y2="372" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="320" y="354" width="150" height="16" />
+          <text class="svg-msg-label" x="325" y="367">run(question, on_step)</text>
+
+          <!-- ================= LOOP FRAME ================= -->
+          <rect class="frame-box" x="420" y="390" width="750" height="424" rx="4" />
+          <path class="frame-tab" d="M420,390 h58 v14 l-8,8 h-50 z" />
+          <text class="svg-frame-kw" x="428" y="402">loop</text>
+          <text class="svg-frame-guard" x="486" y="402">[ while step &lt; 20 and not finished ]</text>
+
+          <!-- m4: Agent -> Brain -->
+          <line class="msg-call" x1="507" y1="422" x2="915" y2="422" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="670" y="404" width="90" height="16" />
+          <text class="svg-msg-label" x="675" y="417">decide()</text>
+
+          <!-- m5: Brain -> Ollama -->
+          <line class="msg-call" x1="919" y1="462" x2="1121" y2="462" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="928" y="444" width="190" height="16" />
+          <text class="svg-msg-label" x="933" y="457">POST /v1/chat/completions</text>
+
+          <!-- m6: Ollama -> Brain -->
+          <line class="msg-return" x1="1125" y1="502" x2="923" y2="502" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="933" y="484" width="190" height="16" />
+          <text class="svg-msg-label" x="938" y="497">message / tool_calls</text>
+
+          <!-- m7: Brain -> Agent -->
+          <line class="msg-return" x1="919" y1="542" x2="511" y2="542" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="670" y="524" width="90" height="16" />
+          <text class="svg-msg-label" x="678" y="537">Decision</text>
+
+          <!-- ================= ALT FRAME ================= -->
+          <rect class="frame-box" x="130" y="560" width="620" height="236" rx="4" />
+          <path class="frame-tab" d="M130,560 h48 v14 l-8,8 h-40 z" />
+          <text class="svg-frame-kw" x="137" y="572">alt</text>
+          <text class="svg-frame-guard" x="186" y="572">[ tool call requested ]</text>
+
+          <!-- m8: Agent -> Tools -->
+          <line class="msg-call" x1="507" y1="596" x2="709" y2="596" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="520" y="578" width="140" height="16" />
+          <text class="svg-msg-label" x="525" y="591">call(tool, args)</text>
+
+          <!-- m9: Tools -> Agent -->
+          <line class="msg-return" x1="713" y1="636" x2="511" y2="636" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="525" y="618" width="140" height="16" />
+          <text class="svg-msg-label" x="530" y="631">Observation</text>
+
+          <!-- m10: Agent -> web.py -->
+          <line class="msg-call" x1="507" y1="676" x2="305" y2="676" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="320" y="658" width="140" height="16" />
+          <text class="svg-msg-label" x="325" y="671">on_step(step)</text>
+
+          <!-- m11: web.py -> Browser -->
+          <line class="msg-return" x1="301" y1="716" x2="101" y2="716" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="110" y="698" width="150" height="16" />
+          <text class="svg-msg-label" x="115" y="711">write: step line</text>
+
+          <!-- divider + second guard -->
+          <line class="frame-box" x1="130" y1="742" x2="750" y2="742" />
+          <text class="svg-frame-guard" x="140" y="760">[ no tool call &#8594; final text ]</text>
+          <text class="svg-note-text" x="440" y="784" text-anchor="middle">loop ends &#8212; decision.text becomes the draft answer</text>
+
+          <!-- loop MAX_STEPS note bottom-right of loop frame -->
+          <text class="svg-frame-guard" x="1160" y="806" text-anchor="end">MAX_STEPS = 20</text>
+
+          <!-- ================= m13: web.py -> Brain (answer writer) ================= -->
+          <line class="msg-call" x1="301" y1="856" x2="915" y2="856" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="560" y="838" width="220" height="16" />
+          <text class="svg-msg-label" x="565" y="851">decide() &#8212; rewrite for role, no tools</text>
+
+          <!-- m14: Brain -> Ollama -->
+          <line class="msg-call" x1="919" y1="896" x2="1121" y2="896" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="928" y="878" width="190" height="16" />
+          <text class="svg-msg-label" x="933" y="891">POST /v1/chat/completions</text>
+
+          <!-- m15: Ollama -> Brain -->
+          <line class="msg-return" x1="1125" y1="936" x2="923" y2="936" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="958" y="918" width="140" height="16" />
+          <text class="svg-msg-label" x="963" y="931">final text</text>
+
+          <!-- m16: Brain -> web.py -->
+          <line class="msg-return" x1="919" y1="976" x2="305" y2="976" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="585" y="958" width="90" height="16" />
+          <text class="svg-msg-label" x="593" y="971">answer</text>
+
+          <!-- m17: web.py -> Browser -->
+          <line class="msg-return" x1="301" y1="1016" x2="101" y2="1016" marker-end="url(#arrow)" />
+          <rect class="label-bg" x="105" y="998" width="190" height="16" />
+          <text class="svg-msg-label" x="110" y="1011">write: answer, close</text>
+        </svg>
+      </div>
+      <figcaption>
+        <strong>Reading it:</strong> the browser never opens a WebSocket and the page never polls.
+        It sends one <code>GET /?q=...&amp;role=...</code> the normal way a form does, and
+        <code>web.py</code> responds without a <code>Content-Length</code> header, which keeps the
+        connection open. Every "step" line the user sees &mdash; and the final answer &mdash; is a
+        chunk of HTML written straight into that same socket as the agent works, then flushed
+        (<code>wfile.write</code> + <code>flush()</code> in <code>Handler.write()</code>).
+        <ul>
+          <li>The <code>loop</code> (≤ <code>MAX_STEPS</code> = 20) is the agent reasoning turn: <code>MistralBrain</code> calls the local Mistral model through Ollama, and either gets a tool call (left branch, handled by <code>MCP Tools</code> and reported to the browser immediately) or a final answer (right branch, loop exits).</li>
+          <li>Once the loop produces an assessment, a second, tool-free call to the same model rewrites it for whichever role is asking (<code>AnswerWriter</code>) &mdash; this is a separate round trip to Ollama, not a continuation of the agent's history.</li>
+          <li>Not shown: if the code and requirements are unchanged since the last check on the same question, <code>web.py</code> skips the loop entirely and reuses the saved assessment.</li>
+        </ul>
+      </figcaption>
+
+      <div class="legend">
+        <div class="legend-item">
+          <svg class="legend-mark" viewBox="0 0 34 14"><line x1="1" y1="7" x2="33" y2="7" stroke="var(--ink)" stroke-width="1.6"/><polygon points="33,7 26,3.5 26,10.5" fill="var(--ink)"/></svg>
+          <span><strong>Call</strong> &mdash; one side asks the other to do something.</span>
+        </div>
+        <div class="legend-item">
+          <svg class="legend-mark" viewBox="0 0 34 14"><line x1="1" y1="7" x2="33" y2="7" stroke="var(--ink-muted)" stroke-width="1.4" stroke-dasharray="5 3"/><polygon points="33,7 26,3.5 26,10.5" fill="var(--ink-muted)"/></svg>
+          <span><strong>Return / push</strong> &mdash; a result, or a chunk written to an open response.</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-mark" style="display:inline-block;width:20px;height:14px;border:1.2px dashed var(--box-border);border-radius:3px;"></span>
+          <span><strong>Frame</strong> (<code>loop</code> / <code>alt</code>) &mdash; repetition or a branch in the flow.</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-mark" style="display:inline-block;width:20px;height:14px;background:var(--accent-soft);border:1.2px solid var(--accent);border-radius:3px;"></span>
+          <span><strong>Worth noticing</strong> &mdash; the one mechanism this diagram exists to show.</span>
+        </div>
+      </div>
+    </figure>
+  </div>
+
+  <p class="footnote">AI Platform POC &mdash; RAG ingestion, the git checkout service and the skills catalog are out of scope for this diagram</p>
+</div>
+
+</body>
+</html>

@@ -2,7 +2,7 @@
 import settings
 from Agent.application.agent_service import AgentService
 from Agent.application.answer_writer import AnswerWriter
-from Agent.infrastructure.brains.gemini_brain import GeminiBrain
+from Agent.infrastructure.brains.mistral_brain import MistralBrain
 from MCP.api.build import build_ot_service, build_service as build_tools
 from MCP.application.tool_service import ToolService
 from Skills.api.build import build_service as build_skills
@@ -21,8 +21,8 @@ def build_agents() -> dict[str, AgentService]:
     code_tools = build_tools()
     ot_tools = build_ot_service()
 
-    # Hjernen, der taler med Gemini.
-    brain = GeminiBrain(model=settings.GEMINI_MODEL, api_key=settings.GEMINI_API_KEY, thinking=settings.GEMINI_THINKING)
+    # Hjernen, der taler med lokal Mistral gennem Ollama.
+    brain = MistralBrain(model=settings.MISTRAL_MODEL, base_url=settings.MISTRAL_BASE_URL)
 
     def build_agent(teams: list[str]) -> AgentService:
         # 9: SAML: Værktøjerne til rollens hold lægges i én ToolService, og systemprompten skrives til de samme hold.
@@ -62,5 +62,5 @@ def build_writer() -> AnswerWriter:
     # Skribenten, der laver vurderingen om til et svar til den valgte rolle (trin 20b).
     # Den får rollens skill (audience-<rolle>) fra Skills-laget, men ingen værktøjer.
     skills = build_skills()
-    brain = GeminiBrain(model=settings.GEMINI_MODEL, api_key=settings.GEMINI_API_KEY, thinking=settings.GEMINI_THINKING)
+    brain = MistralBrain(model=settings.MISTRAL_MODEL, base_url=settings.MISTRAL_BASE_URL)
     return AnswerWriter(brain, lambda role: skills.load(f"audience-{role}").instructions)

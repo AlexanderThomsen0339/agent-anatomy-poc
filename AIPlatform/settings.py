@@ -13,22 +13,12 @@ ROOT = Path(__file__).resolve().parent
 
 
 # 1. Model
-# Gemini-modellen, der tænker i agenten.
-GEMINI_MODEL = "gemini-3.5-flash-lite"
+# Den lokale Mistral-model, der tænker i agenten, kørt gennem Ollama.
+# Hentes med: ollama pull mistral:7b-instruct-v0.3-q4_K_M
+MISTRAL_MODEL = "mistral:7b-instruct-v0.3-q4_K_M"
 
-# Hvor meget Gemini tænker, før den svarer: "minimal", "low", "medium" eller "high".
-# Mere tænkning giver grundigere svar, men hvert skridt tager længere tid.
-# Sæt den til "", hvis modellen ikke kender niveauerne (fx gemini-2.5).
-GEMINI_THINKING = "low"
-
-# Nøglen til Gemini. Skriv den i local_secrets.py ved siden af denne fil:
-#     GEMINI_API_KEY = "your-key"
-# Den fil ignoreres af git, så nøglen aldrig kommer med i et commit.
-# Findes filen ikke, læses nøglen fra miljøvariablen GEMINI_API_KEY.
-try:
-    from local_secrets import GEMINI_API_KEY
-except ImportError:
-    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+# Hvor Ollama lytter. Ollamas OpenAI-kompatible endpoint, ikke Mistrals eget (betalt) API.
+MISTRAL_BASE_URL = "http://localhost:11434/v1"
 
 
 # 2. RAG
