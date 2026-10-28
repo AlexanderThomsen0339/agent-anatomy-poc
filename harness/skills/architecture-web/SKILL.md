@@ -5,7 +5,7 @@ description: Describes how the Web team builds its .NET (C#, ASP.NET Core) web s
 
 # How the Web team codes
 
-This is fixed in advance and does not depend on the project or the requirements. It is `code-review`'s second source of requirements (alongside the user story and kravspec), so it feeds the same Node 4 ("Evaluate User Story & Test Case Conflicts") gate in `evaluation`: a conflict with the rules below is reported as a `RISK` line exactly like a conflict with a user story or test case is reported as `NOT_MET`. Where the code does it differently, that is a `RISK` line.
+This is fixed in advance and does not depend on the project or the requirements. It feeds `evaluation`'s Node 4 ("Evaluate Conflicts") gate in `code-review`: a conflict with the rules below is reported as a `RISK` line exactly like a conflict with a user story or test case is reported as `NOT_MET`. Where the code does it differently, that is a `RISK` line.
 
 ## Solution structure
 The flow is always: controller → service in `Core/<Feature>/Services` → manager → external system.

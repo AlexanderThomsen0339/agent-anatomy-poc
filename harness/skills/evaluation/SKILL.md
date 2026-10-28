@@ -1,35 +1,44 @@
 ---
 name: evaluation
-description: THIS IS THE PROCESS FOR PROCESSING PROMPTS AND ANALYZING THEM, DETERMINING WHICH STATE, NODES AND EDGES (terminology borrowed from langgraph) ARE TO BE USED WHEN GIVING END-USERS A RESPONSE.
+description: The process for a code check. Describes it as a node graph (the langgraph analogy: state, nodes, edges) so every other skill can say exactly which part of it they implement.
 ---
 
-# How we evaluate what to do next
-1. State Definition
-We start by defining our State, which represents the current condition of the codebase and its recent history:
-Target Environment Branch:
-Pull and inspect the latest changes on dev if the end-user's query pertains to the staging or testing environment.
-Pull and inspect main (or master) if the query pertains to the production environment.
-Constraint: Do not account for or analyze any changes on local or feature branches.
+# How we evaluate a code check
 
-2. Nodes & Conditional Flow (Execution Sequence)
-The agent executes the following node graph, using conditional branching to determine the routing path:
-- Node 1: Initial Prompt Analysis
-Action: Analyze the incoming user prompt to identify which specific software module is being referenced or targeted.
-Conditional Edge (Router):
-If module is successfully identified: Route directly to Node 3.
-If module cannot be identified: Route to Node 2.
-- Node 2: Contribution Scan (Fallback Node)
-Action: Scan the repository's latest contributions (focusing on the last month) to inspect all source files that were affected, added, modified, or deleted.
-Outcome: Analyze file paths and changes to resolve and determine the target module, then proceed to Node 3.
-- Node 3: Retrieve Testing Protocols
-Action: Locate the testing protocol file associated with the determined module (located in the RAG folder under the data subfolder).
-Outcome: Scan and parse the retrieved testing protocol, then proceed to Node 4.
-- Node 4: Evaluate User Story & Test Case Conflicts
-Action: Cross-reference the developer's latest contributions against the module's user stories and test cases.
-Outcome: Identify which specific user stories or test cases are potentially in conflict or impacted by the code changes, then proceed to Node 5.
-- Node 5: Knowledge Enrichment (Wiki Docs)
-Action: Retrieve and scan additional wiki documentation to gather supplementary context, specifications, or edge cases.
-Outcome: Use this enriched knowledge base to compute, refine, and finalize your evaluation results.
+This is the root process. It is not a checklist you execute yourself, line by line — `code-review` already
+implements it concretely, step by step, with the exact tool calls to make. Read this first so you know *why*
+those steps exist and in what order, then follow `code-review`.
 
-3. Edges & Graph Transitions
-For the edges governing your journey and graph traversal, rely on your internal tool-calling capabilities and conditional logic handlers to move seamlessly between nodes, evaluate states, and compute the final response.
+## State
+
+The code you are checking: which branch, at which commit, and its newest commits with their diffs.
+This is resolved and handed to you automatically, before you take your first step — you never choose a branch
+yourself, and there is no tool to do so. The commits you see are always on `dev` or `main`, never a local or
+feature branch: a developer's own branch is not part of this tool's job.
+
+## Nodes (what each step decides)
+
+1. **Initial Prompt Analysis** — Read the user's question and decide which module (area — e.g. Regninger,
+   Profil, Overblik, or the user story/feature it names) it is about.
+   - Module identified → go to node 3.
+   - Module not identified → go to node 2.
+2. **Contribution Scan (fallback)** — Look at the newest commits (already shown to you, or fetched with
+   `list_recent_changes`) to see which files and features they touch, and use that to resolve the module.
+   Then go to node 3.
+3. **Retrieve Testing Protocols** — Find the user story and its test cases with `search_requirements` (and
+   `list_requirements` if the question is broad, e.g. "which tests are there").
+4. **Evaluate Conflicts** — Read the actual code (`list_code_files`, `read_code_file`) and cross-reference it
+   against the acceptance criteria and against how the team is supposed to code. Give each requirement a
+   status and each architecture deviation a `RISK` line. This is the result everything downstream is built on.
+
+## Edges
+
+Moving between nodes is just calling the next tool the current node needs — there is no separate mechanism
+for it. A gate is never skipped by guessing instead of calling the tool it depends on.
+
+## Downstream of this graph
+
+This graph produces one assessment, shared by every reader. What happens to it afterward is a presentation
+step, not part of the evaluation itself, and must never add, remove or re-score a finding:
+- `audience-it` rewrites it for a developer.
+- `audience-product` rewrites it for a non-technical reader.

@@ -9,7 +9,7 @@ En skill ligger som en mappe med en SKILL.md:
 
     harness/skills/
         code-review/SKILL.md
-        vocabulary/SKILL.md
+        evaluation/SKILL.md
 
 En SKILL.md ser sådan ud:
 

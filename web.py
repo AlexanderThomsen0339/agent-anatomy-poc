@@ -130,14 +130,13 @@ TEXTS = {
     "da": {
         "i_am": "Jeg er", "new_chat": "Ny samtale", "working": "Arbejder …", "or": " eller ",
         "skill": "📘 Henter reglerne i {}", "search_requirements": "🔎 Slår testcases op: {}",
-        "list_requirements": "📋 Ser listen over alle tests igennem", "search_specification": "📋 Slår forretningens krav op: {}",
+        "list_requirements": "📋 Ser listen over alle tests igennem",
         "list_code_files": "📂 Ser projektets filer igennem", "read_code_file": "📄 Læser {}",
         "list_recent_changes": "🕓 Ser de seneste ændringer på branchen",
         "failed": " (fejlede)",
         "checking_pr": "Tjekker pull request", "no_pr": "Ingen åben pull request passer til spørgsmålet, så jeg tjekker",
         "starting_from": "Starter fra de seneste ændringer på",
         "code": "Kode:", "at_commit": "ved commit", "from_pr": "fra", "sources": "Kilder", "test_cases": "Testcases:",
-        "requirements": "Forretningens krav:",
         "works": "Virker", "see_it": "Se svaret til IT", "requirement": "Kravet", "why_fails": "Hvorfor det fejler",
         "where": "Hvor", "fix": "Ret", "per_requirement": "Vurdering pr. krav", "ai_asks": "AI spørger",
         "your_question": "Dit spørgsmål", "hint": "Enter sender · Shift+Enter giver en ny linje",
@@ -158,14 +157,13 @@ TEXTS = {
     "en": {
         "i_am": "I am", "new_chat": "New chat", "working": "Working …", "or": " or ",
         "skill": "📘 Loading the rules in {}", "search_requirements": "🔎 Looking up test cases: {}",
-        "list_requirements": "📋 Going through the list of all tests", "search_specification": "📋 Looking up the business requirements: {}",
+        "list_requirements": "📋 Going through the list of all tests",
         "list_code_files": "📂 Going through the project's files", "read_code_file": "📄 Reading {}",
         "list_recent_changes": "🕓 Looking at the latest changes on the branch",
         "failed": " (failed)",
         "checking_pr": "Checking pull request", "no_pr": "No open pull request matches the question, so I'm checking",
         "starting_from": "Starting from the latest changes on",
         "code": "Code:", "at_commit": "at commit", "from_pr": "from", "sources": "Sources", "test_cases": "Test cases:",
-        "requirements": "Business requirements:",
         "works": "Works", "see_it": "See the answer for IT", "requirement": "Requirement", "why_fails": "Why it fails",
         "where": "Where", "fix": "Fix", "per_requirement": "Assessment per requirement", "ai_asks": "AI asks",
         "your_question": "Your question", "hint": "Enter sends · Shift+Enter adds a new line",
@@ -192,7 +190,6 @@ FRIENDLY = {
     "load_skill": lambda a: T["skill"].format(a.get('name', '')),
     "search_requirements": lambda a: T["search_requirements"].format(a.get('query', '')),
     "list_requirements": lambda a: T["list_requirements"],
-    "search_specification": lambda a: T["search_specification"].format(a.get('query', '')),
     "list_code_files": lambda a: T["list_code_files"],
     "read_code_file": lambda a: T["read_code_file"].format(a.get('path', '').replace(chr(92), '/').split('/')[-1]),
     "list_recent_changes": lambda a: T["list_recent_changes"],
@@ -254,16 +251,13 @@ def render_changes(checkout: Checkout) -> str:
 
 
 def first_steps(words: str, checkout: Checkout | None) -> list[Action]:
-    """Det, koden slår op, før modellen tænker: kravene, kravspec'en og de filer, de nyeste commits ændrede.
+    """Det, koden slår op, før modellen tænker: kravene og de filer, de nyeste commits ændrede.
 
     Hvorfor ikke lade agenten selv gøre det?
     En lille lokal model springer tit værktøjerne over og skriver ud fra commits alene. Så bygger svaret
     ikke på user storyerne, og siden kan ikke vise, hvad den har kigget i. Agenten kan stadig søge og læse mere selv.
     """
-    actions = [
-        Action("first-req", "search_requirements", {"query": words}),
-        Action("first-spec", "search_specification", {"query": words}),
-    ]
+    actions = [Action("first-req", "search_requirements", {"query": words})]
     changed = re.findall(r"^diff --git a/(\S+) b/", checkout.changes, re.MULTILINE) if checkout else []
     files = [f for f in dict.fromkeys(changed) if f.endswith(settings.FIRST_FILE_TYPES)][: settings.FIRST_FILES]
     actions += [Action(f"first-file-{i}", "read_code_file", {"path": f}) for i, f in enumerate(files)]
@@ -287,7 +281,7 @@ def render_sources(steps: list[Step], checkout: Checkout | None = None) -> str:
     """En lille, lukket boks med de dokumenter og den kode, agenten faktisk har brugt."""
     # Hvorfor ud fra skridtene og ikke fra svaret?
     # Skridtene er det, værktøjerne faktisk returnerede. Svaret er skrevet af AI'en og kan tage fejl.
-    test_files, spec_files, code_files = set(), set(), []
+    test_files, code_files = set(), []
     for step in steps:
         a, o = step.action, step.observation
         if o.is_error:
@@ -296,8 +290,6 @@ def render_sources(steps: list[Step], checkout: Checkout | None = None) -> str:
         sources = {s.split(" › ")[0] for s in re.findall(r"^\[(.+?)\]", o.content, re.MULTILINE)}
         if a.tool == "search_requirements":
             test_files |= sources
-        elif a.tool == "search_specification":
-            spec_files |= sources
         elif a.tool == "read_code_file" and a.arguments.get("path") not in code_files:
             code_files.append(a.arguments.get("path", ""))
 
@@ -317,7 +309,6 @@ def render_sources(steps: list[Step], checkout: Checkout | None = None) -> str:
     return (
         f'<details class="sources"><summary>{T["sources"]}</summary>'
         + rows(T["test_cases"], Path(settings.DATA_FOLDER), test_files)
-        + rows(T["requirements"], Path(settings.SPEC_FOLDER), spec_files)
         + code
         + "".join(f"<li><code>{escape(f)}</code></li>" for f in code_files).join(("<ul>", "</ul>"))
         + "</details>"
@@ -364,7 +355,7 @@ def fingerprint(steps: list[Step]) -> str:
 
 def requirements_fingerprint() -> str:
     """Fingeraftrykket af kravene alene. Er de ændret, tjekkes al koden igen, ikke kun de seneste ændringer."""
-    return hash_files(sorted(Path(settings.SPEC_FOLDER).glob("*.md")) + sorted(Path(settings.DATA_FOLDER).glob("*.xlsx")))
+    return hash_files(sorted(Path(settings.DATA_FOLDER).glob("*.xlsx")))
 
 
 def hash_files(files: list[Path]) -> str:

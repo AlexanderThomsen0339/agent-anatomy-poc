@@ -44,7 +44,7 @@ The page is a chat in Danish. The question is a bubble, each step shows live in 
 
 A question can be followed up. Under each answer is a field for the next question, and the page sends the earlier questions and answers with it (at most 3, in a hidden field `c`, so the server remembers nothing). If the agent can't tell which user story is meant, it doesn't guess: it writes `QUESTION:` and a short question that lists the user stories that could fit (rule in `code-review`), the page shows it under *The agent asks*, and the answer, e.g. "Den om billing", comes back with the conversation.
 
-The test protocols (`harness/data/test-protocols/`, one xlsx per area: Regninger, Profil and Overblik; each numbers its user stories from US-001, so every block is tagged with its *Område*) are examples written for the demo project. The business requirements spec lives in `harness/data/kravspec/` (`SPEC_FOLDER` in `settings.py`) — add your own `.md` file there; each requirement needs an id like `KRAV-REG-03` and a `Dækker:` line naming the user stories it covers.
+The test protocols (`harness/data/test-protocols/`, one xlsx per area: Regninger, Profil and Overblik; each numbers its user stories from US-001, so every block is tagged with its *Område*) are examples written for the demo project.
 
 Which teams a role sees is set in `ROLE_TEAMS` in `settings.py`, and the code gives each role an agent with only those teams' tools; the AI doesn't choose. Both *Produkt / kommunikation* and *IT* see the `web` team's code; only the audience skill used to write the final answer differs between them.
 
@@ -58,16 +58,16 @@ Everything that runs lives in a handful of files at the repo root; everything th
 | `build.py` | The composition root: wires the brain, tools and skills into one agent per role (`ROLE_TEAMS`), plus the docs-only agent and the code checkout service. |
 | `agent.py` | The agent loop (`AgentService`: think → act → see), the router that classifies a question (chat / docs / code check), `AnswerWriter` (writes the answer for a role from the assessment), the assessment model (`Finding`, `Assessment`, the verdict) and `MistralBrain`, the only place that talks to Ollama. |
 | `tools.py` | The tool contracts (`ToolSpec`, `ToolCall`, `ToolResult`), `ToolService` (calls a tool by name) and `CheckoutService` (picks which branch a code check sees). |
-| `tools_impl.py` | The tools themselves: `search_requirements`, `list_requirements`, `search_specification`, `list_code_files`, `read_code_file`, `list_recent_changes`, `search_ot_documents`. |
+| `tools_impl.py` | The tools themselves: `search_requirements`, `list_requirements`, `list_code_files`, `read_code_file`, `list_recent_changes`. |
 | `repository.py` | `GitRepository` (clones/fetches the code to check) and `AzurePullRequestFinder` (finds an open PR matching a user story id). |
-| `rag.py` | Loads and searches the documents: `XlsxLoader`/`MarkdownLoader`/`PdfLoader`/`XlsxTableLoader` read the files, `ParagraphChunker` splits them into chunks, `KeywordIndex` searches them. |
+| `rag.py` | Loads and searches the documents: `XlsxLoader` reads the test protocols, `ParagraphChunker` splits them into chunks, `KeywordIndex` searches them. |
 | `skills.py` | Reads skills from `harness/skills/*/SKILL.md` and exposes them as a catalog plus `load_skill`, the tool an agent uses to fetch one. |
 | `settings.py` | All configuration in one place: the model, folders, teams, roles and prompts. |
 
 | Folder | What's in it |
 |---|---|
-| `harness/skills/` | The skills: `code-review`, `architecture-web`, `audience-product`, `audience-it`, `vocabulary`, `evaluation`. |
-| `harness/data/` | Sample data: `test-protocols/` (xlsx test cases). Add your own `kravspec/*.md` here with the business requirements. |
+| `harness/skills/` | The skills: `evaluation`, `code-review`, `architecture-web`, `audience-product`, `audience-it`. |
+| `harness/data/` | Sample data: `test-protocols/` (xlsx test cases). |
 | `harness/diagrams/` | The architecture diagram shown during a demo. |
 | `harness/Praesentation/` | The slide deck used to present the POC. |
 | `harness/test-results/` | Saved example sessions. |
@@ -79,7 +79,7 @@ Everything is in `settings.py`:
 | Setting | What it does |
 |---|---|
 | `MISTRAL_MODEL`, `MISTRAL_BASE_URL`, `MISTRAL_CONTEXT` | Which local model thinks (via Ollama), where Ollama listens, and how much text it can see per call. |
-| `DATA_FOLDER`, `SPEC_FOLDER` | The xlsx test cases and the kravspec `.md` files. |
+| `DATA_FOLDER` | The xlsx test cases. |
 | `SEARCH_K` | How many results a search returns. |
 | `CODE_REPO`, `CODE_BRANCH` | The git repo with the code to check, and the branch to check when no open pull request into it matches the question (`dev`, following IT's feature branch → `dev` → `main` rule). It is cloned at start and fetched again before every code check. Empty `CODE_REPO` reads `CODE_FOLDER` as it is. |
 | `AZURE_DEVOPS_PAT` | The token git and the pull request search use to read `CODE_REPO`. Read from `local_secrets.py`, or from the `AZURE_DEVOPS_PAT` environment variable. It is sent as a header to git and never stored in the clone. |
