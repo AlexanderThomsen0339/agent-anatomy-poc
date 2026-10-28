@@ -16,7 +16,7 @@ HARNESS = ROOT / "harness"
 # 1. Model
 # Den lokale Mistral-model, der tænker i agenten, kørt gennem Ollama.
 # Hentes med: ollama pull mistral:7b-instruct-v0.3-q4_K_M
-MISTRAL_MODEL = "mistral:7b-instruct-v0.3-q4_K_M"
+MISTRAL_MODEL = "my-mistral:latest"
 
 # Hvor Ollama lytter.
 MISTRAL_BASE_URL = "http://localhost:11434"
