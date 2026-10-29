@@ -20,7 +20,7 @@ PORT = 8000
 
 HEAD = """<!doctype html>
 <html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI Platform POC</title>
+<title>AIMA</title>
 <style>
 /* Aalborg Forsynings farver (brand colours). Mørk tilstand følger styresystemet. */
 :root {
@@ -105,7 +105,7 @@ button.send:disabled { opacity: .6; cursor: progress; }
 pre { white-space: pre-wrap; background: var(--code-bg); padding: 1em; border-radius: 6px; }
 </style></head><body>
 <header><div class="bar">
-{logo}<div class="title"><h1>AI Platform POC</h1><p>{use_case}</p></div>
+{logo}<div class="title"><h1>AIMA</h1><p>{use_case}</p></div>
 <form method="get" action="/"><label>{i_am} <select name="role" onchange="if (this.selectedOptions[0].dataset.use != '{use_case_key}') { this.form.q.value = ''; this.form.c.value = ''; } this.form.submit()">{roles}</select></label>{keep}</form>
 <a href="/?role={role}">{new_chat}</a>
 </div></header>
@@ -166,7 +166,7 @@ TEXTS = {
         "writing": "Skriver svaret", "yes_check": "Ja, tjek det", "reply_here": "Svar her", "reply": "Svar",
         "error": "Fejl.", "try_again": "Prøv igen",
         "teams": {
-            settings.TEAM: ("Kodetjek", "om det, der er lavet, virker og kan gå igennem testene"),
+            settings.TEAM: ("Spørg om løsningen og testene", "om det, der er lavet, virker og kan gå igennem testene"),
         },
         # Eksemplerne pr. rolle, skrevet sådan som holdet selv spørger. Ingen user story-id'er: man skal ikke kende dem.
         "examples": {
@@ -198,7 +198,7 @@ TEXTS = {
         "writing": "Writing the answer", "yes_check": "Yes, check it", "reply_here": "Reply here", "reply": "Reply",
         "error": "Error.", "try_again": "Try again",
         "teams": {
-            settings.TEAM: ("Code check", "whether what was built works and can pass the tests"),
+            settings.TEAM: ("Ask about the solution and the tests", "whether what was built works and can pass the tests"),
         },
         "examples": {
             "product": ["Can customers see their bills on the test site?", "What has changed since yesterday?"],
@@ -732,7 +732,7 @@ def main():
     # VENT: Serveren er klar og venter på, at nogen stiller et spørgsmål på siden.
     # Hvert spørgsmål lander i Handler.do_GET() herover.
     server = ThreadingHTTPServer(("localhost", PORT), make_handler(agents, writer, checkouts, router, docs))
-    print(f"AI Platform POC is running on http://localhost:{PORT} (Ctrl+C to stop)")
+    print(f"AIMA is running on http://localhost:{PORT} (Ctrl+C to stop)")
     server.serve_forever()
 
 
