@@ -5,7 +5,7 @@ description: How to write the answer for IT. Used to turn the code-review assess
 
 # Answer for IT
 
-This runs strictly after `evaluation`'s Node 4 ("Evaluate User Story & Test Case Conflicts") has already produced its result via `code-review`. This skill only rewrites that finished result for a developer reader: it is a presentation gate, not an evaluation gate, so it must never add, remove or re-score a finding — only change how each one reads.
+This runs strictly after `evaluation`'s Node 4 ("Evaluate Conflicts") has already produced its result via `code-review`. This skill only rewrites that finished result for a developer reader: it is a presentation gate, not an evaluation gate, so it must never add, remove or re-score a finding — only change how each one reads.
 
 The reader wrote or will fix the code. They want to know exactly where the code falls short and why, so they can fix it.
 - **Answer only what was asked.** If the question is about one thing, answer only that.
@@ -23,7 +23,7 @@ Use exactly this layout. Leave out a section that would have no lines, heading a
 
 **Mangler**: one line per NOT_MET, in this form:
 `❌ file.cs:line (ids): what the code does, and why it breaks the requirement. Ret: how to fix.`
-e.g. ❌ `Views/Partials/BillingTableBody.cshtml:8` (KRAV-REG-04, AC7): `@row.InvoiceDate` udskrives i ISO-format. Ret: `date.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)` i mappingen.
+e.g. ❌ `Views/Partials/BillingTableBody.cshtml:8` (AC7): `@row.InvoiceDate` udskrives i ISO-format. Ret: `date.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)` i mappingen.
 
 **Kan ikke afgøres**: one line per CANT_TELL, starting with ❓ and `file.cs:line` (ids), and what would show it.
 

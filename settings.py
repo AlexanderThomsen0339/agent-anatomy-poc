@@ -36,7 +36,7 @@ except ImportError:
 
 # Den lokale Mistral-model, når BRAIN = "mistral", kørt gennem Ollama.
 # Hentes med: ollama pull mistral:7b-instruct-v0.3-q4_K_M
-MISTRAL_MODEL = "mistral:7b-instruct-v0.3-q4_K_M"
+MISTRAL_MODEL = "my-mistral:latest"
 
 # Hvor Ollama lytter.
 MISTRAL_BASE_URL = "http://localhost:11434"
@@ -49,10 +49,6 @@ MISTRAL_CONTEXT = 32768
 # 2. RAG
 # Mappen med user stories og testcases (.xlsx), som search_requirements søger i.
 DATA_FOLDER = HARNESS / "data" / "test-protocols"
-
-# Mappen med forretningens kravspec (.md), som search_specification søger i.
-# Hvert krav har et id som KRAV-REG-03 og en linje "Dækker:" med de user stories og testcases, det hører til.
-SPEC_FOLDER = HARNESS / "data" / "kravspec"
 
 
 # 3. MCP
@@ -90,7 +86,7 @@ SKILLS_FOLDER = HARNESS / "skills"
 
 # IT's hold, og hvad det laver. Agenterne får beskrivelsen, så de ved, hvis kode de ser på.
 TEAMS = {
-    "web": "builds Mit Aalborg Forsyning in .NET (C#, ASP.NET Core). Its code is checked against the user stories, test cases and kravspec.",
+    "web": "builds Mit Aalborg Forsyning in .NET (C#, ASP.NET Core). Its code is checked against the user stories and test cases.",
 }
 
 # Holdet, der ejer koden i CODE_FOLDER. Agenten tjekker koden mod, hvordan holdet koder,
@@ -113,6 +109,12 @@ ROLE_TEAMS = {
     "product": ["web"],
     "it": ["web"],
 }
+
+
+# Aalborg Forsynings logo i toppen af siden. Læg filen her (svg eller png). Findes den ikke, vises siden uden logo.
+LOGO_FILE = HARNESS / "assets" / "logo.svg"
+if not LOGO_FILE.exists() and LOGO_FILE.with_suffix(".png").exists():
+    LOGO_FILE = LOGO_FILE.with_suffix(".png")
 
 
 # 5. Sprog
@@ -145,7 +147,7 @@ LANGUAGE_NOTE = ENGLISH_NOTE if LANGUAGE == "en" else DANISH_NOTE
 
 # 6. Agent
 # Grænsen for antal skridt. Beskytter mod en agent, der kører i ring.
-# Et kodetjek skal både søge krav og kravspec, hente to skills, liste filer og læse flere filer, så den er sat højere end i originalen.
+# Et kodetjek skal både søge kravene, liste filer og læse flere filer, så den er sat højere end i originalen.
 MAX_STEPS = 20
 
 # Lader koden søge kravene og læse de ændrede filer, før modellen tænker første gang (first_steps i web.py).
@@ -161,7 +163,7 @@ SYSTEM_PROMPT = (
     "You check whether the code solves a task, and write an assessment by the code-review rules. "
     "You never write the answer for the person asking: another step turns your assessment into that answer.\n"
     "The tasks are user stories and test cases for Mit Aalborg Forsyning, found with search_requirements. "
-    "The business requirements (kravspec) are found with search_specification. Both are written in Danish.\n"
+    "It is written in Danish.\n"
     "You see the developer's code with list_code_files and read_code_file, and the newest commits with list_recent_changes. "
     "You can only read the code, never change it."
 )
@@ -170,7 +172,7 @@ SYSTEM_PROMPT = (
 # En lille lokal model skriver ofte fri tekst i stedet for formatet, og så kan siden ikke læse en dom ud af svaret.
 FORMAT_REMINDER = (
     "\n\nYour last answer could not be read, because it did not follow the code-review format. Do it again:\n"
-    "1. If you have not found the user story yet, call search_requirements (and search_specification) first.\n"
+    "1. If you have not found the user story yet, call search_requirements first.\n"
     "2. Then write ONLY the assessment lines, one per requirement, seven parts separated by |:\n"
     "STATUS | ids | requirement | why in plain words | what the code does | file:line | how to fix\n"
     "STATUS is MET, NOT_MET, CANT_TELL or RISK. No other text, no headings, no summary.\n"
@@ -180,7 +182,7 @@ FORMAT_REMINDER = (
 # Instruktionen til opslag i testprotokollerne og kravene, når et spørgsmål ikke kræver koden (Router: DOCS).
 DOCS_PROMPT = (
     "You answer questions about the test protocols for Mit Aalborg Forsyning (user stories, acceptance criteria and test cases: "
-    "list_requirements lists them all, search_requirements finds the details of one) and the business requirements (kravspec, found with search_specification). Both are in Danish.\n"
+    "list_requirements lists them all, search_requirements finds the details of one). It is in Danish.\n"
     "Each area (Regninger, Profil, Overblik) numbers its user stories from US-001, so always name the area with the id.\n"
     "You never see the code, so never say whether the code meets a test. If the user wants that, tell them they can ask, "
     "e.g. \"Virker Vis regningsoversigt?\".\n"

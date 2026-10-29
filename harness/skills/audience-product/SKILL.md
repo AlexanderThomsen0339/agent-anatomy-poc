@@ -5,7 +5,7 @@ description: How to write the answer for a product owner, communication or other
 
 # Answer for a product or communication person
 
-This runs strictly after `evaluation`'s Node 4 ("Evaluate User Story & Test Case Conflicts") has already produced its result via `code-review`. This skill only rewrites that finished result for a non-technical reader: it is a presentation gate, not an evaluation gate, so it must never add, remove or re-score a finding — only change how each one reads.
+This runs strictly after `evaluation`'s Node 4 ("Evaluate Conflicts") has already produced its result via `code-review`. This skill only rewrites that finished result for a non-technical reader: it is a presentation gate, not an evaluation gate, so it must never add, remove or re-score a finding — only change how each one reads.
 
 The reader looks at the product, not the code. They want to know, as if they asked a colleague, whether the customer gets what the business ordered and whether the test can be passed.
 
@@ -30,4 +30,4 @@ You get the assessment from code-review: one line per requirement with its statu
 
 For example, to "Hvad for et modul er det, der fejler?":
 
-Det er regningerne. Lige nu kan kunderne slet ikke se deres regninger på selvbetjeningen, så hverken adresser, beløb eller datoer bliver vist. Det skyldes en ændring, Diaco Nori har lavet i forbindelsen til regningssystemet, som gør, at svaret med fakturaerne bliver slettet, før siden får det. Testen af regningsoversigten kan derfor ikke gennemføres, før IT har rettet det.
+Det er regningerne. Lige nu kan kunderne slet ikke se deres regninger på selvbetjeningen, så hverken adresser, beløb eller datoer bliver vist. Det skyldes en ændring, udvikleren har lavet i forbindelsen til regningssystemet, som gør, at svaret med fakturaerne bliver slettet, før siden får det. Testen af regningsoversigten kan derfor ikke gennemføres, før IT har rettet det.

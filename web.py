@@ -2,6 +2,7 @@
 Start siden:
     python web.py
 """
+import base64
 import hashlib
 import json
 import re
@@ -45,6 +46,8 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 "Se
 header { background: var(--hero); color: var(--hero-text); padding: 1em 16px; }
 .bar { max-width: 860px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: .6em 1.2em; }
 .bar .title { flex: 1 1 auto; }
+/* Logoet står på en hvid plade, så det kan ses på den mørke top. */
+.logo { height: 2.8em; background: #fff; border-radius: 6px; padding: .3em .5em; }
 header h1 { margin: 0; font-size: 1.35em; font-weight: 600; }
 header p { margin: 0; opacity: .85; font-size: .9em; }
 header form { margin: 0; }
@@ -102,12 +105,24 @@ button.send:disabled { opacity: .6; cursor: progress; }
 pre { white-space: pre-wrap; background: var(--code-bg); padding: 1em; border-radius: 6px; }
 </style></head><body>
 <header><div class="bar">
-<div class="title"><h1>AI Platform POC</h1><p>{use_case}</p></div>
+{logo}<div class="title"><h1>AI Platform POC</h1><p>{use_case}</p></div>
 <form method="get" action="/"><label>{i_am} <select name="role" onchange="if (this.selectedOptions[0].dataset.use != '{use_case_key}') { this.form.q.value = ''; this.form.c.value = ''; } this.form.submit()">{roles}</select></label>{keep}</form>
 <a href="/?role={role}">{new_chat}</a>
 </div></header>
 <main>
 """
+
+
+def logo_html() -> str:
+    """Logoet som et billede inde i siden (data-URI), så serveren ikke skal kunne sende filer. Tomt, hvis filen mangler."""
+    if not settings.LOGO_FILE.exists():
+        return ""
+    kind = "svg+xml" if settings.LOGO_FILE.suffix == ".svg" else "png"
+    data = base64.b64encode(settings.LOGO_FILE.read_bytes()).decode()
+    return f'<img class="logo" src="data:image/{kind};base64,{data}" alt="Aalborg Forsyning">'
+
+
+HEAD = HEAD.replace("{logo}", logo_html())
 
 
 # Lidt JavaScript til sidst på siden. Siden virker også uden.
@@ -130,14 +145,13 @@ TEXTS = {
     "da": {
         "i_am": "Jeg er", "new_chat": "Ny samtale", "working": "Arbejder …", "or": " eller ",
         "skill": "📘 Henter reglerne i {}", "search_requirements": "🔎 Slår testcases op: {}",
-        "list_requirements": "📋 Ser listen over alle tests igennem", "search_specification": "📋 Slår forretningens krav op: {}",
+        "list_requirements": "📋 Ser listen over alle tests igennem",
         "list_code_files": "📂 Ser projektets filer igennem", "read_code_file": "📄 Læser {}",
         "list_recent_changes": "🕓 Ser de seneste ændringer på branchen",
         "failed": " (fejlede)",
         "checking_pr": "Tjekker pull request", "no_pr": "Ingen åben pull request passer til spørgsmålet, så jeg tjekker",
         "starting_from": "Starter fra de seneste ændringer på",
         "code": "Kode:", "at_commit": "ved commit", "from_pr": "fra", "sources": "Kilder", "test_cases": "Testcases:",
-        "requirements": "Forretningens krav:",
         "works": "Virker", "see_it": "Se svaret til IT", "requirement": "Kravet", "why_fails": "Hvorfor det fejler",
         "where": "Hvor", "fix": "Ret", "per_requirement": "Vurdering pr. krav", "ai_asks": "AI spørger",
         "your_question": "Dit spørgsmål", "hint": "Enter sender · Shift+Enter giver en ny linje",
@@ -147,25 +161,29 @@ TEXTS = {
         "answer_for": "AI · svar til {}", "fetch_failed": "Kunne ikke hente koden, så den sidste kopi bruges: {}",
         "reused": "Koden og kravene er ikke ændret, så det tidligere tjek bruges",
         "checked_before": "Tjekket før på commit {}, så kun det, der er ændret siden, læses ({} {}):", "file": "fil", "files": "filer",
-        "not_finished": "<b>Ikke færdig.</b> Agenten nåede ikke frem til en vurdering. Prøv at spørge igen, gerne med user storyens id.",
+        "not_finished": "<b>Ikke færdig.</b> Agenten nåede ikke frem til en vurdering. Prøv at spørge igen, gerne med den side eller funktion, det handler om.",
         "model_text": "Det, modellen skrev",
         "writing": "Skriver svaret", "yes_check": "Ja, tjek det", "reply_here": "Svar her", "reply": "Svar",
         "error": "Fejl.", "try_again": "Prøv igen",
         "teams": {
-            settings.TEAM: ("Kodetjek", "om koden løser en user story", ["Løser koden US-004?", "Er kravene til regninger overholdt?"]),
+            settings.TEAM: ("Kodetjek", "om det, der er lavet, virker og kan gå igennem testene"),
+        },
+        # Eksemplerne pr. rolle, skrevet sådan som holdet selv spørger. Ingen user story-id'er: man skal ikke kende dem.
+        "examples": {
+            "product": ["Kan kunderne se deres regninger på testsiden?", "Hvad er der lavet om siden i går?"],
+            "it": ["Kan testene gennemføres efter de seneste ændringer?", "Hvilke krav mangler at blive løst?"],
         },
     },
     "en": {
         "i_am": "I am", "new_chat": "New chat", "working": "Working …", "or": " or ",
         "skill": "📘 Loading the rules in {}", "search_requirements": "🔎 Looking up test cases: {}",
-        "list_requirements": "📋 Going through the list of all tests", "search_specification": "📋 Looking up the business requirements: {}",
+        "list_requirements": "📋 Going through the list of all tests",
         "list_code_files": "📂 Going through the project's files", "read_code_file": "📄 Reading {}",
         "list_recent_changes": "🕓 Looking at the latest changes on the branch",
         "failed": " (failed)",
         "checking_pr": "Checking pull request", "no_pr": "No open pull request matches the question, so I'm checking",
         "starting_from": "Starting from the latest changes on",
         "code": "Code:", "at_commit": "at commit", "from_pr": "from", "sources": "Sources", "test_cases": "Test cases:",
-        "requirements": "Business requirements:",
         "works": "Works", "see_it": "See the answer for IT", "requirement": "Requirement", "why_fails": "Why it fails",
         "where": "Where", "fix": "Fix", "per_requirement": "Assessment per requirement", "ai_asks": "AI asks",
         "your_question": "Your question", "hint": "Enter sends · Shift+Enter adds a new line",
@@ -175,12 +193,16 @@ TEXTS = {
         "answer_for": "AI · answer for {}", "fetch_failed": "Could not fetch the code, so the last copy is used: {}",
         "reused": "The code and requirements haven't changed, so the earlier check is used",
         "checked_before": "Checked before on commit {}, so only what changed since is read ({} {}):", "file": "file", "files": "files",
-        "not_finished": "<b>Not finished.</b> The agent didn't reach an assessment. Try asking again, ideally with the user story's id.",
+        "not_finished": "<b>Not finished.</b> The agent didn't reach an assessment. Try asking again, ideally naming the page or feature it is about.",
         "model_text": "What the model wrote",
         "writing": "Writing the answer", "yes_check": "Yes, check it", "reply_here": "Reply here", "reply": "Reply",
         "error": "Error.", "try_again": "Try again",
         "teams": {
-            settings.TEAM: ("Code check", "whether the code solves a user story", ["Does the code solve US-004?", "Are the billing requirements met?"]),
+            settings.TEAM: ("Code check", "whether what was built works and can pass the tests"),
+        },
+        "examples": {
+            "product": ["Can customers see their bills on the test site?", "What has changed since yesterday?"],
+            "it": ["Can the tests be passed after the latest changes?", "Which requirements are still not met?"],
         },
     },
 }
@@ -192,23 +214,21 @@ FRIENDLY = {
     "load_skill": lambda a: T["skill"].format(a.get('name', '')),
     "search_requirements": lambda a: T["search_requirements"].format(a.get('query', '')),
     "list_requirements": lambda a: T["list_requirements"],
-    "search_specification": lambda a: T["search_specification"].format(a.get('query', '')),
     "list_code_files": lambda a: T["list_code_files"],
     "read_code_file": lambda a: T["read_code_file"].format(a.get('path', '').replace(chr(92), '/').split('/')[-1]),
     "list_recent_changes": lambda a: T["list_recent_changes"],
 }
 
-# Teksten på siden for hvert hold: overskrift, hvad man kan spørge om, og eksempler, man kan klikke på.
-# En rolle, der ser flere hold, får dem alle.
+# Teksten på siden for hvert hold: overskrift og hvad man kan spørge om. En rolle, der ser flere hold, får dem alle.
+# Eksemplerne, man kan klikke på, følger rollen (T["examples"]), så IT og kommunikation får hver deres.
 PAGE_TEXT = T["teams"]
 
 
-def page_text(teams: list[str]) -> tuple[str, str, list[str]]:
-    """Overskrift, hvad man kan spørge om, og eksempler til siden for en rolle, der ser de givne hold."""
+def page_text(teams: list[str], role: str) -> tuple[str, str, list[str]]:
+    """Overskrift, hvad man kan spørge om, og eksempler til siden for rollen, der ser de givne hold."""
     heading = " · ".join(PAGE_TEXT[t][0] for t in teams)
     topics = T["or"].join(PAGE_TEXT[t][1] for t in teams)
-    examples = [e for t in teams for e in PAGE_TEXT[t][2]]
-    return heading, topics, examples
+    return heading, topics, T["examples"][role]
 
 
 def render_step(steps: list[Step]) -> str:
@@ -254,16 +274,13 @@ def render_changes(checkout: Checkout) -> str:
 
 
 def first_steps(words: str, checkout: Checkout | None) -> list[Action]:
-    """Det, koden slår op, før modellen tænker: kravene, kravspec'en og de filer, de nyeste commits ændrede.
+    """Det, koden slår op, før modellen tænker: kravene og de filer, de nyeste commits ændrede.
 
     Hvorfor ikke lade agenten selv gøre det?
     En lille lokal model springer tit værktøjerne over og skriver ud fra commits alene. Så bygger svaret
     ikke på user storyerne, og siden kan ikke vise, hvad den har kigget i. Agenten kan stadig søge og læse mere selv.
     """
-    actions = [
-        Action("first-req", "search_requirements", {"query": words}),
-        Action("first-spec", "search_specification", {"query": words}),
-    ]
+    actions = [Action("first-req", "search_requirements", {"query": words})]
     changed = re.findall(r"^diff --git a/(\S+) b/", checkout.changes, re.MULTILINE) if checkout else []
     files = [f for f in dict.fromkeys(changed) if f.endswith(settings.FIRST_FILE_TYPES)][: settings.FIRST_FILES]
     actions += [Action(f"first-file-{i}", "read_code_file", {"path": f}) for i, f in enumerate(files)]
@@ -287,7 +304,7 @@ def render_sources(steps: list[Step], checkout: Checkout | None = None) -> str:
     """En lille, lukket boks med de dokumenter og den kode, agenten faktisk har brugt."""
     # Hvorfor ud fra skridtene og ikke fra svaret?
     # Skridtene er det, værktøjerne faktisk returnerede. Svaret er skrevet af AI'en og kan tage fejl.
-    test_files, spec_files, code_files = set(), set(), []
+    test_files, code_files = set(), []
     for step in steps:
         a, o = step.action, step.observation
         if o.is_error:
@@ -296,8 +313,6 @@ def render_sources(steps: list[Step], checkout: Checkout | None = None) -> str:
         sources = {s.split(" › ")[0] for s in re.findall(r"^\[(.+?)\]", o.content, re.MULTILINE)}
         if a.tool == "search_requirements":
             test_files |= sources
-        elif a.tool == "search_specification":
-            spec_files |= sources
         elif a.tool == "read_code_file" and a.arguments.get("path") not in code_files:
             code_files.append(a.arguments.get("path", ""))
 
@@ -317,7 +332,6 @@ def render_sources(steps: list[Step], checkout: Checkout | None = None) -> str:
     return (
         f'<details class="sources"><summary>{T["sources"]}</summary>'
         + rows(T["test_cases"], Path(settings.DATA_FOLDER), test_files)
-        + rows(T["requirements"], Path(settings.SPEC_FOLDER), spec_files)
         + code
         + "".join(f"<li><code>{escape(f)}</code></li>" for f in code_files).join(("<ul>", "</ul>"))
         + "</details>"
@@ -364,7 +378,7 @@ def fingerprint(steps: list[Step]) -> str:
 
 def requirements_fingerprint() -> str:
     """Fingeraftrykket af kravene alene. Er de ændret, tjekkes al koden igen, ikke kun de seneste ændringer."""
-    return hash_files(sorted(Path(settings.SPEC_FOLDER).glob("*.md")) + sorted(Path(settings.DATA_FOLDER).glob("*.xlsx")))
+    return hash_files(sorted(Path(settings.DATA_FOLDER).glob("*.xlsx")))
 
 
 def hash_files(files: list[Path]) -> str:
@@ -543,7 +557,7 @@ def make_handler(agents, writer, checkouts, router=None, docs=None):
                 f'<input type="hidden" name="q" value="{escape(question)}">'
                 f'<input type="hidden" name="c" value="{escape(json.dumps(conversation, ensure_ascii=False)) if conversation else ""}">'
             )
-            heading, topics, examples = page_text(teams)
+            heading, topics, examples = page_text(teams, role)
             self.write(
                 HEAD.replace("{roles}", roles).replace("{keep}", keep).replace("{role}", escape(role))
                 .replace("{use_case_key}", "+".join(teams)).replace("{use_case}", heading)

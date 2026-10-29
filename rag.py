@@ -1,4 +1,4 @@
-"""RAG: indlæser dokumenter (testcases, kravspec) og søger i dem.
+"""RAG: indlæser dokumenter (testcases) og søger i dem.
 
 Hvorfor egne modeller?
 Resten af koden skal kunne tale om "et dokument", "et afsnit" og "et søgeresultat"
@@ -153,24 +153,6 @@ class KeywordIndex:
         # Bedste resultater først, og kun de k bedste.
         results.sort(key=lambda r: r.score, reverse=True)
         return results[:k]
-
-
-class MarkdownLoader:
-    """Læser kravspecifikationer fra alle .md-filer i en mappe.
-
-    Hver fil bliver ét dokument. Hvert krav står som sin egen blok adskilt af en tom linje,
-    så ParagraphChunker deler dem op med ét krav pr. afsnit, ligesom user stories i xlsx.
-    """
-
-    def __init__(self, folder: str | Path):
-        self.folder = Path(folder)
-
-    def load(self) -> list[Document]:
-        # Hver .md-fil bliver til ét dokument.
-        return [
-            Document(source=file.name, text=file.read_text(encoding="utf-8"))
-            for file in sorted(self.folder.glob("*.md"))
-        ]
 
 
 # En række, der starter en ny blok: US-001, TC-011, US-00x, TC-00x osv.

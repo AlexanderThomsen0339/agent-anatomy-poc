@@ -1,11 +1,11 @@
 """Samler alt: hjernen, alle værktøjer og skills."""
 import settings
 from agent import AgentService, AnswerWriter, Router, Step, parse_assessment
-from rag import IngestService, KeywordIndex, MarkdownLoader, ParagraphChunker, XlsxLoader
+from rag import IngestService, KeywordIndex, ParagraphChunker, XlsxLoader
 from repository import AzurePullRequestFinder, GitRepository
 from skills import FileSkillRepository, LoadSkillTool, SkillService
 from tools import CheckoutService, ToolService
-from tools_impl import CodeChangesTool, CodeListTool, CodeReadTool, RequirementsListTool, RequirementsSearchTool, SpecificationSearchTool
+from tools_impl import CodeChangesTool, CodeListTool, CodeReadTool, RequirementsListTool, RequirementsSearchTool
 
 
 def make_brain():
@@ -33,16 +33,11 @@ def build_tool_service() -> ToolService:
     requirements = KeywordIndex()
     IngestService(XlsxLoader(settings.DATA_FOLDER), ParagraphChunker(), requirements).run()
 
-    # Kravspec får sit eget indeks, så et krav ikke drukner mellem testcases i søgningen.
-    specification = KeywordIndex()
-    IngestService(MarkdownLoader(settings.SPEC_FOLDER), ParagraphChunker(), specification).run()
-
-    # De seks værktøjer, AI'en kan kalde.
+    # De fem værktøjer, AI'en kan kalde.
     tools = [
         RequirementsSearchTool(requirements, k=settings.SEARCH_K),
         # Oversigten over alle tests, så "Hvilke tests er der?" ikke kun får de få bedste søgetræf.
         RequirementsListTool(XlsxLoader(settings.DATA_FOLDER).load()),
-        SpecificationSearchTool(specification, k=settings.SEARCH_K),
         CodeListTool(settings.CODE_FOLDER),
         CodeReadTool(settings.CODE_FOLDER),
         CodeChangesTool(settings.CODE_FOLDER),
@@ -79,19 +74,21 @@ def build_agents() -> tuple[dict[str, AgentService], AgentService]:
     brain = make_brain()
 
     def build_agent() -> AgentService:
-        # Kodetjek: krav, kravspec og kode. code-review og holdets architecture-skill skal bruges i hvert
-        # kodetjek, så koden sætter dem ind i systemprompten i stedet for at lade agenten vælge at hente dem.
+        # Kodetjek: krav og kode. evaluation (processen), code-review og holdets architecture-skill skal
+        # bruges i hvert kodetjek, så koden sætter dem ind i systemprompten i stedet for at lade en lille
+        # model vælge selv at hente dem med load_skill, hvilket den ikke er til at stole på at gøre.
         # audience-skills skjules: rollen bruges først, når svaret skrives (AnswerWriter), aldrig i vurderingen.
-        # load_skill gives kun, hvis der er andre skills, agenten selv kan vælge.
+        # load_skill gives kun, hvis der er andre skills tilbage, agenten selv kan vælge.
         tools = list(code_tools.tools.values())
         architecture = f"architecture-{settings.TEAM}"
+        hide = ("audience-", "evaluation", "code-review", architecture)
         system = (
             settings.SYSTEM_PROMPT
             + f"\nThe code belongs to IT's {settings.TEAM} team, which {settings.TEAMS[settings.TEAM]}"
+            + "\n\n" + skills.load("evaluation").instructions
             + "\n\n" + skills.load("code-review").instructions
             + "\n\n" + skills.load(architecture).instructions
         )
-        hide = ("audience-", "code-review", architecture)
         if any(not s.name.startswith(hide) for s in skills.list_skills()):
             tools.append(LoadSkillTool(skills))
             system += "\n\nIf a task fits a skill, load it with load_skill before you start.\nSkills:\n" + skills.catalog(hide=hide)
@@ -101,7 +98,7 @@ def build_agents() -> tuple[dict[str, AgentService], AgentService]:
         )
 
     agents = {role: build_agent() for role in settings.ROLE_TEAMS}
-    docs_tools = [code_tools.tools[name] for name in ("list_requirements", "search_requirements", "search_specification")]
+    docs_tools = [code_tools.tools[name] for name in ("list_requirements", "search_requirements")]
     docs = AgentService(brain, ToolService(docs_tools), settings.DOCS_PROMPT + settings.LANGUAGE_NOTE, max_steps=settings.DOCS_MAX_STEPS)
     return agents, docs
 
